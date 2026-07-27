@@ -1,229 +1,179 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
-public class EnemyController : MonoBehaviour//, IDamageable
+/*
+    First:
+    Prove the architecture with Debug.Log. !
+    
+    Then:
+    Add real Patrol behavior. !
+    
+    Then:
+    Supply waypoints. !
+    
+    Then:
+    Add detection and Chase.
+    
+    Then:
+    Add animations.
+ */
+
+// any thing that any state might need
+public class EnemyController : MonoBehaviour
 {
-    [Header("Enemy Stats")]
-    public float health = 250f;
-    public float damage = 5f;
+    private EnemyStateMachine stateMachine;
 
-    [Header("Enemy Behaviour")]
+    private NavMeshAgent agent;
+    private Animator animator;
 
-    BehaviourTree tree;
-    [SerializeField] GameObject player;
-    NavMeshAgent agent;
-    [SerializeField] Animator animator;
-    [SerializeField] GameObject enemyModel;
-    [SerializeField] Rigidbody rb;
+    [SerializeField] Transform targetTransform;
 
-    [Header("Attack Settings")]
-    float attackCooldownTimer = 0f;
-    string IdleAnimation = "CombatIdle";
-    string AttackAnimation = "Attack1Light";
-    string HitAnimation = "GetHit";
-    int hashIdleAnimation;
-    int hashAttackAnimation;
-    int hashHitAnimation;
-    [SerializeField] float attackCooldown = 1.5f;
+    [Header("-----chasing the player-----")]
+    [SerializeField] private float detectionDistance;
+    [SerializeField] private float loseTargetDistance;
+    [SerializeField] private float attackRange;
+    [SerializeField] private float patrolRange;
 
-    [Header("Stun Settings")]
-    [SerializeField] float stunDuration = 0.75f;
-    bool wasDamaged = false;
-    float stunTimer = 0f;
+    [SerializeField] private float patrolSpeed;
+    [SerializeField] private float chaseSpeed;
 
-    public enum EnemyState
-    {
-        Idle,
-        Chasing,
-        Attacking,
-        Stunned
-    }
-    public EnemyState currentState = EnemyState.Idle;
+    [SerializeField] private float waypointStoppingDistance;
+    [SerializeField] private float viewHalfAngle;
 
-    Node.Status treeStatus = Node.Status.running;
+    [Header("----------------------------")]
+    [SerializeField] Text _debugText;
 
-    void Awake()
-    {
-        agent = GetComponent<NavMeshAgent>();
-        rb = GetComponent<Rigidbody>();
-        hashIdleAnimation = Animator.StringToHash(IdleAnimation);
-        hashAttackAnimation = Animator.StringToHash(AttackAnimation);
-        hashHitAnimation = Animator.StringToHash(HitAnimation);
-        animator.Play(hashIdleAnimation);
-    }
+    private bool hasTarget;
 
+    // agent = the private field that stores the component
+    // Agent = the public read-only property that returns the field
+
+    public Dictionary<System.Type, EnemyState> EnemyStates =>
+        stateMachine.EnemyStates;
+
+    public EnemyState PreviousState =>
+        stateMachine.PreviousState;
+
+    public float PatrolRange => patrolRange;
+    public float PatrolSpeed => patrolSpeed;
+    public float ChaseSpeed => chaseSpeed;
+    public float AttackRange => attackRange;
+    public float WaypointStoppingDistance => waypointStoppingDistance;
+    public NavMeshAgent Agent => agent;
+    public Animator Animator => animator;
+    public Transform TargetTransform => targetTransform;
+
+    // start state here
     void Start()
     {
-        tree = new BehaviourTree();
-        Selector Root = new Selector("Root");
-        Repeater Loop = new Repeater("Chase-Attack Loop");
-        Leaf GetHit = new Leaf("GetHit?", CheckIfDamaged);
-        Sequence Fight = new Sequence("Fight");
-        Leaf Chase = new Leaf("Chase", ChasePlayer);
-        Leaf Attack = new Leaf("Attack", AttackPlayer);
+        agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
 
-        Fight.AddChild(Chase);
-        Fight.AddChild(Attack);
-        Loop.AddChild(Fight);
-        Root.AddChild(GetHit);
-        Root.AddChild(Loop);
-        tree.AddChild(Root);
+        stateMachine = new EnemyStateMachine();
 
-        tree.PrintTree();
+        // for each state i need to initialise them all first
+        // apply changes to the constractor after finishing with each state
+        // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+        AddState(new IdleState(this));
+        AddState(new ChaseState(this));
+        AddState(new AttackState(this));
+
+        // set the first state the enemy will enter
+        SetState<IdleState>();
+
+        agent.stoppingDistance = PatrolRange;
     }
 
-    public Node.Status ChasePlayer()
-    {
-        return GoToLocation(player.transform.position);
-    }
-
-    public Node.Status AttackPlayer()
-    {
-        if (currentState == EnemyState.Stunned)
-            return Node.Status.running;
-
-        if (wasDamaged)
-            return Node.Status.failure;
-
-        if (currentState != EnemyState.Attacking)
-        {
-            agent.isStopped = true;
-            rb.isKinematic = false;
-            currentState = EnemyState.Attacking;
-            attackCooldownTimer = attackCooldown;
-            animator.Play(hashAttackAnimation, 0, 0f);
-            //Deal damage to player
-            // CombatSystem combatSystem = player.GetComponent<CombatSystem>();
-            // if (combatSystem != null)
-            // {
-            //     player.GetComponent<CombatSystem>()?.TakeDamage(damage);
-            //     if (combatSystem.IsBlocking())
-            //     {
-            //         rb.AddForce(-transform.forward * 100f, ForceMode.Impulse);
-            //     }
-            // }
-            return Node.Status.running;
-        }
-        if (player == null)
-        {
-            // Task.Delay(1000).ContinueWith(_ => ReloadScene());
-            return Node.Status.success;
-        }
-
-        // Look at player while attacking
-        Vector3 directionToPlayer = player.transform.position - transform.position;
-        directionToPlayer.y = 0;
-        enemyModel.transform.rotation = Quaternion.LookRotation(directionToPlayer);
-
-        attackCooldownTimer -= Time.deltaTime;
-
-        // If player moved beyond attack range before cooldown ended, return success to chase
-        if (Vector3.Distance(transform.position, player.transform.position) > 2f && attackCooldownTimer <= 0f)
-        {
-            currentState = EnemyState.Idle;
-            animator.CrossFadeInFixedTime(hashIdleAnimation, 0.1f);
-            return Node.Status.success;
-        }
-
-        return Node.Status.running;
-    }
-
-    Node.Status GoToLocation(Vector3 destination)
-    {
-        if (currentState == EnemyState.Stunned)
-            return Node.Status.running;
-
-        if (wasDamaged)
-            return Node.Status.failure;
-
-        float distanceToTarget = Vector3.Distance(transform.position, destination);
-        if (currentState == EnemyState.Idle)
-        {
-            agent.isStopped = false;
-            rb.isKinematic = true; // Disable Rigidbody to prevent physics interference with NavMeshAgent
-            agent.SetDestination(destination);
-            currentState = EnemyState.Chasing;
-            return Node.Status.running;
-        }
-        else if (distanceToTarget < 2)
-        {
-            rb.isKinematic = false;
-            currentState = EnemyState.Idle;
-            return Node.Status.success;
-        }
-        else if (Vector3.Distance(agent.destination, destination) >= 0.5f)
-        {
-            agent.isStopped = false;
-            agent.SetDestination(destination);
-            currentState = EnemyState.Chasing;
-            return Node.Status.running;
-        }
-        return Node.Status.running;
-    }
-
-    Node.Status CheckIfDamaged()
-    {
-        if (!wasDamaged)
-            return Node.Status.failure;
-
-        if (stunTimer <= 0f)
-        {
-            currentState = EnemyState.Stunned;
-            attackCooldownTimer = 0f;
-            stunTimer = stunDuration;
-            agent.isStopped = true;
-            rb.isKinematic = false;
-            animator.CrossFadeInFixedTime(hashIdleAnimation, 0.1f);
-        }
-
-        stunTimer -= Time.deltaTime;
-
-        if (stunTimer > 0f)
-            return Node.Status.running;
-
-        wasDamaged = false;
-        stunTimer = 0f;
-        agent.isStopped = false;
-        currentState = EnemyState.Idle;
-        return Node.Status.failure;
-    }
-
+    // update state here
     void Update()
     {
-        treeStatus = tree.Process();
+        stateMachine.Tick();
+
+        SeeThePlayer();
+
+        _debugText.text =
+            "Current State: " +
+            stateMachine.CurrentState.GetType().ToString()
+            + "\nPrevious State: " +
+            (
+                stateMachine.PreviousState != null
+                    ? stateMachine.PreviousState.GetType().ToString()
+                    : "None"
+            );
     }
 
-    public void TakeDamage(float damage)
+    //void Rotate(Vector2 direction)
+    //{
+    //    Vector3 groundVelocity = new Vector3(context.rb.velocity.x, 0, context.rb.velocity.z);
+    //    Quaternion targetRotation = groundVelocity != Vector3.zero ? Quaternion.LookRotation(groundVelocity) : context.playerModel.rotation;
+    //    if (targetRotation != null && targetRotation != context.playerModel.rotation && direction != Vector2.zero)
+    //    {
+    //        context.playerModel.rotation = Quaternion.Slerp(context.playerModel.rotation, targetRotation, 0.1f);
+    //    }
+    //}
+
+    void AddState(EnemyState state)
     {
-        print("Enemy took " + damage + " damage");
-        health -= damage;
-        wasDamaged = true;
-        animator.Play(hashHitAnimation, 0, 0f);
-        if (health <= 0)
+        stateMachine.AddState(state);
+    }
+
+    void SeeThePlayer()
+    {
+        if (targetTransform == null || agent == null)
+            return;
+
+        Vector3 direction =
+            targetTransform.position - transform.position;
+
+        float distance = direction.magnitude;
+
+        float angle =
+            Vector3.Angle(direction, transform.forward);
+
+        if (!hasTarget)
         {
-            Die();
+            bool playerViewed =
+                angle <= viewHalfAngle &&
+                distance <= detectionDistance;
+
+            if (!playerViewed)
+                return;
+
+            hasTarget = true;
         }
+
+        if (distance < attackRange)
+        {
+            SetState<AttackState>();
+            return;
+        }
+
+        if (distance >= loseTargetDistance)
+        {
+            hasTarget = false;
+
+            SetState<IdleState>();
+            return;
+        }
+
+        SetState<ChaseState>();
+
+        transform.LookAt(targetTransform.position);
+
+        agent.SetDestination(targetTransform.position);
     }
 
-    public float GetCurrentHealth()
+    // exit state here
+    public void SetState<T>() where T : EnemyState
     {
-        return health;
+        stateMachine.SetState<T>();
     }
 
-    void Die()
+    public EnemyState GetState<T>() where T : EnemyState
     {
-        //Play death animation, drop loot, etc.
-        // animator.CrossFadeInFixedTime(hashDeathAnimation, 0.1f);
-        Destroy(gameObject);
-        Task.Delay(1000).ContinueWith(_ => ReloadScene());
-    }
-
-    void ReloadScene()
-    {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        return stateMachine.GetState<T>();
     }
 }
