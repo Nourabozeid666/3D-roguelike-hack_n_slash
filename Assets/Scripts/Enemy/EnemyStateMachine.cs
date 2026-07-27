@@ -4,14 +4,13 @@ public class EnemyStateMachine
 {
     private EnemyState currentState = null;
 
-    private EnemyState _currentState;
     private EnemyState _previousState;
 
     private readonly Dictionary<System.Type, EnemyState> enemyStates = new();
 
     public Dictionary<System.Type, EnemyState> EnemyStates => enemyStates;
 
-    public EnemyState CurrentState => _currentState;
+    public EnemyState CurrentState => currentState;
     public EnemyState PreviousState => _previousState;
 
     public void AddState(EnemyState state)
@@ -29,6 +28,8 @@ public class EnemyStateMachine
         if (currentState is T)
             return;
 
+        EnemyState previousState = currentState;
+
         currentState?.Exit();
 
         if (enemyStates.ContainsKey(typeof(T)))
@@ -36,8 +37,7 @@ public class EnemyStateMachine
             currentState = enemyStates[typeof(T)];
             currentState.Enter();
 
-            _previousState = _currentState;
-            _currentState = enemyStates[typeof(T)];
+            _previousState = previousState;
         }
     }
 

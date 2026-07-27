@@ -96,8 +96,12 @@ public class EnemyController : MonoBehaviour
 
         _debugText.text =
             "Current State: " +
-            stateMachine.CurrentState.GetType().ToString()
-            + "\nPrevious State: " +
+            (
+                stateMachine.CurrentState != null
+                    ? stateMachine.CurrentState.GetType().ToString()
+                    : "None"
+            ) +
+            "\nPrevious State: " +
             (
                 stateMachine.PreviousState != null
                     ? stateMachine.PreviousState.GetType().ToString()

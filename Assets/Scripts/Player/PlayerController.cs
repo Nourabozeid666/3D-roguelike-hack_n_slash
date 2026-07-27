@@ -9,6 +9,7 @@ using UnityEngine.UI;
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] internal PlayerContext context = new PlayerContext();
+    [SerializeField] internal PlayerEntity playerEntity = new PlayerEntity();
     // [SerializeField] internal CombatContext combatContext = new CombatContext();
 
     internal InputSystem controls;
@@ -23,6 +24,7 @@ public class PlayerController : MonoBehaviour
     internal bool UseCustomGravity { get { return context.useCustomGravity; } set { context.useCustomGravity = value; } }
     internal bool CanMove { get { return context.canMove; } set { context.canMove = value; } }
     internal bool UseDrag { get { return context.useDrag; } set { context.useDrag = value; } }
+    public IEntity Entity {get { return playerEntity; } }
 
     void Awake()
     {
@@ -33,7 +35,7 @@ public class PlayerController : MonoBehaviour
         _stateMachine.AddState(new PlayerLandState(context.animator));
         _stateMachine.AddState(new PlayerSlideState(context.animator));
         _stateMachine.AddState(new PlayerSprintState(context.animator));
-        _stateMachine.AddState(new PlayerWallRunState(context.animator));
+        // _stateMachine.AddState(new PlayerWallRunState(context.animator));
         _stateMachine.SetState<PlayerIdleState>();
         controls = new InputSystem();
 
@@ -147,15 +149,15 @@ public class PlayerController : MonoBehaviour
         }
 
 
-        if ((CloseToWallRight() || CloseToWallLeft()) && !IsGrounded() && context.rb.linearVelocity.y < 0f && Time.time - context.lastwallrunTime > 0.6f)
-        {
-            _stateMachine.SetState<PlayerWallRunState>();
-        } else
-        {
-            // Debug.Log("Not close to wall" + CloseToWallLeft() + CloseToWallRight());
-            // Debug.Log("Move Dir" + moveDirection);
-            // Debug.Log("Is Grounded" + IsGrounded());
-        }
+        // if ((CloseToWallRight() || CloseToWallLeft()) && !IsGrounded() && context.rb.linearVelocity.y < 0f && Time.time - context.lastwallrunTime > 0.6f)
+        // {
+        //     _stateMachine.SetState<PlayerWallRunState>();
+        // } else
+        // {
+        //     // Debug.Log("Not close to wall" + CloseToWallLeft() + CloseToWallRight());
+        //     // Debug.Log("Move Dir" + moveDirection);
+        //     // Debug.Log("Is Grounded" + IsGrounded());
+        // }
     }
 
     public bool IsGrounded()
