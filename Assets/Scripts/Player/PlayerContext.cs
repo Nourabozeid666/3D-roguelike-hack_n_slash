@@ -26,6 +26,8 @@ public class PlayerContext
     [SerializeField] internal float MaxVelocity = 12f;
     [SerializeField] internal float sprintSpeed = 145f;
     [SerializeField] internal float walkSpeed = 100f;
+    [SerializeField] internal float dashSpeed = 50f;
+    [SerializeField] internal float dashDuration = 0.2f;
     [SerializeField] internal float jumpForce = 5f;
     [SerializeField] internal float airMoveSpeedMultiplier = 0.05f;
     [SerializeField] internal float jumpForwardPush = 10f;

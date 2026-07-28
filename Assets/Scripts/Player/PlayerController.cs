@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -62,7 +63,10 @@ public class PlayerController : MonoBehaviour
             }
         };
         InputController.OnMoveInput += (value) => context.moveDirection = value;
-        InputController.OnSprintInput += (isSprinting) => context.isSprinting = isSprinting;
+        InputController.OnSprintInput += (isSprinting) => {
+            context.isSprinting = isSprinting; 
+            if (isSprinting == true) _stateMachine.SetState<PlayerDashState>();
+            };
         // Debug.Log(Vector3.up * (gravity * risingMultiplier));
     }
 
@@ -144,6 +148,13 @@ public class PlayerController : MonoBehaviour
         //     // Debug.Log("Move Dir" + moveDirection);
         //     // Debug.Log("Is Grounded" + IsGrounded());
         // }
+    }
+
+    public Vector3 MoveDirectionToWorldSpace()
+    {
+        Vector3 frontCam = new Vector3(context.playerCamera.forward.x, 0, context.playerCamera.forward.z).normalized;
+        Vector3 rightCam = context.playerCamera.right.normalized;
+        return frontCam * context.moveDirection.y + rightCam * context.moveDirection.x;
     }
 
     public bool IsGrounded()
