@@ -66,7 +66,7 @@ public class PlayerWallRunState : State<PlayerController>
         }
     }
 
-    void JumpOffWall(InputAction.CallbackContext context)
+    void JumpOffWall()
     {
         if (!canCancel) return;
         hasJumpedOffWall = true;
@@ -89,7 +89,7 @@ public class PlayerWallRunState : State<PlayerController>
     public override void Enter()
     {
         _owner.UseDrag = false;
-        _owner.controls.PlayerMovement.Jump.performed += JumpOffWall;
+        InputController.OnJumpStart += JumpOffWall;
         _owner.UseCustomGravity = false;
         _owner.CanMove = false;
         if (_owner.CloseToWallRight())
@@ -139,6 +139,6 @@ public class PlayerWallRunState : State<PlayerController>
         // if (lastWallRunDirection != wallRunDirection)
         _owner.context.lastwallrunTime = Time.time;
         lastWallRunDirection = wallRunDirection;
-        _owner.controls.PlayerMovement.Jump.performed -= JumpOffWall;
+        InputController.OnJumpStart -= JumpOffWall;
     }
 }

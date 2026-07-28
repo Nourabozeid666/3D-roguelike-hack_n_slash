@@ -211,6 +211,7 @@ GameObject:
   - component: {fileID: 103219079}
   - component: {fileID: 103219078}
   - component: {fileID: 103219080}
+  - component: {fileID: 103219081}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -260,6 +261,18 @@ MonoBehaviour:
   debugSpherePrefab: {fileID: 7862655152989905994, guid: bb44b0ac1c931ed4fb4b6bb58f4e6375, type: 3}
   poolSize: 5
   visualizationEnabled: 0
+--- !u!114 &103219081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 103219077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55ea699a5f516ad8c9945c0703de16bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InputController
 --- !u!1 &107385585
 GameObject:
   m_ObjectHideFlags: 0
@@ -1845,8 +1858,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.3404124, y: 0.008205313, z: -0.0029707337, w: 0.9402358}
-  m_LocalPosition: {x: 2.8976429, y: 4.048, z: 12.340457}
+  m_LocalRotation: {x: 0.34042534, y: 5.8873023e-10, z: -2.1314978e-10, w: 0.9402716}
+  m_LocalPosition: {x: 2.95, y: 4.048, z: 12.34}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1974,8 +1987,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 966265176}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.34041235, y: 0.008205311, z: -0.0029707325, w: 0.9402358}
-  m_LocalPosition: {x: 2.8976429, y: 4.048, z: 12.340457}
+  m_LocalRotation: {x: 0.34042528, y: 0.0000000019190622, z: -0.0000000038875934, w: 0.9402716}
+  m_LocalPosition: {x: 2.95, y: 4.048, z: 12.34}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2015,7 +2028,7 @@ MonoBehaviour:
       Size: {x: 0, y: 0}
     HardLimits:
       Enabled: 1
-      Size: {x: 0.8, y: 0.8}
+      Size: {x: 0.8024184, y: 0.8}
       Offset: {x: 0, y: 0}
   CenterOnActivate: 1
   TargetOffset: {x: 0, y: 0, z: 0}
@@ -2100,18 +2113,18 @@ MonoBehaviour:
   Radius: 10
   Orbits:
     Top:
-      Radius: 1.75
-      Height: 4.5
+      Radius: 2
+      Height: 4
     Center:
       Radius: 3
       Height: 2.5
     Bottom:
-      Radius: 3
+      Radius: 4.5
       Height: 0.4
     SplineCurvature: 0.2
   RecenteringTarget: 2
   HorizontalAxis:
-    Value: 1
+    Value: 0
     Center: 0
     Range: {x: -180, y: 180}
     Wrap: 1
@@ -2207,7 +2220,7 @@ CircleCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 966265176}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
@@ -2243,7 +2256,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 966265176}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cd438dd108a0f284aa931a2da434f1d3, type: 3}
   m_Name: 
@@ -8548,6 +8561,15 @@ MonoBehaviour:
     jumpForwardPush: 10
     speed: 8
     customDrag: 1
+  playerEntity:
+    health: 100
+    maxHealth: 100
+    baseDamage: 10
+    baseDefense: 5
+    addedDamage: []
+    addedDefense: []
+    damageMultipliers: []
+    defenseMultipliers: []
 --- !u!1 &1899011098
 GameObject:
   m_ObjectHideFlags: 0
