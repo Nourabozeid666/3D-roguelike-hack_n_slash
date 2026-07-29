@@ -8201,9 +8201,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   targetTransform: {fileID: 1863943526}
   patrolRoute: {fileID: 11400000, guid: 0095e02a9c96ded418130a7d23ab223d, type: 2}
-  detectionDistance: 8
+  detectionDistance: 12
   loseTargetDistance: 16
-  attackRange: 2
+  attackRange: 6
   patrolRange: 0
   patrolSpeed: 6
   chaseSpeed: 8

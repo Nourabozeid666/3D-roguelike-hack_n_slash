@@ -28,6 +28,7 @@ public class AttackState : EnemyState
     public override void Tick()
     {
         //animator.SetTrigger("isShooting");
-        enemyController.transform.LookAt(enemyController.TargetTransform.position);
+        Vector3 lookAtVector = new Vector3(enemyController.TargetTransform.position.x, enemyController.transform.position.y, enemyController.TargetTransform.position.z);
+        enemyController.transform.LookAt(lookAtVector);
     }
 }
