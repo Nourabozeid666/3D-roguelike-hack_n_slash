@@ -16,14 +16,14 @@ public class ChaseState : EnemyState
         agent.isStopped = false;
         agent.speed = enemyController.ChaseSpeed;
         agent.stoppingDistance = enemyController.AttackRange;
-        animator.SetBool("isRunning", true);
+        //animator.SetBool("isRunning", true);
     }
 
     public override void Exit()
     {
         agent.speed = enemyController.PatrolSpeed;
         agent.stoppingDistance = enemyController.PatrolRange;
-        animator.SetBool("isRunning", false);
+        //animator.SetBool("isRunning", false);
     }
 
     public override void Tick()
