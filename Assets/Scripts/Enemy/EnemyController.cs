@@ -5,9 +5,8 @@ using UnityEngine.UI;
 
 /*
     basic states for a grent enemy:
-        spownState == idle
         attackState  
-        RetreatState => take damage
+        RetreatState
         { 
             SacrificeAttack
             rangedShootingAttack
@@ -170,11 +169,10 @@ public class EnemyController : MonoBehaviour
 
         SetState<ChaseState>();
         Vector3 lookAtVector = new Vector3(targetTransform.position.x, transform.position.y, targetTransform.position.z);
-        Vector3 followVector = new Vector3(targetTransform.position.x, transform.position.y, targetTransform.position.z);
 
         transform.LookAt(lookAtVector);
 
-        agent.SetDestination(followVector);
+        agent.SetDestination(lookAtVector);
     }
 
     // exit state here

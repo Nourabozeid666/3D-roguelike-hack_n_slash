@@ -14,8 +14,8 @@ public class AttackState : EnemyState
     {
         agent.isStopped = true;
 
-        animator.SetBool("isWalking", false);
-        animator.SetBool("isRunning", false);
+        //animator.SetBool("isWalking", false);
+        //animator.SetBool("isRunning", false);
         //animator.SetTrigger("isShooting");
     }
 
