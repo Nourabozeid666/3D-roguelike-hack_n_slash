@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 237c8056d261e373a8d11237252af082, type: 3}
+  m_Name: BasicAttack2L
+  m_EditorClassIdentifier: Assembly-CSharp::AttackData
+  attackName: Basic Attack 2 Light
+  damageMultiplier: 1
+  animation: {fileID: 0}
+  comboWindow: 0.5
+  holdTime: 0.5
+  lungeDirection: {x: 0, y: 0, z: 1}
+  lungeDistance: 1
+  isHoldAttack: 0
+  transitions:
+  - input: 0
+    nextAttack: {fileID: 11400000, guid: 7b902b669357d84c798160fcba599fe2, type: 2}

@@ -4,5 +4,6 @@ using UnityEngine;
 
 public class CombatContext
 {
+    [SerializeField] internal WeaponObject currentWeapon;
     
 }
