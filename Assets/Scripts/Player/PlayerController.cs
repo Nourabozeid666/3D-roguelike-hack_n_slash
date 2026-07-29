@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -12,7 +13,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] internal PlayerEntity playerEntity = new PlayerEntity();
     // [SerializeField] internal CombatContext combatContext = new CombatContext();
 
-    internal InputSystem controls;
     private StateMachine<PlayerController> _stateMachine;
     // private CombatSystem _combatSystem;
 
@@ -35,9 +35,9 @@ public class PlayerController : MonoBehaviour
         _stateMachine.AddState(new PlayerLandState(context.animator));
         _stateMachine.AddState(new PlayerSlideState(context.animator));
         _stateMachine.AddState(new PlayerSprintState(context.animator));
+        _stateMachine.AddState(new PlayerDashState(context.animator));
         // _stateMachine.AddState(new PlayerWallRunState(context.animator));
         _stateMachine.SetState<PlayerIdleState>();
-        controls = new InputSystem();
 
         // // Initialize combat system
         // _combatSystem = GetComponent<CombatSystem>();
@@ -47,21 +47,10 @@ public class PlayerController : MonoBehaviour
         // }
     }
 
-    void OnEnable()
-    {
-        controls.PlayerMovement.Enable();
-    }
-
-    void OnDisable()
-    {
-        controls.PlayerMovement.Disable();
-    }
-
-    // Start is called before the first frame update
     void Start()
     {
         // Subscribe to action events
-        controls.PlayerMovement.Jump.performed += ctx =>
+        InputController.OnJumpStart += () =>
         {
             if (!IsGrounded())
             {
@@ -73,10 +62,11 @@ public class PlayerController : MonoBehaviour
                 Jump();
             }
         };
-        controls.PlayerMovement.Move.performed += ctx => context.moveDirection = ctx.ReadValue<Vector2>();
-        controls.PlayerMovement.Move.canceled += ctx => context.moveDirection = Vector2.zero;
-        controls.PlayerMovement.Sprint.performed += ctx => context.isSprinting = true;
-        controls.PlayerMovement.Sprint.canceled += ctx => context.isSprinting = false;
+        InputController.OnMoveInput += (value) => context.moveDirection = value;
+        InputController.OnSprintInput += (isSprinting) => {
+            context.isSprinting = isSprinting; 
+            if (isSprinting == true) _stateMachine.SetState<PlayerDashState>();
+            };
         // Debug.Log(Vector3.up * (gravity * risingMultiplier));
     }
 
@@ -158,6 +148,13 @@ public class PlayerController : MonoBehaviour
         //     // Debug.Log("Move Dir" + moveDirection);
         //     // Debug.Log("Is Grounded" + IsGrounded());
         // }
+    }
+
+    public Vector3 MoveDirectionToWorldSpace()
+    {
+        Vector3 frontCam = new Vector3(context.playerCamera.forward.x, 0, context.playerCamera.forward.z).normalized;
+        Vector3 rightCam = context.playerCamera.right.normalized;
+        return frontCam * context.moveDirection.y + rightCam * context.moveDirection.x;
     }
 
     public bool IsGrounded()

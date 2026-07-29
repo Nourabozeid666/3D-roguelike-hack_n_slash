@@ -35,10 +35,10 @@ public class PlayerMoveState : State<PlayerController>
         {
             _stateMachine.SetState<PlayerIdleState>();
         }
-        if (_owner.IsSprinting)
-        {
-            _stateMachine.SetState<PlayerSprintState>();
-        }
+        // if (_owner.IsSprinting)
+        // {
+        //     _stateMachine.SetState<PlayerSprintState>();
+        // }
     }
 
     public override void Exit()
