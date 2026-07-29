@@ -9,7 +9,8 @@ public abstract class EnemyState
         this.enemyController = enemyController;
     }
 
-    public abstract void Enter();
-    public abstract void Tick();
+    public abstract void Enter(); 
     public abstract void Exit();
+    public abstract void Tick();
+
 }

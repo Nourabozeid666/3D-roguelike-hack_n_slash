@@ -4,23 +4,37 @@ using UnityEngine.AI;
 using UnityEngine.UI;
 
 /*
-    First:
-    Prove the architecture with Debug.Log. !
-    
-    Then:
-    Add real Patrol behavior. !
-    
-    Then:
-    Supply waypoints. !
-    
-    Then:
-    Add detection and Chase.
-    
-    Then:
-    Add animations.
+    basic states for a grent enemy:
+        spownState == idle
+        chaseState
+        attackState  
+        RetreatState
+        { 
+            SacrificeAttack
+            rangedShootingAttack
+            simpleAttack
+        }
+        stagerState
+        dieState
+
+    basic attackState for Melee archetypes
+    {
+        Shielder (strong attack - weak attack - defand)
+        fast (assassin) (attack - run away)
+    }
+
+
+    spownEnemySystem:
+       *ScriptableObject to store the spown points
+       *system to spown a certain amout of enemies with spown times  
+       *controls what eneies are we spownning, Enemies will be with high cost. And actually it's going to be prevented from being in the first 
+        levels, so they are going to be open after a certain amount of levels.
+       *It has a specific cost for how many levels the player have get through. And the enemies, each of them is going to have a certain amount
+        of this cost. So we're going to combine the cost of all enemies to get to the number that we need to. And if it's larger, we're going to 
+        get to minus it by a bit.
+        
  */
 
-// any thing that any state might need
 public class EnemyController : MonoBehaviour
 {
     private EnemyStateMachine stateMachine;
@@ -29,6 +43,7 @@ public class EnemyController : MonoBehaviour
     private Animator animator;
 
     [SerializeField] Transform targetTransform;
+    [SerializeField] PatrolRoute patrolRoute;
 
     [Header("-----chasing the player-----")]
     [SerializeField] private float detectionDistance;
@@ -56,6 +71,7 @@ public class EnemyController : MonoBehaviour
     public EnemyState PreviousState =>
         stateMachine.PreviousState;
 
+    public PatrolRoute PatrolRoute => patrolRoute;
     public float PatrolRange => patrolRange;
     public float PatrolSpeed => patrolSpeed;
     public float ChaseSpeed => chaseSpeed;
@@ -65,7 +81,6 @@ public class EnemyController : MonoBehaviour
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
 
-    // start state here
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -77,12 +92,13 @@ public class EnemyController : MonoBehaviour
         // apply changes to the constractor after finishing with each state
         // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-        AddState(new IdleState(this));
+        AddState(new SpownState(this));
         AddState(new ChaseState(this));
         AddState(new AttackState(this));
+        AddState(new PatrolState(this));
 
         // set the first state the enemy will enter
-        SetState<IdleState>();
+        SetState<SpownState>();
 
         agent.stoppingDistance = PatrolRange;
     }
@@ -108,16 +124,6 @@ public class EnemyController : MonoBehaviour
                     : "None"
             );
     }
-
-    //void Rotate(Vector2 direction)
-    //{
-    //    Vector3 groundVelocity = new Vector3(context.rb.velocity.x, 0, context.rb.velocity.z);
-    //    Quaternion targetRotation = groundVelocity != Vector3.zero ? Quaternion.LookRotation(groundVelocity) : context.playerModel.rotation;
-    //    if (targetRotation != null && targetRotation != context.playerModel.rotation && direction != Vector2.zero)
-    //    {
-    //        context.playerModel.rotation = Quaternion.Slerp(context.playerModel.rotation, targetRotation, 0.1f);
-    //    }
-    //}
 
     void AddState(EnemyState state)
     {
@@ -149,7 +155,7 @@ public class EnemyController : MonoBehaviour
             hasTarget = true;
         }
 
-        if (distance < attackRange)
+        if (distance <= attackRange)
         {
             SetState<AttackState>();
             return;
@@ -159,15 +165,16 @@ public class EnemyController : MonoBehaviour
         {
             hasTarget = false;
 
-            SetState<IdleState>();
+            SetState<PatrolState>();
             return;
         }
 
         SetState<ChaseState>();
+        Vector3 lookAtVector = new Vector3(targetTransform.position.x, transform.position.y, targetTransform.position.z);
 
-        transform.LookAt(targetTransform.position);
+        transform.LookAt(lookAtVector);
 
-        agent.SetDestination(targetTransform.position);
+        agent.SetDestination(lookAtVector);
     }
 
     // exit state here

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb13b98deb8240041971a5048f9157a7, type: 3}
+  m_Name: routeA
+  m_EditorClassIdentifier: Assembly-CSharp::PatrolRoute
+  wayPoints:
+  - {fileID: 1990989161936292962, guid: cb3599299ebed074db275a9e1ec51115, type: 3}
+  - {fileID: 6187442662036795795, guid: 3568a9447f8f4094886db828c9887769, type: 3}
+  - {fileID: 4624547157384421045, guid: c0fa5d5cbb1850b4aa2916e11aa266a5, type: 3}
+  - {fileID: 8799408783549293983, guid: 0d410727dee8dc04c993491d95658e4b, type: 3}

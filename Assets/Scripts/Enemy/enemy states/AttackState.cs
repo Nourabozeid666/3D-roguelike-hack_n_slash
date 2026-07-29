@@ -10,25 +10,24 @@ public class AttackState : EnemyState
         animator = enemyController.Animator;
         agent = enemyController.Agent;
     }
-
     public override void Enter()
     {
         agent.isStopped = true;
 
         animator.SetBool("isWalking", false);
         animator.SetBool("isRunning", false);
-        animator.SetTrigger("isShooting");
+        //animator.SetTrigger("isShooting");
     }
 
     public override void Exit()
     {
         agent.isStopped = false;
-        animator.ResetTrigger("isShooting");
+        //animator.ResetTrigger("isShooting");
     }
 
     public override void Tick()
     {
-        animator.SetTrigger("isShooting");
+        //animator.SetTrigger("isShooting");
         enemyController.transform.LookAt(enemyController.TargetTransform.position);
     }
 }
