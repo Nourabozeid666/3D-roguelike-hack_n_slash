@@ -4,19 +4,30 @@ using UnityEngine.AI;
 using UnityEngine.UI;
 
 /*
-    basic states for a grent enemy:
+    basic states for a grunt enemy:
         attackState  
         RetreatState
         { 
             SacrificeAttack
-            rangedShootingAttack
-            simpleAttack
+            RangedShootAttack
+            MeleeAttack
         }
-        stagerState
+        DefendState { use sheild - run away}
+        stagerState{
+        // poise damage: for every attack
+        // if the poise > poise damage no interruption
+        // if the poise <= poise damage the stager bar gets less by the the poise damage
+        // get it sepatated
+            standard and grunt :
+             only take damage and get back for getting hurt
+            boss : 
+             does not feel any thing unless the stager bar is full and then empty it and make him hurt for some seconds
+        }
         dieState
 
     basic attackState for Melee archetypes
     {
+    #Standard
         Shielder (strong attack - weak attack - defand)
         fast (assassin) (attack - run away)
     }
@@ -35,7 +46,7 @@ using UnityEngine.UI;
 
 public class EnemyController : MonoBehaviour
 {
-    private EnemyStateMachine stateMachine;
+    private EnemyStateMachine<EnemyState> EStateMachine;
 
     private NavMeshAgent agent;
     private Animator animator;
@@ -64,10 +75,9 @@ public class EnemyController : MonoBehaviour
     // Agent = the public read-only property that returns the field
 
     public Dictionary<System.Type, EnemyState> EnemyStates =>
-        stateMachine.EnemyStates;
+        EStateMachine.EnemyStates;
 
-    public EnemyState PreviousState =>
-        stateMachine.PreviousState;
+    public EnemyState PreviousState => EStateMachine.PreviousState;
 
     public PatrolRoute PatrolRoute => patrolRoute;
     public float PatrolRange => patrolRange;
@@ -84,7 +94,7 @@ public class EnemyController : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
 
-        stateMachine = new EnemyStateMachine();
+        EStateMachine = new EnemyStateMachine<EnemyState>();
 
         // for each state i need to initialise them all first
         // apply changes to the constractor after finishing with each state
@@ -94,7 +104,8 @@ public class EnemyController : MonoBehaviour
         AddState(new ChaseState(this));
         AddState(new AttackState(this));
         AddState(new PatrolState(this));
-
+        AddState(new StagerState(this));
+        AddState(new DieState(this));
         // set the first state the enemy will enter
         SetState<SpownState>();
 
@@ -104,33 +115,44 @@ public class EnemyController : MonoBehaviour
     // update state here
     void Update()
     {
-        stateMachine.Tick();
+        EStateMachine.Tick();
 
         SeeThePlayer();
 
+        // GetState<AttackState>() always hands back a plain EnemyState label (that's fixed in the method's return type).
+        // "as AttackState" relabels it as AttackState specifically, so we can reach AttackState-only stuff like CurrentCombatAction.
+        AttackState attackState = GetState<AttackState>() as AttackState;
         _debugText.text =
             "Current State: " +
             (
-                stateMachine.CurrentState != null
-                    ? stateMachine.CurrentState.GetType().ToString()
+                EStateMachine.CurrentState != null
+                    ? EStateMachine.CurrentState.GetType().ToString()
                     : "None"
             ) +
             "\nPrevious State: " +
             (
-                stateMachine.PreviousState != null
-                    ? stateMachine.PreviousState.GetType().ToString()
+                EStateMachine.PreviousState != null
+                    ? EStateMachine.PreviousState.GetType().ToString()
+                    : "None"
+            ) + "\nAttack State: " +
+            (
+                attackState?.CurrentCombatAction != null
+                    ? attackState?.CurrentCombatAction.GetType().ToString()
                     : "None"
             );
     }
 
     void AddState(EnemyState state)
     {
-        stateMachine.AddState(state);
+        EStateMachine.AddState(state);
     }
 
     void SeeThePlayer()
     {
         if (targetTransform == null || agent == null)
+            return;
+
+        if (!EStateMachine.CurrentState.CanBeInterrupted)
             return;
 
         Vector3 direction =
@@ -178,11 +200,11 @@ public class EnemyController : MonoBehaviour
     // exit state here
     public void SetState<T>() where T : EnemyState
     {
-        stateMachine.SetState<T>();
+        EStateMachine.SetState<T>();
     }
 
     public EnemyState GetState<T>() where T : EnemyState
     {
-        return stateMachine.GetState<T>();
+        return EStateMachine.GetState<T>();
     }
 }
