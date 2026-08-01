@@ -28,6 +28,7 @@ public class PlayerController : MonoBehaviour
 
     void Awake()
     {
+        // context.animator = context.playerModel.GetComponent<Animator>();
         _stateMachine = new StateMachine<PlayerController>(this, context.debugText);
         _stateMachine.AddState(new PlayerIdleState(context.animator));
         _stateMachine.AddState(new PlayerMoveState(context.animator));

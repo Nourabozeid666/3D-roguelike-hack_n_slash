@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   attackName: Basic Attack 1 Light
   damageMultiplier: 1
-  animation: {fileID: 0}
+  animation: {fileID: 7400000, guid: 6b8de8e7b13cad244a1d1b7bad932406, type: 2}
   comboWindow: 0.5
   holdTime: 0.5
   lungeDirection: {x: 0, y: 0, z: 1}
