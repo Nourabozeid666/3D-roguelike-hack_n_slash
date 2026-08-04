@@ -20,8 +20,8 @@ public class PatrolState : EnemyState
     {
         agent.isStopped = false;
         agent.speed = enemyController.PatrolSpeed;
-        agent.stoppingDistance = enemyController.PatrolRange;
-
+        agent.stoppingDistance = enemyController.WaypointStoppingDistance;
+        animator.Play(Animator.StringToHash("Walk"), 0, 0);
         Transform waypoint = patrolRoute.WayPoints[waypointIndex];
         agent.SetDestination(waypoint.position);
     }
@@ -29,7 +29,7 @@ public class PatrolState : EnemyState
     //runs and checks conditions while the state is active.
     public override void Tick()
     {
-        if (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
+        if (agent.pathPending || agent.remainingDistance >= agent.stoppingDistance)
         {
             return;
         }

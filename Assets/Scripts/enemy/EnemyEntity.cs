@@ -1,46 +1,45 @@
+using UnityEngine;
 using System;
-// An abstract class is intended to be used as a base for other classes and cannot be instantiated directly.
-
 [Serializable]
-public class EnemyEntity : IEntity
+public class EnemyEntity : IEnemyEntity
 {
-    public float Health => throw new NotImplementedException();
+    [SerializeField] float currentHealth;
+    [SerializeField] float maxHealth;
+    [SerializeField] float baseDamage;
+    [SerializeField] float attackState;
+    //[SerializeField] AttackState attackState;
+    public float CurrentHealth => currentHealth;
 
-    public float MaxHealth => throw new NotImplementedException();
+    public float MaxHealth => maxHealth;
 
-    public float BaseDamage => throw new NotImplementedException();
+    public float BaseDamage => baseDamage;
 
-    public float BaseDefense => throw new NotImplementedException();
+    public float BaseDefense => BaseDefense;
 
-    public float[] AddedDamage => throw new NotImplementedException();
-
-    public float[] AddedDefense => throw new NotImplementedException();
-
-    public float[] DamageMultipliers => throw new NotImplementedException();
-
-    public float[] DefenseMultipliers => throw new NotImplementedException();
+    //need fixing  ------------------------------------------------------------------------------------------------------------
+    public AttackState AttackState => throw new NotImplementedException();
 
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
+    public event Action<float> OnDied;
 
-    public EnemyEntity()
-    {
-
-    }
-
-    public void Heal(float healAmount)
+    //need fixing  ------------------------------------------------------------------------------------------------------------
+    public void ApplyAttack(AttackState AttackState)
     {
         throw new NotImplementedException();
     }
 
     public void SetMaxHealth(float maxHealth)
     {
-        throw new NotImplementedException();
+        this.currentHealth = maxHealth;
+        if (this.currentHealth > maxHealth) 
+            this.currentHealth = maxHealth;
     }
 
     public void TakeDamage(float damage)
     {
-        throw new NotImplementedException();
+        this.currentHealth -= damage;
+        if (this.currentHealth < 0) 
+            this.currentHealth = 0;
     }
 }
-
