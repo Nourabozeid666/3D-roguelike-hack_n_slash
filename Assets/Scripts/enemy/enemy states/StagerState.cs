@@ -2,6 +2,7 @@ public class StagerState : EnemyState
 {
     public StagerState(EnemyController enemyController) : base(enemyController)
     {
+        
     }
 
     public override void Enter()

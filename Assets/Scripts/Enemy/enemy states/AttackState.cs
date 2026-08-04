@@ -13,7 +13,6 @@ public abstract class CombatActionState : IEstate
 
 public class AttackState : EnemyState
 {
-    Animator animator;
     NavMeshAgent agent;
 
     EnemyStateMachine<CombatActionState> combatActions = new();
@@ -30,8 +29,8 @@ public class AttackState : EnemyState
     }
     public override void Enter()
     {
-        agent.isStopped = true;
         //add states to all the attacks you need in the game
+        agent.isStopped = true;
         combatActions.SetState<MeleeAttack>();
     }
 

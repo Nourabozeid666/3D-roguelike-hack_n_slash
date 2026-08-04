@@ -18,7 +18,7 @@ public class SpownState : EnemyState
 
     public override void Enter()
     {
-        animator.Play( Animator.StringToHash("Idle1"), 0, 0);
+        animator.Play( Animator.StringToHash("Idle"), 0, 0);
         // set animation or visaul effects 
         agent.isStopped = true;
         owner.StartCoroutine(UpdateCoroutine());

@@ -58,7 +58,6 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private float detectionDistance;
     [SerializeField] private float loseTargetDistance;
     [SerializeField] private float attackRange;
-    [SerializeField] private float patrolRange;
 
     [SerializeField] private float patrolSpeed;
     [SerializeField] private float chaseSpeed;
@@ -69,6 +68,9 @@ public class EnemyController : MonoBehaviour
     [Header("----------------------------")]
     [SerializeField] Text _debugText;
 
+    [Header("--------attack colliders-------")]
+    [SerializeField] Collider hurtBox;
+
     private bool hasTarget;
 
     // agent = the private field that stores the component
@@ -77,10 +79,7 @@ public class EnemyController : MonoBehaviour
     public Dictionary<System.Type, EnemyState> EnemyStates =>
         EStateMachine.EnemyStates;
 
-    public EnemyState PreviousState => EStateMachine.PreviousState;
-
     public PatrolRoute PatrolRoute => patrolRoute;
-    public float PatrolRange => patrolRange;
     public float PatrolSpeed => patrolSpeed;
     public float ChaseSpeed => chaseSpeed;
     public float AttackRange => attackRange;
@@ -88,6 +87,9 @@ public class EnemyController : MonoBehaviour
     public NavMeshAgent Agent => agent;
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
+
+    //------Hit Colliders-------
+    public Collider HurtBox => hurtBox;
 
     void Start()
     {
@@ -109,7 +111,9 @@ public class EnemyController : MonoBehaviour
         // set the first state the enemy will enter
         SetState<SpownState>();
 
-        agent.stoppingDistance = PatrolRange;
+        hurtBox.enabled = false;
+
+        agent.stoppingDistance = waypointStoppingDistance;
     }
 
     // update state here

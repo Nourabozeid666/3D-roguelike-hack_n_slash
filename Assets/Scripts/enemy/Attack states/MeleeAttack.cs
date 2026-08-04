@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 
-internal class MeleeAttack : CombatActionState
+public class MeleeAttack : CombatActionState
 {
     Animator animator;
     NavMeshAgent agent;
@@ -10,10 +10,10 @@ internal class MeleeAttack : CombatActionState
         animator = enemyController.Animator;
         agent = enemyController.Agent;
     }
-
+    // capable of being a combo
     public override void Enter()
     {
-        Debug.Log("melee state entered ----------------");
+        animator.Play(Animator.StringToHash("Attack1"), 0, 0);
     }
 
     public override void Tick()
@@ -21,6 +21,5 @@ internal class MeleeAttack : CombatActionState
     }
     public override void Exit()
     {
-        Debug.Log("melee state exited");
     }
 }
