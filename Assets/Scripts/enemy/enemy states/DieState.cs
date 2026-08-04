@@ -2,7 +2,6 @@ public class DieState : EnemyState
 {
     public DieState(EnemyController enemyController) : base(enemyController)
     {
-
     }
 
     public override void Enter()
