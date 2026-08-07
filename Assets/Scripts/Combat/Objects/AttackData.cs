@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-public enum InputType { LightAttack, HeavyAttack, LightHold, HeavyHold }
+public enum InputType { None, LightAttack, HeavyAttack, LightHold, HeavyHold }
 
 [Serializable]
 public struct AttackTransition

@@ -19,4 +19,7 @@ MonoBehaviour:
   baseAttackSpeed: 1
   weaponPrefab: {fileID: 0}
   entryAttacks:
-  - {fileID: 11400000, guid: 3eb394515e73b96b293c27cf9942fac4, type: 2}
+    keys: 0000000001000000
+    values:
+    - {fileID: 11400000, guid: 3eb394515e73b96b293c27cf9942fac4, type: 2}
+    - {fileID: 11400000, guid: 0b6c49492c323ed6e822e8eb6d23ba7c, type: 2}

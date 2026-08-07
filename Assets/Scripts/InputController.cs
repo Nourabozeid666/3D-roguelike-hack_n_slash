@@ -15,11 +15,13 @@ public class InputController : MonoBehaviour
     void OnEnable()
     {
         controls.PlayerMovement.Enable();
+        controls.Combat.Enable();
     }
 
     void OnDisable()
     {
         controls.PlayerMovement.Disable();
+        controls.Combat.Disable();
     }
 
     void Awake()

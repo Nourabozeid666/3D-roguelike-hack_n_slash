@@ -22,4 +22,4 @@ MonoBehaviour:
   isHoldAttack: 0
   transitions:
   - input: 0
-    nextAttack: {fileID: 0}
+    nextAttack: {fileID: 11400000, guid: 28385f02e8b910f2b857bef51a6b7a52, type: 2}
