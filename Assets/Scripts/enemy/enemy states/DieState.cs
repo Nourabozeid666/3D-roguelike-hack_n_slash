@@ -10,8 +10,6 @@ public class DieState : EnemyState
     public override bool CanBeInterrupted => false;
     public DieState(EnemyController enemyController) : base(enemyController)
     {
-        agent = enemyController.Agent;
-        animator = enemyController.Animator;
     }
 
     public override void Enter()
