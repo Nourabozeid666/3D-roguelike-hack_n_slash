@@ -1,22 +1,38 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.AI;
+
 public class DieState : EnemyState
 {
+    NavMeshAgent agent;
+    Animator animator;
+
+    public override bool CanBeInterrupted => false;
     public DieState(EnemyController enemyController) : base(enemyController)
     {
-
+        agent = enemyController.Agent;
+        animator = enemyController.Animator;
     }
 
     public override void Enter()
     {
-        throw new System.NotImplementedException();
+        agent.isStopped = true;
+        animator.Play(Animator.StringToHash("Death"), 0, 0);
+        enemyController.StartCoroutine(UpdateCoroutine());
     }
 
     public override void Tick()
     {
-        throw new System.NotImplementedException();
+
     }
 
     public override void Exit()
     {
-        throw new System.NotImplementedException();
+        // needs a particle system to disappear
+    }
+    IEnumerator UpdateCoroutine()
+    {
+        yield return new WaitForSeconds(3f);
+        Object.Destroy(enemyController.gameObject);
     }
 }

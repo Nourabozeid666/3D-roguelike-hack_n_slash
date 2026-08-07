@@ -1,8 +1,7 @@
-public class StagerState : EnemyState
+﻿internal class ComboAttack : CombatActionState
 {
-    public StagerState(EnemyController enemyController) : base(enemyController)
+    public ComboAttack(EnemyController enemyController) : base(enemyController)
     {
-        
     }
 
     public override void Enter()
@@ -10,12 +9,12 @@ public class StagerState : EnemyState
         throw new System.NotImplementedException();
     }
 
-    public override void Tick()
+    public override void Exit()
     {
         throw new System.NotImplementedException();
     }
 
-    public override void Exit()
+    public override void Tick()
     {
         throw new System.NotImplementedException();
     }

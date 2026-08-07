@@ -1,4 +1,3 @@
-using Unity.IO.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.AI;
 public class PatrolState : EnemyState
@@ -34,6 +33,7 @@ public class PatrolState : EnemyState
             return;
         }
         waypointIndex = (waypointIndex + 1) % patrolRoute.WayPoints.Count;
+        Debug.Log(waypointIndex);
         Debug.Log("New waypoint: " + waypointIndex);
         Transform waypoint = patrolRoute.WayPoints[waypointIndex];
         agent.SetDestination(waypoint.position);
@@ -41,6 +41,5 @@ public class PatrolState : EnemyState
     // Clean up anything the current state started or changed before another state takes control.
     public override void Exit()
     {
-        //animator.SetBool("isWalking", false);
     }
 }

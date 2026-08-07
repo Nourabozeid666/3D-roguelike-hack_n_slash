@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /*
@@ -23,7 +24,6 @@ using UnityEngine.UI;
             boss : 
              does not feel any thing unless the stager bar is full and then empty it and make him hurt for some seconds
         }
-        dieState
 
     basic attackState for Melee archetypes
     {
@@ -41,9 +41,13 @@ using UnityEngine.UI;
        *It has a specific cost for how many levels the player have get through. And the enemies, each of them is going to have a certain amount
         of this cost. So we're going to combine the cost of all enemies to get to the number that we need to. And if it's larger, we're going to 
         get to minus it by a bit.
-        
  */
 
+/* 
+ * EnemyEntity owns the numbers and decides what happened, EnemyController is the only one holding both the 
+ * entity and the state machine so it's the one that translates "what happened" into "which state, doing what"
+ * and StagerState just plays a clip and holds a timer.
+ */
 public class EnemyController : MonoBehaviour
 {
     private EnemyStateMachine<EnemyState> EStateMachine;
@@ -67,9 +71,7 @@ public class EnemyController : MonoBehaviour
 
     [Header("----------------------------")]
     [SerializeField] Text _debugText;
-
-    [Header("--------attack colliders-------")]
-    [SerializeField] Collider hurtBox;
+    [SerializeField] private EnemyEntity enemyEntity;
 
     private bool hasTarget;
 
@@ -79,6 +81,7 @@ public class EnemyController : MonoBehaviour
     public Dictionary<System.Type, EnemyState> EnemyStates =>
         EStateMachine.EnemyStates;
 
+    public EnemyEntity EnemyEntity => enemyEntity;
     public PatrolRoute PatrolRoute => patrolRoute;
     public float PatrolSpeed => patrolSpeed;
     public float ChaseSpeed => chaseSpeed;
@@ -88,15 +91,17 @@ public class EnemyController : MonoBehaviour
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
 
-    //------Hit Colliders-------
-    public Collider HurtBox => hurtBox;
-
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
 
         EStateMachine = new EnemyStateMachine<EnemyState>();
+
+        enemyEntity.Initialize();
+        enemyEntity.OnStaggered += HandleStaggered;
+        enemyEntity.OnDied += HandleDied;
+        enemyEntity.OnDamageTaken += HandleDamageTaken;
 
         // for each state i need to initialise them all first
         // apply changes to the constractor after finishing with each state
@@ -106,14 +111,35 @@ public class EnemyController : MonoBehaviour
         AddState(new ChaseState(this));
         AddState(new AttackState(this));
         AddState(new PatrolState(this));
-        AddState(new StagerState(this));
+        AddState(new StaggerState(this));
         AddState(new DieState(this));
         // set the first state the enemy will enter
         SetState<SpownState>();
 
-        hurtBox.enabled = false;
-
         agent.stoppingDistance = waypointStoppingDistance;
+    }
+
+    private void HandleDied()
+    {
+        SetState<DieState>();
+    }
+
+    private void HandleDamageTaken(float damage)
+    {
+        if (!EStateMachine.CurrentState.CanBeInterrupted)
+            return;
+        StaggerState staggerState = GetState<StaggerState>() as StaggerState;
+        staggerState?.SetReaction(StaggerState.ReactionType.Hit);
+        SetState<StaggerState>();
+    }
+
+    private void HandleStaggered()
+    {
+        if (!EStateMachine.CurrentState.CanBeInterrupted)
+            return;
+        StaggerState staggerState = GetState<StaggerState>() as StaggerState;
+        staggerState?.SetReaction(StaggerState.ReactionType.Stun);
+        SetState<StaggerState>();
     }
 
     // update state here
@@ -122,6 +148,12 @@ public class EnemyController : MonoBehaviour
         EStateMachine.Tick();
 
         SeeThePlayer();
+
+        if (Keyboard.current.hKey.wasPressedThisFrame)
+            enemyEntity.TakeDamage(10, 5); // small poise damage
+
+        if (Keyboard.current.jKey.wasPressedThisFrame)
+            enemyEntity.TakeDamage(10, 999); // guaranteed poise break
 
         // GetState<AttackState>() always hands back a plain EnemyState label (that's fixed in the method's return type).
         // "as AttackState" relabels it as AttackState specifically, so we can reach AttackState-only stuff like CurrentCombatAction.
@@ -200,6 +232,7 @@ public class EnemyController : MonoBehaviour
 
         agent.SetDestination(lookAtVector);
     }
+
 
     // exit state here
     public void SetState<T>() where T : EnemyState
