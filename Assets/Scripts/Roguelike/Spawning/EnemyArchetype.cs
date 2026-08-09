@@ -8,10 +8,14 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "EnemyArchetype", menuName = "Roguelike/Enemy Archetype")]
 public class EnemyArchetype : ScriptableObject
 {
+    [SerializeField] string displayName;
     [SerializeField] GameObject prefab;
     [SerializeField] int cost = 3;
     [SerializeField] float healthGrowthPerFloor = 0.12f;
     [SerializeField] float damageGrowthPerFloor = 0.08f;
+
+    /// <summary>Editor-friendly name for debug/HUD summaries. Empty is allowed (falls back to cost in summaries).</summary>
+    public string DisplayName => displayName;
 
     public GameObject Prefab => prefab;
     public int Cost => cost;

@@ -567,6 +567,29 @@ public class SpawnTable : ScriptableObject
 
 ---
 
+### 4.5a Floor-based enemy availability & composition selection
+
+**Goal:** new enemy types unlock over the run by floor (no hardcoded enemy types or floor numbers), and a floor's spawn is a *composition* — a chosen mix of unlocked archetypes — picked from a precomputed/cached ranked set instead of a per-spawn search.
+
+**Unlock rule (`SpawnTable.cs`).** `unlockInterval` (int, default 3). The archetype at list index `i` becomes available starting at floor `1 + i * unlockInterval`. So interval 3 → index 0 floors 1–3, index 1 floors 4–6, index 2 floors 7–9, …. `SpawnTable.AvailableForFloor(floor)` returns that prefix of the pool (the whole pool once everything is unlocked). Unlocking only *expands* the pool — a newly unlocked enemy is never guaranteed to spawn.
+
+**Target enemy count.** Derived deterministically: `target = floor(budget / cheapest available cost)`. This is always achievable (`target × cheapest ≤ budget`), so a valid composition always exists for any run pool. This single derivation point is where an explicit target-count design would slot in later.
+
+**Composition ranking (`EnemyCompositionSelector.cs`).** The budget is a **maximum**, not exact. For a given (pool, target, budget) the selector enumerates every combination-with-repetition of exactly `target` enemies whose total cost ≤ budget, then ranks:
+
+1. satisfy the target count and stay ≤ budget (every candidate does);
+2. best budget use — highest total cost without exceeding the budget;
+3. variety **only among equally-ranked** compositions — most distinct archetype types;
+4. controlled randomness only between the final equally-ranked candidates.
+
+**Cache.** Results are cached keyed on `(floor, target, budget)` (the pool is a pure function of the floor). A `Populate` does one cache lookup and picks a candidate; no recursive search runs per spawn and no brute-force retry loop exists.
+
+**Fallback.** If no valid composition exists (defensive; not reachable with the derived target), `SpawnSystem.SpawnFallback` spawns the largest affordable count of the cheapest archetype, never exceeding the budget, and logs a warning — never a silently invalid composition.
+
+**Current flow (`SpawnSystem.Populate(budget, floor)`).** `AvailableForFloor` → target count → cached composition lookup → rank/select → spawn onto SpawnPoints (without replacement). `LastCompositionInfo` exposes a read-only summary (floor / available types / target / composition / cost / budget) for the test HUD.
+
+---
+
 ### 4.6 Items & run-scoped upgrades
 
 `StatModifier.cs`

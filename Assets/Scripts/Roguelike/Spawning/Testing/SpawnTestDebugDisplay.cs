@@ -110,7 +110,18 @@ public class SpawnTestDebugDisplay : MonoBehaviour
         hudText.text = $"SPAWN TEST / Scene: {SceneName}\n" +
                        $"{ReadRunInfo()}\n" +
                        $"Spawned: {spawned} / Alive: {alive} / Dead: {dead}\n" +
-                       $"Floor Cleared: {(spawnSystem != null && spawnSystem.IsFloorCleared ? "YES" : "NO")}";
+                       $"Floor Cleared: {(spawnSystem != null && spawnSystem.IsFloorCleared ? "YES" : "NO")}" +
+                       $"{ReadCompositionInfo()}";
+    }
+
+    /// <summary>
+    /// Last spawn composition summary (floor / available types / target / composition / cost) read
+    /// from the live SpawnSystem. Shown only when a floor has been populated. Test/debug only.
+    /// </summary>
+    string ReadCompositionInfo()
+    {
+        if (spawnSystem == null || string.IsNullOrEmpty(spawnSystem.LastCompositionInfo)) return "";
+        return $"\nComp: {spawnSystem.LastCompositionInfo}";
     }
 
     /// <summary>
@@ -151,7 +162,7 @@ public class SpawnTestDebugDisplay : MonoBehaviour
         panelRect.anchorMax = new Vector2(0, 1);
         panelRect.pivot = new Vector2(0, 1);
         panelRect.anchoredPosition = new Vector2(16, -16);
-        panelRect.sizeDelta = new Vector2(760, 180);
+        panelRect.sizeDelta = new Vector2(760, 230);
         panelGo.AddComponent<Image>().color = new Color(0, 0, 0, 0.6f);
 
         GameObject textGo = new GameObject("Text");
@@ -161,7 +172,7 @@ public class SpawnTestDebugDisplay : MonoBehaviour
         textRect.anchorMax = new Vector2(0, 1);
         textRect.pivot = new Vector2(0, 1);
         textRect.anchoredPosition = new Vector2(24, -24);
-        textRect.sizeDelta = new Vector2(740, 160);
+        textRect.sizeDelta = new Vector2(740, 210);
         hudText = textGo.AddComponent<Text>();
         hudText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         hudText.fontSize = 34;
