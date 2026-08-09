@@ -8,6 +8,7 @@ public class PlayerDashState : State<PlayerController>
     private Animator _animator;
     private float _dashDuration = 0.2f; // Duration of the dash in seconds
     private float _dashSpeed = 50f; // Speed of the dash
+    private int _dashAnimationHash = Animator.StringToHash("DashForward");
 
     public PlayerDashState(Animator animator)
     {
@@ -21,13 +22,14 @@ public class PlayerDashState : State<PlayerController>
         _owner.CanMove = false;
         _dashDuration = _owner.context.dashDuration;
         _dashSpeed = _owner.context.dashSpeed;
+        _animator.CrossFade(_dashAnimationHash, 0.1f);
         await DashCoroutine();
     }
 
     public override void Update()
     {
         Vector3 dashDirection = _owner.MoveDirectionToWorldSpace();
-        _owner.context.rb.AddForce(dashDirection * _dashSpeed, ForceMode.Impulse);
+        _owner.referencesContext.rb.AddForce(dashDirection * _dashSpeed, ForceMode.Impulse);
     }
 
     private async UniTask DashCoroutine()
@@ -49,6 +51,7 @@ public class PlayerDashState : State<PlayerController>
 
     public override void Exit()
     {
+        _animator.CrossFade(Animator.StringToHash("CombatIdle"), 0.1f);
         _owner.UseCustomGravity = true;
         _owner.CanMove = true;
         _owner.UseDrag = true;
