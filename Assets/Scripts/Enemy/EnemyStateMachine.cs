@@ -1,19 +1,27 @@
 using System.Collections.Generic;
 
-public class EnemyStateMachine
+public interface IEstate
 {
-    private EnemyState currentState = null;
+    void Enter();
+    void Exit();
+    void Tick();
+}
+// if T is a class and it has what is in the interface IEstate
+// that will make me able of making the nested State machine
+public class EnemyStateMachine <T> where T : class ,IEstate
+{
+    private T currentState = null;
 
-    private EnemyState _previousState;
+    private T previousState;
 
-    private readonly Dictionary<System.Type, EnemyState> enemyStates = new();
+    private readonly Dictionary<System.Type, T> enemyStates = new();
 
-    public Dictionary<System.Type, EnemyState> EnemyStates => enemyStates;
+    public Dictionary<System.Type, T> EnemyStates => enemyStates;
 
-    public EnemyState CurrentState => currentState;
-    public EnemyState PreviousState => _previousState;
+    public T CurrentState => currentState;
+    public T PreviousState => previousState;
 
-    public void AddState(EnemyState state)
+    public void AddState(T state)
     {
         enemyStates[state.GetType()] = state;
     }
@@ -23,26 +31,31 @@ public class EnemyStateMachine
         currentState?.Tick();
     }
 
-    public void SetState<T>() where T : EnemyState
+    public void Exit()
     {
-        if (currentState is T)
+        currentState?.Exit();
+        currentState = null;
+    }
+
+    public void SetState<TState>() where TState : class, T
+    {
+        if (currentState is TState)
             return;
 
-        EnemyState previousState = currentState;
+        T previousState = currentState;
 
         currentState?.Exit();
 
-        if (enemyStates.ContainsKey(typeof(T)))
+        if (enemyStates.ContainsKey(typeof(TState)))
         {
-            currentState = enemyStates[typeof(T)];
+            currentState = enemyStates[typeof(TState)];
             currentState.Enter();
-
-            _previousState = previousState;
+            this.previousState = previousState;
         }
     }
 
-    public EnemyState GetState<T>() where T : EnemyState
+    public T GetState<TState>() where TState : T
     {
-        return enemyStates[typeof(T)];
+        return enemyStates[typeof(TState)];
     }
 }

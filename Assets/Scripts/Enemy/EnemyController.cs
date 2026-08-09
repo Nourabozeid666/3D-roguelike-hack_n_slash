@@ -1,40 +1,67 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /*
-    First:
-    Prove the architecture with Debug.Log. !
-    
-    Then:
-    Add real Patrol behavior. !
-    
-    Then:
-    Supply waypoints. !
-    
-    Then:
-    Add detection and Chase.
-    
-    Then:
-    Add animations.
+    basic states for a grunt enemy:
+        attackState  
+        RetreatState
+        { 
+            SacrificeAttack
+            RangedShootAttack
+            MeleeAttack
+        }
+        DefendState { use sheild - run away}
+        stagerState{
+        // poise damage: for every attack
+        // if the poise > poise damage no interruption
+        // if the poise <= poise damage the stager bar gets less by the the poise damage
+        // get it sepatated
+            standard and grunt :
+             only take damage and get back for getting hurt
+            boss : 
+             does not feel any thing unless the stager bar is full and then empty it and make him hurt for some seconds
+        }
+
+    basic attackState for Melee archetypes
+    {
+    #Standard
+        Shielder (strong attack - weak attack - defand)
+        fast (assassin) (attack - run away)
+    }
+
+    spownEnemySystem:
+       *ScriptableObject to store the spown points
+       *system to spown a certain amout of enemies with spown times  
+       *controls what eneies are we spownning, Enemies will be with high cost. And actually it's going to be prevented from being in the first 
+        levels, so they are going to be open after a certain amount of levels.
+       *It has a specific cost for how many levels the player have get through. And the enemies, each of them is going to have a certain amount
+        of this cost. So we're going to combine the cost of all enemies to get to the number that we need to. And if it's larger, we're going to 
+        get to minus it by a bit.
  */
 
-// any thing that any state might need
+/* 
+ * EnemyEntity owns the numbers and decides what happened, EnemyController is the only one holding both the 
+ * entity and the state machine so it's the one that translates "what happened" into "which state, doing what"
+ * and StagerState just plays a clip and holds a timer.
+ */
 public class EnemyController : MonoBehaviour
 {
-    private EnemyStateMachine stateMachine;
+    private EnemyStateMachine<EnemyState> EStateMachine;
 
     private NavMeshAgent agent;
     private Animator animator;
 
     [SerializeField] Transform targetTransform;
+    [SerializeField] PatrolRoute patrolRoute;
 
     [Header("-----chasing the player-----")]
     [SerializeField] private float detectionDistance;
     [SerializeField] private float loseTargetDistance;
     [SerializeField] private float attackRange;
-    [SerializeField] private float patrolRange;
+    [SerializeField] private float attackExitBuffer = 0.5f; // new
 
     [SerializeField] private float patrolSpeed;
     [SerializeField] private float chaseSpeed;
@@ -44,6 +71,7 @@ public class EnemyController : MonoBehaviour
 
     [Header("----------------------------")]
     [SerializeField] Text _debugText;
+    [SerializeField] private EnemyEntity enemyEntity;
 
     private bool hasTarget;
 
@@ -51,12 +79,10 @@ public class EnemyController : MonoBehaviour
     // Agent = the public read-only property that returns the field
 
     public Dictionary<System.Type, EnemyState> EnemyStates =>
-        stateMachine.EnemyStates;
+        EStateMachine.EnemyStates;
 
-    public EnemyState PreviousState =>
-        stateMachine.PreviousState;
-
-    public float PatrolRange => patrolRange;
+    public EnemyEntity EnemyEntity => enemyEntity;
+    public PatrolRoute PatrolRoute => patrolRoute;
     public float PatrolSpeed => patrolSpeed;
     public float ChaseSpeed => chaseSpeed;
     public float AttackRange => attackRange;
@@ -65,63 +91,96 @@ public class EnemyController : MonoBehaviour
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
 
-    // start state here
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
 
-        stateMachine = new EnemyStateMachine();
+        EStateMachine = new EnemyStateMachine<EnemyState>();
+
+        enemyEntity.Initialize();
+        enemyEntity.OnStaggered += HandleStaggered;
+        enemyEntity.OnDied += HandleDied;
+        enemyEntity.OnDamageTaken += HandleDamageTaken;
 
         // for each state i need to initialise them all first
         // apply changes to the constractor after finishing with each state
         // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-        AddState(new IdleState(this));
+        AddState(new SpownState(this));
         AddState(new ChaseState(this));
         AddState(new AttackState(this));
-
+        AddState(new PatrolState(this));
+        AddState(new StaggerState(this));
+        AddState(new DieState(this));
         // set the first state the enemy will enter
-        SetState<IdleState>();
+        SetState<SpownState>();
 
-        agent.stoppingDistance = PatrolRange;
+        agent.stoppingDistance = waypointStoppingDistance;
+    }
+
+    private void HandleDied()
+    {
+        SetState<DieState>();
+    }
+
+    private void HandleDamageTaken(float damage)
+    {
+        if (!EStateMachine.CurrentState.CanBeInterrupted)
+            return;
+        StaggerState staggerState = GetState<StaggerState>() as StaggerState;
+        staggerState?.SetReaction(StaggerState.ReactionType.Hit);
+        SetState<StaggerState>();
+    }
+
+    private void HandleStaggered()
+    {
+        if (!EStateMachine.CurrentState.CanBeInterrupted)
+            return;
+        StaggerState staggerState = GetState<StaggerState>() as StaggerState;
+        staggerState?.SetReaction(StaggerState.ReactionType.Stun);
+        SetState<StaggerState>();
     }
 
     // update state here
     void Update()
     {
-        stateMachine.Tick();
+        EStateMachine.Tick();
 
         SeeThePlayer();
 
+        if (Keyboard.current.hKey.wasPressedThisFrame)
+            enemyEntity.TakeDamage(10, 5); // small poise damage
+
+        if (Keyboard.current.jKey.wasPressedThisFrame)
+            enemyEntity.TakeDamage(10, 999); // guaranteed poise break
+
+        // GetState<AttackState>() always hands back a plain EnemyState label (that's fixed in the method's return type).
+        // "as AttackState" relabels it as AttackState specifically, so we can reach AttackState-only stuff like CurrentCombatAction.
+        AttackState attackState = GetState<AttackState>() as AttackState;
         _debugText.text =
             "Current State: " +
             (
-                stateMachine.CurrentState != null
-                    ? stateMachine.CurrentState.GetType().ToString()
+                EStateMachine.CurrentState != null
+                    ? EStateMachine.CurrentState.GetType().ToString()
                     : "None"
             ) +
             "\nPrevious State: " +
             (
-                stateMachine.PreviousState != null
-                    ? stateMachine.PreviousState.GetType().ToString()
+                EStateMachine.PreviousState != null
+                    ? EStateMachine.PreviousState.GetType().ToString()
+                    : "None"
+            ) + "\nAttack State: " +
+            (
+                attackState?.CurrentCombatAction != null
+                    ? attackState?.CurrentCombatAction.GetType().ToString()
                     : "None"
             );
     }
 
-    //void Rotate(Vector2 direction)
-    //{
-    //    Vector3 groundVelocity = new Vector3(context.rb.velocity.x, 0, context.rb.velocity.z);
-    //    Quaternion targetRotation = groundVelocity != Vector3.zero ? Quaternion.LookRotation(groundVelocity) : context.playerModel.rotation;
-    //    if (targetRotation != null && targetRotation != context.playerModel.rotation && direction != Vector2.zero)
-    //    {
-    //        context.playerModel.rotation = Quaternion.Slerp(context.playerModel.rotation, targetRotation, 0.1f);
-    //    }
-    //}
-
     void AddState(EnemyState state)
     {
-        stateMachine.AddState(state);
+        EStateMachine.AddState(state);
     }
 
     void SeeThePlayer()
@@ -129,27 +188,26 @@ public class EnemyController : MonoBehaviour
         if (targetTransform == null || agent == null)
             return;
 
-        Vector3 direction =
-            targetTransform.position - transform.position;
+        if (!EStateMachine.CurrentState.CanBeInterrupted)
+            return;
 
+        Vector3 direction = targetTransform.position - transform.position;
         float distance = direction.magnitude;
-
-        float angle =
-            Vector3.Angle(direction, transform.forward);
+        float angle = Vector3.Angle(direction, transform.forward);
 
         if (!hasTarget)
         {
-            bool playerViewed =
-                angle <= viewHalfAngle &&
-                distance <= detectionDistance;
-
+            bool playerViewed = angle <= viewHalfAngle && distance <= detectionDistance;
             if (!playerViewed)
                 return;
-
             hasTarget = true;
         }
 
-        if (distance < attackRange)
+        bool inAttackRange = EStateMachine.CurrentState is AttackState
+            ? distance <= attackRange + attackExitBuffer
+            : distance <= attackRange;
+
+        if (inAttackRange)
         {
             SetState<AttackState>();
             return;
@@ -158,26 +216,25 @@ public class EnemyController : MonoBehaviour
         if (distance >= loseTargetDistance)
         {
             hasTarget = false;
-
-            SetState<IdleState>();
+            SetState<PatrolState>();
             return;
         }
 
         SetState<ChaseState>();
-
-        transform.LookAt(targetTransform.position);
-
-        agent.SetDestination(targetTransform.position);
+        Vector3 lookAtVector = new Vector3(targetTransform.position.x, transform.position.y, targetTransform.position.z);
+        transform.LookAt(lookAtVector);
+        agent.SetDestination(lookAtVector);
     }
+
 
     // exit state here
     public void SetState<T>() where T : EnemyState
     {
-        stateMachine.SetState<T>();
+        EStateMachine.SetState<T>();
     }
 
     public EnemyState GetState<T>() where T : EnemyState
     {
-        return stateMachine.GetState<T>();
+        return EStateMachine.GetState<T>();
     }
 }

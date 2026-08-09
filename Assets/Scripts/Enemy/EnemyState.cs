@@ -1,5 +1,5 @@
 // An abstract class is intended to be used as a base for other classes and cannot be instantiated directly.
-public abstract class EnemyState
+public abstract class EnemyState : IEstate
 {
     protected EnemyController enemyController;
     //Microsoft’s design guidance specifically recommends protected
@@ -8,8 +8,9 @@ public abstract class EnemyState
     {
         this.enemyController = enemyController;
     }
-
-    public abstract void Enter();
-    public abstract void Tick();
+    public virtual bool CanBeInterrupted => true;
+    public abstract void Enter(); 
     public abstract void Exit();
+    public abstract void Tick();
+
 }
