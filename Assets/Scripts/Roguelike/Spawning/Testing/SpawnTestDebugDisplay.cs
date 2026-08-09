@@ -125,15 +125,22 @@ public class SpawnTestDebugDisplay : MonoBehaviour
     }
 
     /// <summary>
-    /// Run state + floor come from the REAL RunController that SpawnSystemTestDriver drives in the
-    /// scene. If no driver is present, both are reported as n/a - they are never invented.
+    /// Run state + floor come from the REAL RunController that the scene's run owner drives — the
+    /// test driver (SpawnSystemTestDriver) in a test scene, or the production bootstrap
+    /// (RunBootstrap) when the scene was entered from the Main Menu. If neither is present, both are
+    /// reported as n/a - they are never invented.
     /// </summary>
     string ReadRunInfo()
     {
         SpawnSystemTestDriver driver = FindObjectOfType<SpawnSystemTestDriver>();
-        if (driver == null || driver.Run == null)
-            return "Run: n/a (no SpawnSystemTestDriver)";
-        return $"Run state: {driver.Run.CurrentState} / Floor: {driver.Run.Data.floor}";
+        if (driver != null && driver.Run != null)
+            return $"Run state: {driver.Run.CurrentState} / Floor: {driver.Run.Data.floor}";
+
+        RunBootstrap bootstrap = FindObjectOfType<RunBootstrap>();
+        if (bootstrap != null && bootstrap.Run != null)
+            return $"Run state: {bootstrap.Run.CurrentState} / Floor: {bootstrap.Run.Data.floor}";
+
+        return "Run: n/a (no driver or bootstrap)";
     }
 
     /// <summary>

@@ -77,6 +77,13 @@ public class PauseController : MonoBehaviour
         if (settingsPanel != null) settingsPanel.SetActive(true);
     }
 
+    /// <summary>
+    /// Quit-to-menu relies on the run's checkpoint save (written by RunBootstrap at the START of
+    /// every floor, including floor 1), so returning here never silently destroys the run. A mid-floor
+    /// quit resumes the current floor from its start — enemy state is not persisted yet, so the floor
+    /// is repopulated fresh. No extra save is needed at this point: the current floor's checkpoint is
+    /// already on disk.
+    /// </summary>
     public void ReturnToMainMenu()
     {
         Time.timeScale = 1f;

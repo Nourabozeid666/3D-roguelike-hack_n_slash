@@ -41,6 +41,15 @@ public class SpawnSystemTestDriver : MonoBehaviour
     {
         yield return null;
 
+        if (RunSession.EnterFromMenu)
+        {
+            // The scene was entered from the Main Menu: RunBootstrap owns the run. Deferring here
+            // keeps the automated checks for direct scene opens (Editor Play Mode) while letting the
+            // real Continue/New Run flow use the same scene without two run owners fighting.
+            Debug.Log("[SpawnSystemTest] Scene entered from the Main Menu — automated checks skipped (RunBootstrap owns the run).");
+            yield break;
+        }
+
         if (spawnSystem == null)
         {
             Fail("spawnSystem reference is null");

@@ -859,6 +859,11 @@ public class Pickup : MonoBehaviour
 
 ### 4.8 Meta progression & save
 
+> **IMPLEMENTED (run-level saves only):** the CURRENT-run checkpoint save (`SaveData` / `RunSaveService` /
+> `RunBootstrap`, Main Menu Continue/New Run) landed in **Sprint 6 — see
+> [`ROGUELIKE_SAVE_SPRINT_6.md`](ROGUELIKE_SAVE_SPRINT_6.md)**. The META progression (essence/best-floor/
+> unlocks persisting ACROSS runs) below remains `[PROPOSED] — FUTURE WORK`, not implemented.
+
 `MetaProgressData.cs`
 
 ```csharp
