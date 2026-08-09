@@ -5,16 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /*
-<<<<<<< Updated upstream
     basic states for a grunt enemy:
-=======
-    basic states for a grent enemy:
-<<<<<<< Updated upstream
-=======
-        spownState == idle
-        chaseState
->>>>>>> Stashed changes
->>>>>>> Stashed changes
         attackState  
         RetreatState
         { 

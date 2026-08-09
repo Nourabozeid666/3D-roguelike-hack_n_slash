@@ -33,13 +33,6 @@ public class SpownState : EnemyState
 
     IEnumerator UpdateCoroutine()
     {
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
         yield return new WaitForSeconds(3f);
         enemyController.SetState<PatrolState>();
     }
