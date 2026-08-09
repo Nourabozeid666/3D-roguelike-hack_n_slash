@@ -32,7 +32,6 @@ using UnityEngine.UI;
         fast (assassin) (attack - run away)
     }
 
-
     spownEnemySystem:
        *ScriptableObject to store the spown points
        *system to spown a certain amout of enemies with spown times  
@@ -62,6 +61,7 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private float detectionDistance;
     [SerializeField] private float loseTargetDistance;
     [SerializeField] private float attackRange;
+    [SerializeField] private float attackExitBuffer = 0.5f; // new
 
     [SerializeField] private float patrolSpeed;
     [SerializeField] private float chaseSpeed;
@@ -191,27 +191,23 @@ public class EnemyController : MonoBehaviour
         if (!EStateMachine.CurrentState.CanBeInterrupted)
             return;
 
-        Vector3 direction =
-            targetTransform.position - transform.position;
-
+        Vector3 direction = targetTransform.position - transform.position;
         float distance = direction.magnitude;
-
-        float angle =
-            Vector3.Angle(direction, transform.forward);
+        float angle = Vector3.Angle(direction, transform.forward);
 
         if (!hasTarget)
         {
-            bool playerViewed =
-                angle <= viewHalfAngle &&
-                distance <= detectionDistance;
-
+            bool playerViewed = angle <= viewHalfAngle && distance <= detectionDistance;
             if (!playerViewed)
                 return;
-
             hasTarget = true;
         }
 
-        if (distance <= attackRange)
+        bool inAttackRange = EStateMachine.CurrentState is AttackState
+            ? distance <= attackRange + attackExitBuffer
+            : distance <= attackRange;
+
+        if (inAttackRange)
         {
             SetState<AttackState>();
             return;
@@ -220,16 +216,13 @@ public class EnemyController : MonoBehaviour
         if (distance >= loseTargetDistance)
         {
             hasTarget = false;
-
             SetState<PatrolState>();
             return;
         }
 
         SetState<ChaseState>();
         Vector3 lookAtVector = new Vector3(targetTransform.position.x, transform.position.y, targetTransform.position.z);
-
         transform.LookAt(lookAtVector);
-
         agent.SetDestination(lookAtVector);
     }
 

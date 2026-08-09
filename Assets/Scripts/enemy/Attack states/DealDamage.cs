@@ -11,10 +11,10 @@ public class DealDamage : MonoBehaviour
         {
             return;
         }
-        //if ()
-        //{
-            //playerController.Entity.TakeDamage(damage);
-            //Debug.Log($"Player took {damage} damage. Remaining health: {playerController.Entity.Health}", this);
-        //}
+        if ()
+        {
+            playerController.Entity.TakeDamage(damage);
+            Debug.Log($"Player took {damage} damage. Remaining health: {playerController.Entity.Health}", this);
+        }
     }
 }

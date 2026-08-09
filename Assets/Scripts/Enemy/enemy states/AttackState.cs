@@ -36,7 +36,7 @@ public class AttackState : EnemyState
     {
         agent.isStopped = true;
 
-        combatActions.SetState<MeleeAttack>();
+        //combatActions.SetState<MeleeAttack>();
     }
 
     public override void Exit()

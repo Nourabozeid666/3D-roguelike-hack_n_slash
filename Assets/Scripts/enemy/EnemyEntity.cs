@@ -16,6 +16,8 @@ public class EnemyEntity : IEnemyEntity
     public float MaxHealth => maxHealth;
     public float BaseDamage => baseDamage;
     public float BaseDefense => baseDefence;
+    public float CurrentPoise => currentPoise;
+    public float MaxPoise => maxPoise;
 
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
