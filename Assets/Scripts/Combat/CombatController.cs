@@ -9,7 +9,7 @@ public class CombatController : MonoBehaviour
     [SerializeField] private CombatContext combatContext;
     private ComboSystem comboSystem;
     private StateMachine<CombatController> _stateMachine;
-    private PlayerController _playerController;
+    internal PlayerController _playerController;
 
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
@@ -21,7 +21,7 @@ public class CombatController : MonoBehaviour
         comboSystem = new ComboSystem(this);
         _stateMachine = new StateMachine<CombatController>(this, combatContext.debugText);
         _stateMachine.AddState(new CombatIdleState(combatContext.animator));
-        _stateMachine.AddState(new CombatLightAttackState(combatContext.animator));
+        _stateMachine.AddState(new CombatLightAttackState(combatContext.animator, combatContext.attackDebugText));
         _stateMachine.SetState<CombatIdleState>();
 
         InputController.OnLightAttackStart += () =>
@@ -69,10 +69,6 @@ public class CombatController : MonoBehaviour
         CalculateHoldTime();
         comboSystem.CheckInput();
         _stateMachine.Update();
-    }
-
-    void LateUpdate()
-    {
         if (combatContext.queuedAttack != null && !combatContext.isAttacking)
         {
             Debug.Log("Executing queued attack: " + combatContext.queuedAttack.name);

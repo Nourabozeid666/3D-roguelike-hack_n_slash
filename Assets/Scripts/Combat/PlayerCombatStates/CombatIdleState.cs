@@ -8,12 +8,13 @@ public class CombatIdleState : State<CombatController>
     public CombatIdleState(Animator animator)
     {
         _animator = animator;
-
-        //hashAnimationState = Animator.StringToHash("Idle");
+        hashAnimationState = Animator.StringToHash("CombatIdle");
     }
 
     public override void Enter()
     {
+        _animator.CrossFade(hashAnimationState, 0.1f, 0);
+        Debug.Log("Animation: CombatIdleState");
         _owner.CombatContext.isAttacking = false;
         _owner.CombatContext.currentAttack = null;
         _owner.CombatContext.currentInputType = InputType.None;        

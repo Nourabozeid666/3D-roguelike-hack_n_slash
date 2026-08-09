@@ -19,9 +19,11 @@ public class AttackData : ScriptableObject
     [SerializeField] private float damageMultiplier = 1f; // default
     [SerializeField] private AnimationClip animation;
     [SerializeField] private float comboWindow = 0.5f; // default
+    [SerializeField] private float recoveryStartTime = 0.75f; // default
     [SerializeField] private float holdTime = 0.5f; // default
     [SerializeField] private Vector3 lungeDirection = Vector3.forward; // default
     [SerializeField] private float lungeDistance = 1f; // default
+    [SerializeField] private float lungeDuration = 0.5f; // default
     [SerializeField] private bool isHoldAttack = false;
 
     [SerializeField] private AttackTransition[] transitions;
@@ -29,9 +31,11 @@ public class AttackData : ScriptableObject
     public float DamageMultiplier { get { return damageMultiplier; } }
     public AnimationClip Animation { get { return animation; } }
     public float ComboWindow { get { return comboWindow; } }
+    public float RecoveryStartTime { get { return recoveryStartTime; } }
     public float HoldTime { get { return holdTime; } }
     public Vector3 LungeDirection { get { return lungeDirection; } }
     public float LungeDistance { get { return lungeDistance; } }
+    public float LungeDuration { get { return lungeDuration; } }
     public bool IsHoldAttack { get { return isHoldAttack; } }
 
     public AttackData GetNext(InputType input)

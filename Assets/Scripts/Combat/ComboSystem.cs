@@ -1,9 +1,13 @@
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class ComboSystem
 {
     private CombatController owner;
+
+    private float queueCooldown = 0.1f;
+    private bool canQueue = true;
 
     public ComboSystem(CombatController owner)
     {
@@ -11,6 +15,10 @@ public class ComboSystem
     }
     public void QueueCombo(InputType inputType)
     {
+        Debug.Log("First Condition: " + (owner.CombatContext.queuedInputType != inputType).ToString() + " && " + (owner.CombatContext.currentAttack != null).ToString() + " && " + (owner.CombatContext.currentAttack != null ? owner.CombatContext.currentAttack.GetNext(inputType) != null : false).ToString());
+        if (!canQueue) {Debug.Log("Cannot queue attack yet. Cooldown active."); return;};
+        canQueue = false;
+        WaitForQueueCooldown().Forget();
         if (owner.CombatContext.queuedInputType != inputType && owner.CombatContext.currentAttack != null && owner.CombatContext.currentAttack.GetNext(inputType) != null)
         {
             owner.CombatContext.queuedAttack = owner.CombatContext.currentAttack.GetNext(inputType);
@@ -24,11 +32,11 @@ public class ComboSystem
         } else
         {
             Debug.Log("No valid attack found for InputType: " + inputType);
-            Debug.Log("Current attack: " + (owner.CombatContext.currentAttack != null ? owner.CombatContext.currentAttack.name : "None"));
-            Debug.Log("Weapon entry attacks: " + string.Join(", ", owner.CombatContext.currentWeapon.EntryAttacks.Dict.Keys));
         }
+        Debug.Log("Current attack: " + (owner.CombatContext.currentAttack != null ? owner.CombatContext.currentAttack.name : "None"));
+        Debug.Log("Weapon entry attacks: " + string.Join(", ", owner.CombatContext.currentWeapon.EntryAttacks.Dict.Keys));
 
-        float bufferDuration = owner.CombatContext.currentAttack?.ComboWindow ?? 0.5f;
+        float bufferDuration = 0.2f;
         owner.CombatContext.bufferExpiryTime = Time.time + bufferDuration;
         Debug.Log("Buffer expiry time set to: " + owner.CombatContext.bufferExpiryTime);
     }
@@ -83,8 +91,17 @@ public class ComboSystem
             owner.CombatContext.currentAttack = owner.CombatContext.queuedAttack;
             owner.CombatContext.currentInputType = owner.CombatContext.queuedInputType;
             owner.CombatContext.queuedAttack = null;
+            owner.CombatContext.queuedInputType = InputType.None;
         }
         ExecuteAttack();
+    }
+
+    public UniTask WaitForQueueCooldown()
+    {
+        return UniTask.Delay(System.TimeSpan.FromSeconds(queueCooldown)).ContinueWith(() =>
+        {
+            canQueue = true;
+        });
     }
 
     void ExecuteAttack()

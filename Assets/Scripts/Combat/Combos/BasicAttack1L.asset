@@ -16,10 +16,11 @@ MonoBehaviour:
   damageMultiplier: 1
   animation: {fileID: 7400000, guid: 6b8de8e7b13cad244a1d1b7bad932406, type: 2}
   comboWindow: 0.5
+  recoveryStartTime: 0.75
   holdTime: 0.5
   lungeDirection: {x: 0, y: 0, z: 1}
   lungeDistance: 1
   isHoldAttack: 0
   transitions:
-  - input: 0
+  - input: 1
     nextAttack: {fileID: 11400000, guid: 0b6c49492c323ed6e822e8eb6d23ba7c, type: 2}

@@ -12,7 +12,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] internal PlayerContext context = new PlayerContext();
     [SerializeField] internal PlayerEntity playerEntity = new PlayerEntity();
     // [SerializeField] internal CombatContext combatContext = new CombatContext();
-
+    [SerializeField] private CombatController combatController;
     private StateMachine<PlayerController> _stateMachine;
     // private CombatSystem _combatSystem;
 
@@ -24,10 +24,12 @@ public class PlayerController : MonoBehaviour
     internal bool UseCustomGravity { get { return context.useCustomGravity; } set { context.useCustomGravity = value; } }
     internal bool CanMove { get { return context.canMove; } set { context.canMove = value; } }
     internal bool UseDrag { get { return context.useDrag; } set { context.useDrag = value; } }
+    internal CombatController CombatController { get { return combatController; } }
     public IEntity Entity {get { return playerEntity; } }
 
     void Awake()
     {
+        combatController = GetComponent<CombatController>();
         // context.animator = context.playerModel.GetComponent<Animator>();
         _stateMachine = new StateMachine<PlayerController>(this, context.debugText);
         _stateMachine.AddState(new PlayerIdleState(context.animator));
@@ -181,8 +183,17 @@ public class PlayerController : MonoBehaviour
         context.speed = context.isSprinting ? context.sprintSpeed : context.walkSpeed;
     }
 
-    public void AddForce(Vector3 force, ForceMode mode)
+    public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force)
     {
+        context.rb.AddForce(force, mode);
+    }
+
+    public void AddDirectionalForce(Vector3 direction, ForceMode mode = ForceMode.Force)
+    {
+        Vector3 forward = context.playerModel.forward * direction.z;
+        Vector3 right = context.playerModel.right * direction.x;
+        Vector3 up = context.playerModel.up * direction.y;
+        Vector3 force = forward + right + up;
         context.rb.AddForce(force, mode);
     }
 
