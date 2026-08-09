@@ -13,6 +13,9 @@ public class StateMachine<T>
     private State<T> _previousState;
     private Text _debugText;
 
+    public State<T> CurrentState { get { return _currentState; } }
+    public State<T> PreviousState { get { return _previousState; } }
+
     public StateMachine(T owner, Text debugText = null)
     {
         _owner = owner;
@@ -52,6 +55,25 @@ public class StateMachine<T>
             _currentState.Enter();
         }
     }
+
+    public void SetState(System.Type stateType)
+    {
+        if (_currentState != null)
+            _currentState.Exit();
+        if (stateType == null)
+            return;
+        if (_states.ContainsKey(stateType))
+        {
+            _previousState = _currentState;
+            _currentState = _states[stateType];
+            _currentState.Enter();
+        }
+    }
+
+    // public State<T> GetState<TS>() where TS : State<T>
+    // {
+    //     return _states.ContainsKey(typeof(TS)) ? _states[typeof(TS)] : null;
+    // }
 }
 
 public abstract class State<T>

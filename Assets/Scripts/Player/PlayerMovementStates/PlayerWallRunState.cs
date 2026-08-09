@@ -57,10 +57,10 @@ public class PlayerWallRunState : State<PlayerController>
         {
             timer += Time.deltaTime;
             // Vector3 appliedJumpForce = Vector3.up * (_owner.jumpForce + (_owner.IsSprinting ? 2f : 1.25f)) * Time.deltaTime;
-            Vector3 frontJumpDirection = new Vector3(_owner.context.playerCamera.forward.x, 0f, _owner.context.playerCamera.forward.z).normalized * _owner.context.jumpForwardPush * jumpOffForce;
+            Vector3 frontJumpDirection = new Vector3(_owner.referencesContext.playerCamera.forward.x, 0f, _owner.referencesContext.playerCamera.forward.z).normalized * _owner.context.jumpForwardPush * jumpOffForce;
             Vector3 rightJumpDirection = wallRunDirection == WallRunDirection.Right ?
-                -_owner.context.playerModel.right * jumpOffForce :
-                 _owner.context.playerModel.right * jumpOffForce;
+                -_owner.referencesContext.playerModel.right * jumpOffForce :
+                 _owner.referencesContext.playerModel.right * jumpOffForce;
             _owner.AddForce(frontJumpDirection, ForceMode.Acceleration);
             _owner.AddForce(rightJumpDirection, ForceMode.Acceleration);
         }
@@ -74,11 +74,11 @@ public class PlayerWallRunState : State<PlayerController>
         _stateMachine.SetState<PlayerJumpState>();
         Vector3 appliedJumpForce = Vector3.up * (_owner.context.jumpForce + (_owner.IsSprinting ? 2f : 1.25f));
 
-        // float moveZ = _owner.context.moveDirection.x;
-        Vector3 frontJumpDirection = new Vector3(_owner.context.playerCamera.forward.x, 0f, _owner.context.playerCamera.forward.z).normalized * _owner.context.jumpForwardPush;
+        // float moveZ = _owner.referencesContext.moveDirection.x;
+        Vector3 frontJumpDirection = new Vector3(_owner.referencesContext.playerCamera.forward.x, 0f, _owner.referencesContext.playerCamera.forward.z).normalized * _owner.context.jumpForwardPush;
         Vector3 rightJumpDirection = wallRunDirection == WallRunDirection.Right ?
-            -_owner.context.playerModel.right * jumpOffForce :
-             _owner.context.playerModel.right * jumpOffForce;
+            -_owner.referencesContext.playerModel.right * jumpOffForce :
+             _owner.referencesContext.playerModel.right * jumpOffForce;
         Debug.DrawLine(_owner.transform.position, _owner.transform.position + frontJumpDirection, Color.red, 5f);
         Debug.DrawLine(_owner.transform.position, _owner.transform.position + rightJumpDirection, Color.blue, 5f);
         _owner.AddForce(frontJumpDirection, ForceMode.Impulse);
@@ -132,7 +132,7 @@ public class PlayerWallRunState : State<PlayerController>
     public override void Exit()
     {
         _owner.UseCustomGravity = true;
-        // _owner.context.CanMove = true;
+        // _owner.referencesContext.CanMove = true;
         _owner.StartCoroutine(waitForMove());
         canCancel = false;
         hasJumpedOffWall = false;

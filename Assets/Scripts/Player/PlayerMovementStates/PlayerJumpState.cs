@@ -13,7 +13,7 @@ public class PlayerJumpState : State<PlayerController>
     public override void Enter()
     {
         // Debug.Log("Entered Jump State");
-        _owner.UseDrag = false;
+        // _owner.UseDrag = false;
     }
 
     public override void Update()
@@ -23,7 +23,7 @@ public class PlayerJumpState : State<PlayerController>
 
     IEnumerator UpdateCoroutine()
     {
-        _owner.UpdateGroundDrag(0.1f);
+        _owner.UpdateGroundDrag(0.5f);
         yield return new WaitForSeconds(0.2f);
         if (_owner.IsGrounded())
         {
