@@ -5,14 +5,6 @@ using UnityEngine.UI;
 [Serializable]
 public class PlayerContext
 {
-    [Header("References")]
-    [SerializeField] internal LayerMask groundLayer;
-    [SerializeField] internal LayerMask wallLayer;
-    [SerializeField] internal Rigidbody rb;
-    [SerializeField] internal Transform playerCamera;
-    [SerializeField] internal Transform playerModel;
-    [SerializeField] internal Text debugText;
-    [SerializeField] internal Animator animator;
 
     [Header("Physics Settings")]
     [SerializeField] internal bool useCustomGravity = true;

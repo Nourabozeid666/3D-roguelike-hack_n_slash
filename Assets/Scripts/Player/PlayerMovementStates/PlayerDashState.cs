@@ -29,7 +29,7 @@ public class PlayerDashState : State<PlayerController>
     public override void Update()
     {
         Vector3 dashDirection = _owner.MoveDirectionToWorldSpace();
-        _owner.context.rb.AddForce(dashDirection * _dashSpeed, ForceMode.Impulse);
+        _owner.referencesContext.rb.AddForce(dashDirection * _dashSpeed, ForceMode.Impulse);
     }
 
     private async UniTask DashCoroutine()

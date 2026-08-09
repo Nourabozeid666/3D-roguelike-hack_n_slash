@@ -7,11 +7,6 @@ using UnityEngine.UI;
 [Serializable]
 public class CombatContext
 {
-    [Header("References")]
-    [SerializeField] internal Animator animator;
-    [SerializeField] internal Rigidbody rb;
-    [SerializeField] internal Text debugText;
-    [SerializeField] internal Text attackDebugText;
     [Header("Current Weapon Data")]
     [SerializeField] internal WeaponObject currentWeapon;
     [SerializeField] internal AttackData currentAttack;

@@ -7,10 +7,11 @@ public class CombatController : MonoBehaviour
 {
 
     [SerializeField] private CombatContext combatContext;
+    [SerializeField] private ReferencesContext referencesContext;
     private ComboSystem comboSystem;
     private StateMachine<CombatController> _stateMachine;
     internal PlayerController _playerController;
-
+    
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
 
@@ -19,9 +20,10 @@ public class CombatController : MonoBehaviour
     {
         _playerController = GetComponent<PlayerController>();
         comboSystem = new ComboSystem(this);
-        _stateMachine = new StateMachine<CombatController>(this, combatContext.debugText);
-        _stateMachine.AddState(new CombatIdleState(combatContext.animator));
-        _stateMachine.AddState(new CombatLightAttackState(combatContext.animator, combatContext.attackDebugText));
+        referencesContext = _playerController.ReferencesContext;
+        _stateMachine = new StateMachine<CombatController>(this, referencesContext.combatDebugText);
+        _stateMachine.AddState(new CombatIdleState(referencesContext.animator));
+        _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, referencesContext.attackDebugText));
         _stateMachine.SetState<CombatIdleState>();
 
         InputController.OnLightAttackStart += () =>
