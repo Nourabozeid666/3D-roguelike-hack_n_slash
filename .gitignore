@@ -73,3 +73,8 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# The dotnet integration-test harness project is committed on purpose.
+!tools/spawn-integration-test/spawn_integration_test.csproj
+tools/spawn-integration-test/bin/
+tools/spawn-integration-test/obj/

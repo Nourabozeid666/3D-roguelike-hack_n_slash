@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>SpawnIntegrationTest</AssemblyName>
+    <RootNamespace>SpawnIntegrationTest</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Compile the REAL game sources straight from Assets/Scripts/... so CI tests the actual spawner /
+    run code (same files the local harness copies in), never stale duplicates. Only the files the
+    harness references are included. WeaponData.cs, WeaponType.cs, PauseController.cs and
+    SettingsController.cs are NOT part of the harness and are deliberately excluded.
+  -->
+  <ItemGroup>
+    <Compile Include="../../Assets/Scripts/Roguelike/RunBootstrap.cs" Link="Repo/RunBootstrap.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RunController.cs" Link="Repo/RunController.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RunData.cs" Link="Repo/RunData.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RunSaveService.cs" Link="Repo/RunSaveService.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RunSession.cs" Link="Repo/RunSession.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RunState.cs" Link="Repo/RunState.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RunStateMachine.cs" Link="Repo/RunStateMachine.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/SaveData.cs" Link="Repo/SaveData.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/EnemyArchetype.cs" Link="Repo/EnemyArchetype.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/EnemyComposition.cs" Link="Repo/EnemyComposition.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/EnemyCompositionSelector.cs" Link="Repo/EnemyCompositionSelector.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/IEnemySpawned.cs" Link="Repo/IEnemySpawned.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPacingConfig.cs" Link="Repo/SpawnPacingConfig.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPlacementValidator.cs" Link="Repo/SpawnPlacementValidator.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPoint.cs" Link="Repo/SpawnPoint.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnStrategy.cs" Link="Repo/SpawnStrategy.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnSystem.cs" Link="Repo/SpawnSystem.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnTable.cs" Link="Repo/SpawnTable.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnZone.cs" Link="Repo/SpawnZone.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/WavePlan.cs" Link="Repo/WavePlan.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/Testing/SpawnSystemTestDriver.cs" Link="Repo/SpawnSystemTestDriver.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/Testing/SpawnTestDebugDisplay.cs" Link="Repo/SpawnTestDebugDisplay.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/Testing/TestEnemy.cs" Link="Repo/TestEnemy.cs" />
+    <Compile Include="../../Assets/Scripts/UI/MainMenuController.cs" Link="Repo/MainMenuController.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,35 @@
+name: dotnet-tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Spawn integration harness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: .NET version
+        run: dotnet --version
+
+      - name: Restore
+        run: dotnet restore tools/spawn-integration-test/spawn_integration_test.csproj
+
+      - name: Build
+        run: dotnet build tools/spawn-integration-test/spawn_integration_test.csproj --no-restore
+
+      - name: Run integration harness
+        run: dotnet run --project tools/spawn-integration-test/spawn_integration_test.csproj --no-build
