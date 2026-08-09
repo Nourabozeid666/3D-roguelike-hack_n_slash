@@ -110,8 +110,27 @@ public class SpawnTestDebugDisplay : MonoBehaviour
         hudText.text = $"SPAWN TEST / Scene: {SceneName}\n" +
                        $"{ReadRunInfo()}\n" +
                        $"Spawned: {spawned} / Alive: {alive} / Dead: {dead}\n" +
+                       $"Wave: {ReadWaveInfo()}\n" +
+                       $"Budget: {ReadBudgetInfo()}\n" +
                        $"Floor Cleared: {(spawnSystem != null && spawnSystem.IsFloorCleared ? "YES" : "NO")}" +
                        $"{ReadCompositionInfo()}";
+    }
+
+    /// <summary>
+    /// Live wave info from the SpawnSystem's pacing plan: current wave / total waves and how many
+    /// unspawned composition entries remain. Waves are reported even when off (1/1, 0 left) because
+    /// the numbers come from the real plan, never hardcoded.
+    /// </summary>
+    string ReadWaveInfo()
+    {
+        if (spawnSystem == null) return "n/a";
+        return $"{spawnSystem.CurrentWave}/{spawnSystem.WaveCount} (waves) | {spawnSystem.RemainingInComposition} composition entries left";
+    }
+
+    string ReadBudgetInfo()
+    {
+        if (spawnSystem == null) return "n/a";
+        return spawnSystem.CurrentBudget.ToString("0.##");
     }
 
     /// <summary>

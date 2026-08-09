@@ -1,48 +1,102 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
-/// Composition-based spawner: for a floor it picks the enemies that are UNLOCKED on that floor
-/// (SpawnTable.AvailableForFloor), derives the target enemy count the floor budget can afford,
-/// selects a valid composition from the cached/ranked candidates (budget is a MAXIMUM spend, not
-/// exact), spawns it onto the child SpawnPoints, tracks the alive enemies and reports when they are
-/// cleared. Owned by the Roguelike side. No singleton, no static state, no EventBus.
+/// Composition-based spawner for a floor, with two placement strategies and high-floor wave pacing:
+///
+/// PLACEMENT — FixedPoints (designer-placed SpawnPoint children, controlled/testing) or RandomZone
+/// (a data-driven SpawnZone region resolved through SpawnPlacementValidator's pipeline: bounds ->
+/// ground/NavMesh -> blocking layers -> player distance -> enemy distance, bounded by MaxAttempts).
+///
+/// WAVES — the floor composition is selected ONCE per floor (cached, budget never recomputed) and
+/// sliced into waves by SpawnPacingConfig/WavePlan. Floors below the threshold spawn everything at
+/// once. On a wave floor, killing the current wave releases the next; FloorCleared fires only when
+/// NOTHING is alive AND no unspawned composition entries remain (a dead wave alone is not a clear).
+///
+/// REPORT-ONLY seam: this class raises the FloorCleared event and exposes IsFloorCleared; it never
+/// touches RunState — the Run owner (RunBootstrap / test driver) decides what happens next. No
+/// singleton, no static state, no EventBus.
 /// </summary>
 public class SpawnSystem : MonoBehaviour
 {
     [SerializeField] SpawnTable table;
 
+    [Header("Placement")]
+    [SerializeField] SpawnStrategy strategy = SpawnStrategy.FixedPoints;
+    [Tooltip("Required when strategy == RandomZone: the region + validation rules for general-purpose spawning.")]
+    [SerializeField] SpawnZone zone;
+    [Tooltip("Optional. When set, RandomZone candidates must stay at least SpawnZone.MinPlayerDistance from it. When null, the player-distance rule is skipped.")]
+    [SerializeField] Transform playerReference;
+
+    [Header("High-floor pacing / waves")]
+    [SerializeField] SpawnPacingConfig pacingConfig = new();
+
     readonly List<GameObject> alive = new();
+    readonly List<Vector3> occupiedPositions = new();
     readonly EnemyCompositionSelector compositions = new();
+    readonly SpawnPlacementValidator placement = new();
+
+    WavePlan pacing;
+    List<SpawnPoint> remainingPoints = new();
+    SpawnPoint[] pointPool = System.Array.Empty<SpawnPoint>();
+    int currentFloor = 1;
+    float currentBudget;
+    int floorVersion;
 
     public int AliveCount() => alive.Count;
 
-    public bool IsFloorCleared => alive.Count == 0;
+    /// <summary>
+    /// A floor is cleared only when NOTHING is alive AND the whole floor composition has been
+    /// released. On a multi-wave floor the current wave being dead is NOT a clear — the remaining
+    /// waves are released first. The FloorCleared event fires under exactly this condition.
+    /// </summary>
+    public bool IsFloorCleared => alive.Count == 0 && !HasUnspawnedRemaining();
 
     /// <summary>
-    /// REPORT-ONLY integration seam: raised exactly when the last alive spawned enemy is removed
-    /// by a death (alive.Count hits 0). NOT raised by ClearAlive()/Populate() resetting the list.
-    /// SpawnSystem never touches RunState — whoever owns the Run decides what happens next.
+    /// REPORT-ONLY integration seam: raised exactly when the last alive enemy of the FINAL wave dies
+    /// (alive hits 0 with nothing left to release). NOT raised for a cleared intermediate wave, and
+    /// NOT raised by ClearAlive()/Populate() resetting the list. SpawnSystem never touches RunState.
     /// </summary>
     public event System.Action FloorCleared;
 
     /// <summary>
     /// Read-only summary of the last Populate: floor, available (unlocked) types, target count,
-    /// chosen composition, total cost and budget. Debug/test info only — no production system reads
-    /// it (see the test HUD in SpawnTestDebugDisplay).
+    /// chosen composition, total cost and budget. Debug/test info only.
     /// </summary>
     public string LastCompositionInfo { get; private set; } = string.Empty;
 
     /// <summary>Number of distinct cached (floor, target, budget) composition keys. Test-observable,
-    /// so tests can assert a floor's composition is computed once and reused.</summary>
+    /// so tests can assert a floor's composition is computed once and reused across waves.</summary>
     public int CachedCompositionKeys => compositions.CachedKeyCount;
 
-    /// <summary>Clear previous spawns, then spend <paramref name="budget"/> (a MAXIMUM, not exact)
-    /// spawning a valid composition of enemies for <paramref name="floor"/>.</summary>
+    public SpawnStrategy Strategy => strategy;
+    public int CurrentFloor => currentFloor;
+    public float CurrentBudget => currentBudget;
+
+    /// <summary>1-based wave currently released (0 before any wave / floor populated).</summary>
+    public int CurrentWave => pacing != null ? pacing.CurrentWave : 0;
+
+    /// <summary>Total waves for the current floor's composition (1 when waves are off).</summary>
+    public int WaveCount => pacing != null ? pacing.WaveCount : 0;
+
+    /// <summary>Unspawned composition entries still to release on the current floor.</summary>
+    public int RemainingInComposition => pacing != null ? pacing.RemainingCount : 0;
+
+    /// <summary>
+    /// Start a floor: clear previous spawns, select the floor's composition ONCE (cached), build the
+    /// wave plan, and release the first wave. The budget is a MAXIMUM spend, not exact.
+    /// </summary>
     public void Populate(float budget, int floor)
     {
+        floorVersion++;
         ClearAlive();
+        pacing = null;
+        occupiedPositions.Clear();
+        currentFloor = floor;
+        currentBudget = budget;
         LastCompositionInfo = string.Empty;
 
         if (table == null) return;
@@ -50,31 +104,36 @@ public class SpawnSystem : MonoBehaviour
         IReadOnlyList<EnemyArchetype> available = table.AvailableForFloor(floor);
         if (available.Count == 0) return;
 
-        SpawnPoint[] points = GetComponentsInChildren<SpawnPoint>(true);
-        if (points.Length == 0) return;
+        if (!HasPlacementSource()) return;
 
         int target = TargetCountFor(budget, available);
         if (target <= 0) return;
 
+        bool usedFallback = false;
         List<EnemyComposition> candidates = compositions.Get(floor, available, target, budget);
+        EnemyComposition chosen;
         if (candidates.Count == 0)
         {
-            SpawnFallback(budget, available, points, floor);
-            LastCompositionInfo = BuildSummary(floor, available, target, null, budget);
-            return;
+            // Deterministic documented fallback (never a silently invalid composition).
+            chosen = BuildFallbackComposition(budget, available);
+            if (chosen == null || chosen.Count == 0) return;
+            usedFallback = true;
+        }
+        else
+        {
+            // Controlled randomness only between the final equally-ranked candidates.
+            chosen = candidates[Random.Range(0, candidates.Count)];
         }
 
-        // 4. Controlled randomness only between the final equally-ranked candidates.
-        EnemyComposition chosen = candidates[Random.Range(0, candidates.Count)];
-        SpawnComposition(chosen, points, floor);
-        LastCompositionInfo = BuildSummary(floor, available, target, chosen, budget);
+        pacing = new WavePlan(chosen, pacingConfig, floor);
+        LastCompositionInfo = BuildSummary(floor, available, target, usedFallback ? null : chosen, budget);
+
+        SpawnCurrentWave();
     }
 
     /// <summary>
     /// Deterministic target enemy count: the most enemies the floor budget can buy at the cheapest
-    /// available cost (floor(budget / cheapest)). Always achievable — `target * cheapest &lt;= budget` —
-    /// so a valid composition always exists for the pools used by a run. A future explicit
-    /// target-count design can replace this single derivation point.
+    /// available cost (floor(budget / cheapest)). Always achievable.
     /// </summary>
     static int TargetCountFor(float budget, IReadOnlyList<EnemyArchetype> available)
     {
@@ -85,53 +144,149 @@ public class SpawnSystem : MonoBehaviour
         return (int)(budget / cheapest);
     }
 
-    void SpawnComposition(EnemyComposition composition, SpawnPoint[] points, int floor)
+    /// <summary>
+    /// Release the current wave from the SAME composition plan: a fresh board, then the next
+    /// PeekNextWaveSize() entries, then mark the wave released. Never re-selects a composition and
+    /// never recomputes the budget.
+    /// </summary>
+    void SpawnCurrentWave()
     {
-        var remainingPoints = new List<SpawnPoint>(points);
-        for (int i = 0; i < composition.Count; i++)
-        {
-            EnemyArchetype archetype = composition.Entries[i];
-            if (archetype == null || archetype.Cost <= 0) continue;
+        if (pacing == null || !pacing.HasRemaining) return;
 
-            if (remainingPoints.Count == 0) remainingPoints.AddRange(points);
-            SpawnPoint point = PickRandomPoint(remainingPoints);
-            if (point == null) break;
-            alive.Add(InstantiateEnemy(archetype, point, floor));
+        occupiedPositions.Clear(); // previous wave is fully dead; the board is fresh for this wave
+        int size = pacing.PeekNextWaveSize();
+        for (int i = 0; i < size; i++)
+            SpawnOne(pacing.NextEntry());
+        pacing.MarkWaveReleased();
+    }
+
+    void SpawnOne(EnemyArchetype archetype)
+    {
+        if (archetype == null || archetype.Cost <= 0) return;
+
+        if (!TryResolvePlacement(out Vector3 position, out Quaternion rotation))
+        {
+            // Fail gracefully: no valid location after MaxAttempts. Log a useful diagnostic and skip
+            // this enemy — never spawn inside invalid geometry, never hang. The floor can still
+            // complete with the entries that did find a location.
+            Debug.LogWarning($"[SpawnSystem] Floor {currentFloor}: skipped one {archetype.DisplayName} — no valid spawn location after MaxAttempts (strategy {strategy}).");
+            return;
         }
+
+        alive.Add(InstantiateEnemy(archetype, position, rotation));
+        if (strategy == SpawnStrategy.RandomZone) occupiedPositions.Add(position);
+    }
+
+    bool TryResolvePlacement(out Vector3 position, out Quaternion rotation)
+    {
+        if (strategy == SpawnStrategy.RandomZone)
+            return TryResolveZonePlacement(out position, out rotation);
+        return TryResolvePointPlacement(out position, out rotation);
+    }
+
+    bool TryResolvePointPlacement(out Vector3 position, out Quaternion rotation)
+    {
+        if (remainingPoints.Count == 0)
+        {
+            // Pool exhausted: refill so more enemies than points still spawn. Matches the original
+            // documented behavior ("the pool resets and points get reused") and lets waves reuse
+            // points after the previous wave is dead.
+            if (pointPool.Length == 0)
+            {
+                position = Vector3.zero;
+                rotation = Quaternion.identity;
+                return false;
+            }
+            remainingPoints.AddRange(pointPool);
+        }
+        SpawnPoint point = PickRandomPoint(remainingPoints);
+        position = point.Position;
+        rotation = point.Rotation;
+        return true;
+    }
+
+    bool TryResolveZonePlacement(out Vector3 position, out Quaternion rotation)
+    {
+        rotation = Quaternion.identity;
+        if (zone == null)
+        {
+            position = Vector3.zero;
+            return false;
+        }
+
+        // No player reference -> the player-distance rule is skipped (effective min 0), never invented.
+        float minPlayerDistance = playerReference != null ? zone.MinPlayerDistance : 0f;
+        Vector3 playerPosition = playerReference != null ? playerReference.position : Vector3.zero;
+
+        return placement.TryFindLocation(
+            zone, playerPosition, minPlayerDistance, occupiedPositions,
+            TryGroundOrNavMesh,
+            IsBlocked,
+            out position);
     }
 
     /// <summary>
-    /// Deterministic documented fallback, only reachable if a caller ever passes a target the budget
-    /// cannot hold (not reachable with TargetCountFor above, which is always achievable): spawn the
-    /// largest affordable count of the cheapest archetype, never exceeding the budget, and log it —
-    /// never a silently invalid composition.
+    /// Ground/NavMesh validation seam. When the zone disables NavMesh validation this is a no-op
+    /// pass-through; when enabled, the candidate must sample to a walkable NavMesh location (the
+    /// accepted position snaps to the sample). SpawnSystem stays compilable and testable without a
+    /// baked NavMesh because the harness injects a deterministic fake for this path.
     /// </summary>
-    void SpawnFallback(float budget, IReadOnlyList<EnemyArchetype> available, SpawnPoint[] points, int floor)
+    bool TryGroundOrNavMesh(Vector3 candidate, out Vector3 snapped)
     {
-        Debug.LogWarning("[SpawnSystem] no valid composition for this floor; spawning deterministic cheapest fill");
-
-        EnemyArchetype cheapest = null;
-        foreach (EnemyArchetype a in available)
-            if (a != null && a.Cost > 0 && (cheapest == null || a.Cost < cheapest.Cost)) cheapest = a;
-        if (cheapest == null) return;
-
-        var remainingPoints = new List<SpawnPoint>(points);
-        float remaining = budget;
-        while (remaining >= cheapest.Cost)
+        snapped = candidate;
+        if (zone == null || !zone.UseNavMeshValidation) return true;
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(candidate, out hit, zone.GroundSampleRadius, NavMesh.AllAreas))
         {
-            if (remainingPoints.Count == 0) remainingPoints.AddRange(points);
-            SpawnPoint point = PickRandomPoint(remainingPoints);
-            if (point == null) break;
-            alive.Add(InstantiateEnemy(cheapest, point, floor));
-            remaining -= cheapest.Cost;
+            snapped = hit.position;
+            return true;
         }
+        return false;
     }
 
     /// <summary>
-    /// Draw a SpawnPoint without replacement so a single Populate pass never stacks two enemies
-    /// on the same point (which made overlapping enemies look like one). If more enemies than
-    /// points are affordable, the pool resets and points get reused.
+    /// Blocking-geometry overlap using the zone's configured footprint radius (a real volume, not a
+    /// center-only point test). Layer numbers are never hardcoded — the mask comes from
+    /// SpawnZone.BlockingLayers.
     /// </summary>
+    bool IsBlocked(Vector3 candidate)
+    {
+        if (zone == null || zone.BlockingLayers.value == 0) return false;
+        float radius = zone.FootprintRadius;
+        if (radius <= 0f) return false;
+        return Physics.CheckSphere(candidate, radius, zone.BlockingLayers.value);
+    }
+
+    void OnEnemyDied(GameObject enemy)
+    {
+        alive.Remove(enemy);
+        if (alive.Count > 0) return;
+
+        if (HasUnspawnedRemaining())
+        {
+            // Current wave fully dead but more of the composition remains: release the next wave.
+            // NOT a floor clear. Bounded and floor-version-guarded so a stale coroutine can never
+            // spawn into a replaced floor.
+            StartCoroutine(SpawnNextWaveCoroutine(floorVersion));
+            return;
+        }
+
+        FloorCleared?.Invoke();
+    }
+
+    bool HasUnspawnedRemaining() => pacing != null && pacing.HasRemaining;
+
+    IEnumerator SpawnNextWaveCoroutine(int version)
+    {
+        float delay = pacingConfig != null ? pacingConfig.WaveDelaySeconds : 0f;
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+        if (version != floorVersion) yield break; // this floor was replaced (new run/floor)
+        SpawnCurrentWave();
+    }
+
+    /// <summary>Draw a SpawnPoint without replacement so a single wave never stacks two enemies on
+    /// the same point. If more enemies than points remain affordable, the pool resets (waves reuse
+    /// points after the previous wave is dead).</summary>
     static SpawnPoint PickRandomPoint(List<SpawnPoint> available)
     {
         if (available.Count == 0) return null;
@@ -141,13 +296,41 @@ public class SpawnSystem : MonoBehaviour
         return point;
     }
 
-    GameObject InstantiateEnemy(EnemyArchetype archetype, SpawnPoint point, int floor)
+    bool HasPlacementSource()
     {
-        GameObject enemy = Instantiate(archetype.Prefab, point.Position, point.Rotation);
+        if (strategy == SpawnStrategy.RandomZone) return zone != null;
+        pointPool = GetComponentsInChildren<SpawnPoint>(true);
+        remainingPoints = new List<SpawnPoint>(pointPool);
+        return remainingPoints.Count > 0;
+    }
+
+    /// <summary>
+    /// Deterministic documented fallback, only reachable if a caller ever passes a target the budget
+    /// cannot hold (not reachable with TargetCountFor): the largest affordable count of the cheapest
+    /// archetype, never exceeding the budget.
+    /// </summary>
+    static EnemyComposition BuildFallbackComposition(float budget, IReadOnlyList<EnemyArchetype> available)
+    {
+        EnemyArchetype cheapest = null;
+        foreach (EnemyArchetype a in available)
+            if (a != null && a.Cost > 0 && (cheapest == null || a.Cost < cheapest.Cost)) cheapest = a;
+        if (cheapest == null) return null;
+
+        int count = (int)(budget / cheapest.Cost);
+        if (count <= 0) return null;
+
+        var entries = new EnemyArchetype[count];
+        for (int i = 0; i < count; i++) entries[i] = cheapest;
+        return new EnemyComposition(entries);
+    }
+
+    GameObject InstantiateEnemy(EnemyArchetype archetype, Vector3 position, Quaternion rotation)
+    {
+        GameObject enemy = Instantiate(archetype.Prefab, position, rotation);
         IEnemySpawned spawned = enemy.GetComponent<IEnemySpawned>();
         if (spawned != null)
         {
-            ApplyFloorScaling(spawned, archetype, floor);
+            ApplyFloorScaling(spawned, archetype, currentFloor);
             spawned.Died += () => OnEnemyDied(enemy);
         }
         return enemy;
@@ -158,12 +341,6 @@ public class SpawnSystem : MonoBehaviour
         float healthScale = Mathf.Pow(archetype.HealthGrowthPerFloor + 1f, floor - 1);
         float damageScale = Mathf.Pow(archetype.DamageGrowthPerFloor + 1f, floor - 1);
         spawned.ApplyFloorScaling(healthScale, damageScale);
-    }
-
-    void OnEnemyDied(GameObject enemy)
-    {
-        alive.Remove(enemy);
-        if (alive.Count == 0) FloorCleared?.Invoke();
     }
 
     void ClearAlive()

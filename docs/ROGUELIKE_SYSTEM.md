@@ -588,6 +588,14 @@ public class SpawnTable : ScriptableObject
 
 **Current flow (`SpawnSystem.Populate(budget, floor)`).** `AvailableForFloor` → target count → cached composition lookup → rank/select → spawn onto SpawnPoints (without replacement). `LastCompositionInfo` exposes a read-only summary (floor / available types / target / composition / cost / budget) for the test HUD.
 
+> **Sprint 7/8 — SpawnZones & wave pacing, see
+> [`ROGUELIKE_SPAWNING_SPRINT_7_8.md`](ROGUELIKE_SPAWNING_SPRINT_7_8.md).** Placement is now either
+> FixedPoints (the designer-placed children above) or RandomZone (a data-driven `SpawnZone` region
+> validated through `SpawnPlacementValidator`'s pipeline: bounds → ground/NavMesh → blocking layers →
+> player distance → enemy distance, bounded by `MaxAttempts`). The per-floor composition is selected
+> once and sliced into waves by `SpawnPacingConfig`/`WavePlan` on high floors; `IsFloorCleared`
+> requires nothing alive AND no unspawned composition entries.
+
 ---
 
 ### 4.6 Items & run-scoped upgrades

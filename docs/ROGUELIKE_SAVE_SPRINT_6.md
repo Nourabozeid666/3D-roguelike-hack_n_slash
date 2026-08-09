@@ -33,8 +33,10 @@ Add **run save persistence** and a player-facing **Main Menu / Pause** flow driv
 
 ### # Resume semantics
 
-- `RunState` is **NOT persisted** — it is derived on resume. A resumed run always enters `FloorStart` for the saved floor; the bootstrap populates the floor via `SpawnSystem.Populate(enemyBudget, floor)` and calls `BeginFloor()`.
-- Mid-floor enemy state is **NOT persisted** (real Enemy System not integrated yet). A resumed floor is repopulated fresh.
+- **Resume semantics**
+  - `RunState` is **NOT persisted** — it is derived on resume. A resumed run always enters `FloorStart` for the saved floor; the bootstrap populates the floor via `SpawnSystem.Populate(enemyBudget, floor)` and calls `BeginFloor()`.
+  - Mid-floor enemy state is **NOT persisted** (real Enemy System not integrated yet). A resumed floor is repopulated fresh.
+  - **Waves (Sprint 8) do not change this.** The floor-start checkpoint model stays: a save is written at the START of every floor, so a quit during any wave resumes at that floor's START and the floor is repopulated fresh (composition re-selected once, waves re-released from wave 1). Mid-wave resume is deliberately not supported.
 - Corrupt/invalid save → treated as no save; the bad file is deleted; Continue is disabled; New Run is available. Nothing is ever fabricated.
 
 ### # Scene entry flow
