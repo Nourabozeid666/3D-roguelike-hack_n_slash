@@ -38,6 +38,12 @@ class Program
         WavePlanScenario();
         WaveFloorIntegrationScenario();
         WaveCompositionPreservedScenario();
+        PlayerHudDataScenario();
+        HudChainScenario();
+        UpgradeSelectScenario();
+        UpgradeOfferDataScenario();
+        GameOverScenario();
+        GameOverRunTimeScenario();
 
         Console.WriteLine(failures.Count == 0
             ? $"[SpawnIntegration] ALL {checks} CHECKS PASSED"
@@ -1148,5 +1154,198 @@ class Program
         var m = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         if (m == null) throw new Exception("No method " + methodName + " on " + target.GetType().Name);
         return m.Invoke(target, args);
+    }
+
+    // 24. PlayerHudData contract: defaults, ratio math (clamping), equality operators/dedupe support.
+    static void PlayerHudDataScenario()
+    {
+        var d = PlayerHudData.Default();
+        Check(d.currentHealth == 100 && d.maxHealth == 100, "huddata: Default() is 100/100 HP");
+        Check(d.xp == 0 && d.xpRequired == 100, "huddata: Default() is 0/100 XP");
+        Check(d.level == 1 && d.floor == 1, "huddata: Default() level 1 floor 1");
+
+        Check(Mathf.Approximately(d.HealthRatio, 1f), "huddata: full health => ratio 1");
+        var low = new PlayerHudData(50, 100, 0, 100, 1, 1);
+        Check(Mathf.Approximately(low.HealthRatio, 0.5f), "huddata: 50/100 => ratio 0.5");
+        var over = new PlayerHudData(250, 100, 0, 100, 1, 1);
+        Check(Mathf.Approximately(over.HealthRatio, 1f), "huddata: over-heal clamps ratio to 1");
+        var under = new PlayerHudData(-5, 100, 0, 100, 1, 1);
+        Check(Mathf.Approximately(under.HealthRatio, 0f), "huddata: negative health clamps ratio to 0");
+        var noMax = new PlayerHudData(10, 0, 0, 100, 1, 1);
+        Check(Mathf.Approximately(noMax.HealthRatio, 0f), "huddata: no max health => ratio 0");
+        Check(Mathf.Approximately(low.XpRatio, 0f), "huddata: 0/100 => xp ratio 0");
+
+        var halfXp = new PlayerHudData(100, 100, 50, 100, 1, 1);
+        Check(Mathf.Approximately(halfXp.XpRatio, 0.5f), "huddata: 50/100 => xp ratio 0.5");
+        var noReq = new PlayerHudData(100, 100, 10, 0, 1, 1);
+        Check(Mathf.Approximately(noReq.XpRatio, 0f), "huddata: no xp required => xp ratio 0");
+
+        Check(d == new PlayerHudData(100, 100, 0, 100, 1, 1), "huddata: equality via ==");
+        Check(d != halfXp, "huddata: inequality via !=");
+        Check(d.Equals(new PlayerHudData(100, 100, 0, 100, 1, 1)), "huddata: IEquatable.Equals");
+        Check(d.GetHashCode() == new PlayerHudData(100, 100, 0, 100, 1, 1).GetHashCode(), "huddata: equal snapshots hash equally");
+    }
+
+    // 25. HUD chain: bind renders current, source change re-renders, identical snapshots dedupe.
+    static void HudChainScenario()
+    {
+        var view = new RecordingHudView();
+        var presenter = new PlayerHudPresenter(view);
+        var source = new MockPlayerHudSource();
+
+        presenter.Bind(source);
+        Check(view.PresentCount == 1, "hud: bind renders the current snapshot once");
+        Check(view.Last == PlayerHudData.Default(), "hud: bind renders the Default() snapshot");
+
+        source.SetPlayerHud(new PlayerHudData(80, 100, 25, 100, 2, 1));
+        Check(view.PresentCount == 2, "hud: source change re-renders");
+        Check(view.Last.currentHealth == 80 && view.Last.level == 2, "hud: re-render carries the new data");
+
+        source.SetPlayerHud(new PlayerHudData(80, 100, 25, 100, 2, 1));
+        Check(view.PresentCount == 2, "hud: identical snapshot dedupes (no extra render)");
+
+        source.SetPlayerHud(new PlayerHudData(80, 100, 30, 100, 2, 1));
+        Check(view.PresentCount == 3, "hud: any changed field re-renders");
+
+        presenter.Unbind(source);
+        source.SetPlayerHud(new PlayerHudData(50, 100, 30, 100, 2, 1));
+        Check(view.PresentCount == 3, "hud: unbind stops re-renders");
+    }
+
+    // 26. Upgrade selection rules: list-driven offers, first pick locks the rest, re-offer resets.
+    static void UpgradeSelectScenario()
+    {
+        var view = new RecordingUpgradeSelectView();
+        var presenter = new UpgradeSelectPresenter(view);
+        var source = new MockUpgradeSource();
+        var picked = new List<UpgradeCardData>();
+        presenter.CardSelected += c => picked.Add(c);
+
+        presenter.Bind(source);
+        Check(view.ShowCount == 0, "upg: bind alone never shows the screen");
+
+        source.SetUpgrades(MockUpgradeSource.CreateDefaultCards());
+        Check(view.ShowCount == 1, "upg: an offer shows the screen once");
+        Check(view.LastOffers.Count == 3, "upg: three cards offered");
+        Check(view.LastOffers[0].id == "upg_damage", "upg: card order preserved (damage first)");
+        Check(view.LastOffers[1].title == "Vitality", "upg: card order preserved (vitality second)");
+        Check(view.LastOffers[2].valueText == "+15% speed", "upg: card order preserved (haste third)");
+        Check(presenter.SelectedIndex == -1, "upg: nothing selected before a pick");
+        Check(!presenter.SelectionResolved, "upg: not resolved before a pick");
+        Check(presenter.SelectedCard == null, "upg: no selected card before a pick");
+
+        presenter.Select(1);
+        Check(picked.Count == 1 && picked[0].id == "upg_vitality", "upg: CardSelected carries the picked card");
+        Check(presenter.SelectedIndex == 1, "upg: selected index recorded");
+        Check(presenter.SelectionResolved, "upg: resolved after the first pick");
+        Check(view.StateCalls.Count == 3, "upg: one SetCardState per card after a pick");
+        Check(view.StateCalls[0] == "0:False:False", "upg: unpicked card 0 locked + deselected");
+        Check(view.StateCalls[1] == "1:True:True", "upg: picked card 1 enabled + selected");
+        Check(view.StateCalls[2] == "2:False:False", "upg: unpicked card 2 locked + deselected");
+
+        presenter.Select(0);
+        Check(picked.Count == 1, "upg: a second pick is ignored after resolution");
+        presenter.Select(-1);
+        presenter.Select(99);
+        Check(picked.Count == 1, "upg: out-of-range picks are ignored");
+
+        source.SetUpgrades(new[] { new UpgradeCardData("upg_bag", "Bigger Pouch", "Carry more.", "+2 slots", "bag") });
+        Check(view.ShowCount == 2, "upg: a new offer re-shows the screen");
+        Check(view.LastOffers.Count == 1, "upg: re-offer is list-driven (one card)");
+        Check(presenter.SelectedIndex == -1, "upg: re-offer resets the selection");
+        Check(!presenter.SelectionResolved, "upg: re-offer resets the resolved state");
+
+        presenter.Dismiss();
+        Check(presenter.Dismissed, "upg: dismiss marks the offer closed");
+        presenter.Select(0);
+        Check(picked.Count == 1, "upg: picks are ignored after dismiss");
+    }
+
+    // 27. MockUpgradeSource default offers are valid, distinct, fully described placeholders.
+    static void UpgradeOfferDataScenario()
+    {
+        var offers = MockUpgradeSource.CreateDefaultCards();
+        Check(offers.Count == 3, "offerdata: three default offers");
+        Check(offers.All(c => c.IsValid), "offerdata: every default offer has an id");
+        Check(offers.Select(c => c.id).Distinct().Count() == 3, "offerdata: offer ids are distinct");
+        Check(offers.All(c => !string.IsNullOrEmpty(c.title) && !string.IsNullOrEmpty(c.description) && !string.IsNullOrEmpty(c.valueText)), "offerdata: offers carry title/description/value");
+        Check(offers.All(c => !string.IsNullOrEmpty(c.iconKey)), "offerdata: offers carry an icon key");
+        Check(offers[0].iconKey == "sword" && offers[1].iconKey == "heart" && offers[2].iconKey == "boots", "offerdata: icon keys are stable for the view mapping");
+    }
+
+    // 28. Game over chain: bind never renders, a run end renders + shows, identical summaries dedupe.
+    static void GameOverScenario()
+    {
+        var view = new RecordingGameOverView();
+        var presenter = new GameOverPresenter(view);
+        var source = new MockGameOverSource();
+
+        presenter.Bind(source);
+        Check(view.PresentCount == 0, "over: bind alone never renders the screen");
+
+        source.SetGameOver(new GameOverData(3, 27, 95f));
+        Check(view.PresentCount == 1, "over: a run end renders once");
+        Check(view.Last.floorReached == 3 && view.Last.enemiesDefeated == 27, "over: summary carries floor + kills");
+
+        source.SetGameOver(new GameOverData(3, 27, 95f));
+        Check(view.PresentCount == 1, "over: identical summary dedupes at the source");
+
+        source.SetGameOver(new GameOverData(4, 30, 120f));
+        Check(view.PresentCount == 2, "over: a changed summary re-renders");
+
+        presenter.Unbind(source);
+        source.SetGameOver(new GameOverData(5, 40, 130f));
+        Check(view.PresentCount == 2, "over: unbind stops renders");
+    }
+
+    // 29. GameOverData.RunTimeText formats M:SS (H:MM:SS past an hour) and clamps negatives.
+    static void GameOverRunTimeScenario()
+    {
+        Check(new GameOverData(0, 0, 0f).RunTimeText() == "0:00", "time: zero run reads 0:00");
+        Check(new GameOverData(0, 0, 95f).RunTimeText() == "1:35", "time: 95s reads 1:35");
+        Check(new GameOverData(0, 0, 599f).RunTimeText() == "9:59", "time: 599s reads 9:59");
+        Check(new GameOverData(0, 0, 600f).RunTimeText() == "10:00", "time: 600s reads 10:00");
+        Check(new GameOverData(0, 0, 3600f + 125f).RunTimeText() == "1:02:05", "time: past an hour reads H:MM:SS");
+        Check(new GameOverData(0, 0, -10f).RunTimeText() == "0:00", "time: negative clamps to 0:00");
+    }
+
+    sealed class RecordingHudView : IPlayerHudView
+    {
+        public int PresentCount;
+        public PlayerHudData Last;
+
+        public void Present(in PlayerHudData data)
+        {
+            PresentCount++;
+            Last = data;
+        }
+    }
+
+    sealed class RecordingUpgradeSelectView : IUpgradeSelectView
+    {
+        public int ShowCount;
+        public List<UpgradeCardData> LastOffers = new();
+        public List<string> StateCalls = new();
+
+        public void ShowSelection(IReadOnlyList<UpgradeCardData> cards)
+        {
+            ShowCount++;
+            LastOffers = cards.ToList();
+        }
+
+        public void SetCardState(int index, bool enabled, bool selected)
+            => StateCalls.Add($"{index}:{enabled}:{selected}");
+    }
+
+    sealed class RecordingGameOverView : IGameOverView
+    {
+        public int PresentCount;
+        public GameOverData Last;
+
+        public void Present(in GameOverData data)
+        {
+            PresentCount++;
+            Last = data;
+        }
     }
 }
