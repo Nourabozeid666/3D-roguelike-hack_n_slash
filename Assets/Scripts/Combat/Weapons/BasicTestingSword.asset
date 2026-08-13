@@ -18,7 +18,9 @@ MonoBehaviour:
   baseSize: 1
   baseAttackSpeed: 1
   weaponPrefab: {fileID: 0}
+  chargeAnimation: {fileID: 7400000, guid: 767effc5e3d4b8ceea6307470187b2d5, type: 2}
   entryAttacks:
-    keys: 01000000
+    keys: 0100000003000000
     values:
     - {fileID: 11400000, guid: 3eb394515e73b96b293c27cf9942fac4, type: 2}
+    - {fileID: 11400000, guid: 23a9687802fa3d977b086f38d4895292, type: 2}

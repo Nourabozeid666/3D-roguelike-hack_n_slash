@@ -12,14 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 237c8056d261e373a8d11237252af082, type: 3}
   m_Name: BasicAttack1LHold
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
-  attackName: 
+  attackName: Basic Attack 1L Hold
   damageMultiplier: 1
-  animation: {fileID: 0}
+  animation: {fileID: 7400000, guid: 01dd176e8012576b3a6b9ef2d0104daf, type: 2}
+  chargeAnimationOverride: {fileID: 0}
   comboWindow: 0.5
-  recoveryStartTime: 0.75
-  holdTime: 0.5
+  recoveryStartTime: 1
+  holdTime: 0.35
   lungeDirection: {x: 0, y: 0, z: 1}
-  lungeDistance: 1
-  lungeDuration: 0.5
-  isHoldAttack: 0
+  lungeDistance: 25
+  lungeDuration: 0.35
+  isHoldAttack: 1
   transitions: []
