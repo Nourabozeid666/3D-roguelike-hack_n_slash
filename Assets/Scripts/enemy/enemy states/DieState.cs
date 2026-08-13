@@ -10,6 +10,8 @@ public class DieState : EnemyState
     public override bool CanBeInterrupted => false;
     public DieState(EnemyController enemyController) : base(enemyController)
     {
+        agent = enemyController.Agent;
+        animator = enemyController.Animator;
     }
 
     public override void Enter()
@@ -21,13 +23,12 @@ public class DieState : EnemyState
 
     public override void Tick()
     {
-
     }
 
     public override void Exit()
     {
-        // needs a particle system to disappear
     }
+
     IEnumerator UpdateCoroutine()
     {
         yield return new WaitForSeconds(3f);
