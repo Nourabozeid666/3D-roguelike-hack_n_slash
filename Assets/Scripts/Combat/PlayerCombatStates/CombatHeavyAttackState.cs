@@ -4,7 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class CombatLightAttackState : State<CombatController>
+public class CombatHeavyAttackState : State<CombatController>
 {
     private Animator _animator;
     private AnimatorOverrideController _OverrideController;
@@ -12,12 +12,12 @@ public class CombatLightAttackState : State<CombatController>
     private AttackData _currentAttack;
     private int hashAnimationState;
     private int hashAnimationTransition;
-    public CombatLightAttackState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
+    public CombatHeavyAttackState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
     {
         _animator = animator;
         _OverrideController = overrideController;
         _attackDebugText = attackDebugText;
-        hashAnimationState = Animator.StringToHash("LightAttack");
+        hashAnimationState = Animator.StringToHash("HeavyAttack");
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
     }
 
@@ -27,7 +27,7 @@ public class CombatLightAttackState : State<CombatController>
         _currentAttack = attack;
         _attackDebugText.text = $"Current Attack: {attack.AttackName}";
 
-        _OverrideController["LightAttack"] = attack.Animation;
+        _OverrideController["HeavyAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
         ExecuteLunge().Forget();
     }
@@ -56,13 +56,13 @@ public class CombatLightAttackState : State<CombatController>
         // Check if the animation is done                    
         var stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
         // Debug.Log("Current Animation State Normalized Time: " + stateInfo.normalizedTime);
-        if (stateInfo.IsName("LightAttack")
+        if (stateInfo.IsName("HeavyAttack")
         && stateInfo.normalizedTime >= _currentAttack.RecoveryStartTime
         && _owner.CombatContext.isAttacking)
         {
             _owner.CombatContext.isAttacking = false;
         }
-        if (stateInfo.IsName("LightAttack")
+        if (stateInfo.IsName("HeavyAttack")
         && stateInfo.normalizedTime >= _currentAttack.ComboWindow + _currentAttack.RecoveryStartTime
         && !_owner.CombatContext.isAttacking)
         {
@@ -72,7 +72,7 @@ public class CombatLightAttackState : State<CombatController>
 
     public override void Exit()
     {
-        _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
+        _OverrideController["AttackTransition"] = _OverrideController["HeavyAttack"];
         _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
     }
 }

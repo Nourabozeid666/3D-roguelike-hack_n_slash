@@ -16,7 +16,8 @@ public class ComboSystem
     public void QueueCombo(InputType inputType)
     {
         Debug.Log("First Condition: " + (owner.CombatContext.queuedInputType != inputType).ToString() + " && " + (owner.CombatContext.currentAttack != null).ToString() + " && " + (owner.CombatContext.currentAttack != null ? owner.CombatContext.currentAttack.GetNext(inputType) != null : false).ToString());
-        if (!canQueue) {Debug.Log("Cannot queue attack yet. Cooldown active."); return;};
+        if (!canQueue) { Debug.Log("Cannot queue attack yet. Cooldown active."); return; }
+        ;
         canQueue = false;
         WaitForQueueCooldown().Forget();
         if (owner.CombatContext.queuedInputType != inputType && owner.CombatContext.currentAttack != null && owner.CombatContext.currentAttack.GetNext(inputType) != null)
@@ -24,12 +25,14 @@ public class ComboSystem
             owner.CombatContext.queuedAttack = owner.CombatContext.currentAttack.GetNext(inputType);
             owner.CombatContext.queuedInputType = inputType;
             Debug.Log("Queued attack: " + owner.CombatContext.queuedAttack.name + " (from current attack) and InputType: " + inputType);
-        } else if (owner.CombatContext.queuedInputType != inputType)
+        }
+        else if (owner.CombatContext.queuedInputType != inputType)
         {
             owner.CombatContext.queuedAttack = owner.CombatContext.currentWeapon.EntryAttacks.Dict.GetValueOrDefault(inputType);
             owner.CombatContext.queuedInputType = inputType;
             Debug.Log("Queued attack: " + owner.CombatContext.queuedAttack.name + " (from weapon entry attack) and InputType: " + inputType);
-        } else
+        }
+        else
         {
             Debug.Log("No valid attack found for InputType: " + inputType);
         }
@@ -55,32 +58,82 @@ public class ComboSystem
         Debug.Log("Current attack reset.");
     }
 
+    bool CheckNextHeldAttack(InputType inputType, float holdTime)
+    {
+        AttackData targetAttack = null;
+        if (owner.CombatContext.currentAttack != null)
+        {
+            targetAttack = owner.CombatContext.currentAttack.GetNext(inputType);
+        }
+        if (targetAttack == null)
+        {
+            targetAttack = owner.CombatContext.currentWeapon.EntryAttacks.Dict.GetValueOrDefault(inputType);
+        }
+
+        if (targetAttack != null && targetAttack.IsHoldAttack)
+        {
+            if (holdTime >= targetAttack.HoldTime)
+            {
+                Debug.Log("Hold time sufficient for attack: " + targetAttack.name + " with hold time: " + holdTime);
+                return true;
+            }
+            else
+            {
+                Debug.Log("Hold time insufficient for attack: " + targetAttack.name + " with hold time: " + holdTime);
+            }
+        }
+        return false;
+    }
+
     public void CheckInput()
     {
-        switch (owner.CombatContext.inputState)
+        var input = owner.CombatContext.inputState;
+        if (input.lightAttackReleased)
         {
-            case InputState inputState when inputState.lightAttackPressed && owner.CombatContext.lightHoldTime > 0.5f:
+            owner.CombatContext.inputState.lightAttackReleased = false;
+            if (CheckNextHeldAttack(InputType.LightHold, input.lightHoldTimeAtRelease))
+            {
                 QueueCombo(InputType.LightHold);
-                owner.CombatContext.lastInputTime = Time.time;
-                break;
-            case InputState inputState when inputState.heavyAttackPressed && owner.CombatContext.heavyHoldTime > 0.5f:
-                QueueCombo(InputType.HeavyHold);
-                owner.CombatContext.lastInputTime = Time.time;
-                break;
-            case InputState inputState when inputState.lightAttackPressed:
+            }
+            else
+            {
                 QueueCombo(InputType.LightAttack);
-                owner.CombatContext.lastInputTime = Time.time;
-                break;
-            case InputState inputState when inputState.heavyAttackPressed:
+            }
+            owner.CombatContext.lastInputTime = Time.time;
+        }
+        else if (input.heavyAttackReleased)
+        {
+            owner.CombatContext.inputState.heavyAttackReleased = false;
+            if (CheckNextHeldAttack(InputType.HeavyHold, input.heavyHoldTimeAtRelease))
+            {
+                QueueCombo(InputType.HeavyHold);
+            }
+            else
+            {
                 QueueCombo(InputType.HeavyAttack);
-                owner.CombatContext.lastInputTime = Time.time;
-                break;
-            default:
-                if (owner.CombatContext.queuedAttack != null && Time.time > owner.CombatContext.bufferExpiryTime)
-                {
-                    ResetQueuedAttack();
-                }
-                break;
+            }
+            owner.CombatContext.lastInputTime = Time.time;
+        }
+        else if (input.lightAttackPressed
+        && owner.CombatContext.lightHoldTime > 0.15f
+        && !owner.CombatContext.isCharging && !owner.CombatContext.isAttacking)
+        {
+            owner.CombatContext.isCharging = true;
+            owner.StateMachine.SetState<CombatChargingState>();
+        }
+        else if (input.heavyAttackPressed
+        && owner.CombatContext.heavyHoldTime > 0.15f
+        && !owner.CombatContext.isCharging && !owner.CombatContext.isAttacking)
+        {
+            owner.CombatContext.isCharging = true;
+            owner.StateMachine.SetState<CombatChargingState>();
+        }
+        else
+        {
+            if (owner.CombatContext.queuedAttack != null && Time.time > owner.CombatContext.bufferExpiryTime)
+            {
+                ResetQueuedAttack();
+            }
         }
     }
 
@@ -88,6 +141,7 @@ public class ComboSystem
     {
         if (owner.CombatContext.queuedAttack != null)
         {
+            owner.CombatContext.previousAttack = owner.CombatContext.currentAttack;
             owner.CombatContext.currentAttack = owner.CombatContext.queuedAttack;
             owner.CombatContext.currentInputType = owner.CombatContext.queuedInputType;
             owner.CombatContext.queuedAttack = null;
@@ -114,13 +168,13 @@ public class ComboSystem
                 owner.StateMachine.SetState<CombatLightAttackState>();
                 break;
             case InputType.HeavyAttack:
-                // owner.StateMachine.SetState<CombatHeavyAttackState>();
+                owner.StateMachine.SetState<CombatHeavyAttackState>();
                 break;
             case InputType.LightHold:
-                // owner.StateMachine.SetState<CombatLightHoldAttackState>();
+                owner.StateMachine.SetState<CombatLightHoldState>();
                 break;
             case InputType.HeavyHold:
-                // owner.StateMachine.SetState<CombatHeavyHoldAttackState>();
+                // owner.StateMachine.SetState<CombatHeavyHoldState>();
                 break;
         }
     }

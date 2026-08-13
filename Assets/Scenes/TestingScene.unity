@@ -3272,7 +3272,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 694.29407, y: 355.73334}
+  m_AnchoredPosition: {x: 694.29407, y: 287}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &562536551
@@ -3952,7 +3952,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 694.29407, y: 390.96295}
+  m_AnchoredPosition: {x: 694.29407, y: 364.3}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &785210247
@@ -4009,15 +4009,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 374422515787505998, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.11723
+      value: 4.89
       objectReference: {fileID: 0}
     - target: {fileID: 374422515787505998, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.5
+      value: 1.46
       objectReference: {fileID: 0}
     - target: {fileID: 374422515787505998, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 14.55219
+      value: 15.26
       objectReference: {fileID: 0}
     - target: {fileID: 374422515787505998, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -4354,7 +4354,7 @@ Transform:
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
   m_LocalRotation: {x: 0.34042534, y: 5.8873023e-10, z: -2.1314978e-10, w: 0.9402716}
-  m_LocalPosition: {x: 2.95, y: 4.048, z: 1.7199998}
+  m_LocalPosition: {x: 4.89, y: 3.96, z: 12.26}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4483,7 +4483,7 @@ Transform:
   m_GameObject: {fileID: 966265176}
   serializedVersion: 2
   m_LocalRotation: {x: 0.34042528, y: 0.0000000019190622, z: -0.0000000038875934, w: 0.9402716}
-  m_LocalPosition: {x: 2.95, y: 4.048, z: 1.7199998}
+  m_LocalPosition: {x: 4.89, y: 3.96, z: 12.26}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4599,8 +4599,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineOrbitalFollow
   TargetOffset: {x: 0, y: 0, z: 0}
   TrackerSettings:
-    BindingMode: 1
-    PositionDamping: {x: 1, y: 1, z: 1}
+    BindingMode: 0
+    PositionDamping: {x: 0.2, y: 0.2, z: 0.2}
     AngularDampingMode: 0
     RotationDamping: {x: 0, y: 0, z: 0}
     QuaternionDamping: 0
@@ -4685,7 +4685,7 @@ MonoBehaviour:
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
-    TrackingTarget: {fileID: 0}
+    TrackingTarget: {fileID: 1899768514}
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
   Lens:
@@ -5918,6 +5918,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!4 &1899768514 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 374422515787505998, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
+  m_PrefabInstance: {fileID: 791216594}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1915120067
 GameObject:
   m_ObjectHideFlags: 0
@@ -6553,7 +6558,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4000000041}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 63935cbb90b6457a807c62d6c24741c7, type: 3}
   m_Name: 

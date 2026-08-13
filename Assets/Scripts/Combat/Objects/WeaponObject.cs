@@ -11,6 +11,7 @@ public class WeaponObject : ScriptableObject
     [SerializeField] private float baseSize = 1f;
     [SerializeField] private float baseAttackSpeed = 1f;
     [SerializeField] private GameObject weaponPrefab;
+    [SerializeField] private AnimationClip chargeAnimation;
     [SerializeField] private SerializableDictionary<InputType, AttackData> entryAttacks;
 
     public string WeaponName { get { return weaponName; } }
@@ -18,6 +19,7 @@ public class WeaponObject : ScriptableObject
     public float BaseLength { get { return baseLength; } }
     public float BaseSize { get { return baseSize; } }
     public float BaseAttackSpeed { get { return baseAttackSpeed; } } 
+    public AnimationClip ChargeAnimation { get { return chargeAnimation; } }
     public GameObject WeaponPrefab { get { return weaponPrefab; } }
     public SerializableDictionary<InputType, AttackData> EntryAttacks { get { return entryAttacks; } }
 }

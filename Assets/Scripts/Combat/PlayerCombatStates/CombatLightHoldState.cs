@@ -4,7 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class CombatLightAttackState : State<CombatController>
+public class CombatLightHoldState : State<CombatController>
 {
     private Animator _animator;
     private AnimatorOverrideController _OverrideController;
@@ -12,7 +12,7 @@ public class CombatLightAttackState : State<CombatController>
     private AttackData _currentAttack;
     private int hashAnimationState;
     private int hashAnimationTransition;
-    public CombatLightAttackState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
+    public CombatLightHoldState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
     {
         _animator = animator;
         _OverrideController = overrideController;
