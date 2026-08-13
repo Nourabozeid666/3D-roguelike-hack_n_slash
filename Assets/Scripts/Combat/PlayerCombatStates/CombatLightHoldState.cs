@@ -17,7 +17,7 @@ public class CombatLightHoldState : State<CombatController>
         _animator = animator;
         _OverrideController = overrideController;
         _attackDebugText = attackDebugText;
-        hashAnimationState = Animator.StringToHash("LightAttack");
+        hashAnimationState = Animator.StringToHash("LightHoldAttack");
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
     }
 
@@ -27,10 +27,14 @@ public class CombatLightHoldState : State<CombatController>
         _currentAttack = attack;
         _attackDebugText.text = $"Current Attack: {attack.AttackName}";
 
-        _OverrideController["LightAttack"] = attack.Animation;
+        _OverrideController["LightHoldAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
         ExecuteLunge().Forget();
-        _owner.CombatContext.currentWeapon.Trail.Begin();
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.Begin();
+        }
+        _owner._playerController.SetCanMove(false);
     }
 
     private UniTask ExecuteLunge()
@@ -57,15 +61,19 @@ public class CombatLightHoldState : State<CombatController>
         // Check if the animation is done                    
         var stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
         // Debug.Log("Current Animation State Normalized Time: " + stateInfo.normalizedTime);
-        if (stateInfo.IsName("LightAttack")
+        if (stateInfo.IsName("LightHoldAttack")
         && stateInfo.normalizedTime >= _currentAttack.RecoveryStartTime
         && _owner.CombatContext.isAttacking)
         {
             _owner.CombatContext.isAttacking = false;
         }
-        if (stateInfo.IsName("LightAttack")
+        if (stateInfo.IsName("LightHoldAttack")
         && stateInfo.normalizedTime >= _currentAttack.ComboWindow + _currentAttack.RecoveryStartTime
         && !_owner.CombatContext.isAttacking)
+        {
+            _stateMachine.SetState<CombatIdleState>();
+        }
+        if (!stateInfo.IsName("LightHoldAttack"))
         {
             _stateMachine.SetState<CombatIdleState>();
         }
@@ -73,8 +81,12 @@ public class CombatLightHoldState : State<CombatController>
 
     public override void Exit()
     {
-        _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
+        _OverrideController["AttackTransition"] = _OverrideController["LightHoldAttack"];
         _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
-        _owner.CombatContext.currentWeapon.Trail.End();
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.End();
+        }
+        _owner._playerController.SetCanMove(true);
     }
 }

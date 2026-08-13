@@ -31,7 +31,11 @@ public class CombatLightAttackState : State<CombatController>
         _OverrideController["LightAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
         ExecuteLunge().Forget();
-        _owner.CombatContext.currentWeapon.Trail.Begin();
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.Begin();
+        }
+        _owner._playerController.SetCanMove(false);
     }
 
     private UniTask ExecuteLunge()
@@ -70,13 +74,20 @@ public class CombatLightAttackState : State<CombatController>
         {
             _stateMachine.SetState<CombatIdleState>();
         }
+        if (!stateInfo.IsName("LightAttack"))
+        {
+            _stateMachine.SetState<CombatIdleState>();
+        }
     }
 
     public override void Exit()
     {
         _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
         _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
-        _owner.CombatContext.currentWeapon.Trail.End();
-
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.End();
+        }
+        _owner._playerController.SetCanMove(true);
     }
 }

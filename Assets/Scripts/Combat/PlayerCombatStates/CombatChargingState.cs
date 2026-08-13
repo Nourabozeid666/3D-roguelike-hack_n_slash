@@ -35,6 +35,7 @@ public class CombatChargingState : State<CombatController>
         }
         _OverrideController["AttackCharging"] = animationClip;
         _animator.Play(hashAnimationState, 0, 0f);
+        _owner._playerController.SetCanMove(false);
     }
 
     public override void Update()
@@ -45,6 +46,6 @@ public class CombatChargingState : State<CombatController>
     public override void Exit()
     {
         _owner.CombatContext.isCharging = false;
-
+        _owner._playerController.SetCanMove(true);
     }
 }

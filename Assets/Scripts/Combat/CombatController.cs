@@ -27,7 +27,9 @@ public class CombatController : MonoBehaviour
         referencesContext.animator.runtimeAnimatorController = combatContext.overrideController;
         _stateMachine.AddState(new CombatIdleState(referencesContext.animator));
         _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatHeavyAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatLightHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.SetState<CombatIdleState>();
 
@@ -105,8 +107,7 @@ public class CombatController : MonoBehaviour
             case InputType.LightHold:
                 return typeof(CombatLightHoldState);
             case InputType.HeavyHold:
-                // return _stateMachine.GetState<CombatHeavyHoldAttackState>().GetType();
-                break;
+                return typeof(CombatHeavyHoldState);
         }
         return null;
     }

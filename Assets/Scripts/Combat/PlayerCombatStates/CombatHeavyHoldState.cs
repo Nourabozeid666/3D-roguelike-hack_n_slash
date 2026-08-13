@@ -4,7 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class CombatHeavyAttackState : State<CombatController>
+public class CombatHeavyHoldState : State<CombatController>
 {
     private Animator _animator;
     private AnimatorOverrideController _OverrideController;
@@ -12,12 +12,12 @@ public class CombatHeavyAttackState : State<CombatController>
     private AttackData _currentAttack;
     private int hashAnimationState;
     private int hashAnimationTransition;
-    public CombatHeavyAttackState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
+    public CombatHeavyHoldState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
     {
         _animator = animator;
         _OverrideController = overrideController;
         _attackDebugText = attackDebugText;
-        hashAnimationState = Animator.StringToHash("HeavyAttack");
+        hashAnimationState = Animator.StringToHash("HeavyHoldAttack");
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
     }
 
@@ -27,9 +27,13 @@ public class CombatHeavyAttackState : State<CombatController>
         _currentAttack = attack;
         _attackDebugText.text = $"Current Attack: {attack.AttackName}";
 
-        _OverrideController["HeavyAttack"] = attack.Animation;
+        _OverrideController["HeavyHoldAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
         ExecuteLunge().Forget();
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.Begin();
+        }
         _owner._playerController.SetCanMove(false);
     }
 
@@ -51,25 +55,24 @@ public class CombatHeavyAttackState : State<CombatController>
 
     public override void Update()
     {
-        // so stateInfo still returns the previous animation's normalizedTime
+        // Skip checks while in transition so stateInfo still returns the previous animation's normalizedTime
         if (_animator.IsInTransition(0)) return;
         
         // Check if the animation is done                    
         var stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
-        // Debug.Log("Current Animation State Normalized Time: " + stateInfo.normalizedTime);
-        if (stateInfo.IsName("HeavyAttack")
+        if (stateInfo.IsName("HeavyHoldAttack")
         && stateInfo.normalizedTime >= _currentAttack.RecoveryStartTime
         && _owner.CombatContext.isAttacking)
         {
             _owner.CombatContext.isAttacking = false;
         }
-        if (stateInfo.IsName("HeavyAttack")
+        if (stateInfo.IsName("HeavyHoldAttack")
         && stateInfo.normalizedTime >= _currentAttack.ComboWindow + _currentAttack.RecoveryStartTime
         && !_owner.CombatContext.isAttacking)
         {
             _stateMachine.SetState<CombatIdleState>();
         }
-        if (!stateInfo.IsName("HeavyAttack"))
+        if (!stateInfo.IsName("HeavyHoldAttack"))
         {
             _stateMachine.SetState<CombatIdleState>();
         }
@@ -77,8 +80,12 @@ public class CombatHeavyAttackState : State<CombatController>
 
     public override void Exit()
     {
-        _OverrideController["AttackTransition"] = _OverrideController["HeavyAttack"];
+        _OverrideController["AttackTransition"] = _OverrideController["HeavyHoldAttack"];
         _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.End();
+        }
         _owner._playerController.SetCanMove(true);
     }
 }

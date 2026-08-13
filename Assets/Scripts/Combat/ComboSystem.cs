@@ -174,7 +174,7 @@ public class ComboSystem
                 owner.StateMachine.SetState<CombatLightHoldState>();
                 break;
             case InputType.HeavyHold:
-                // owner.StateMachine.SetState<CombatHeavyHoldState>();
+                owner.StateMachine.SetState<CombatHeavyHoldState>();
                 break;
         }
     }
