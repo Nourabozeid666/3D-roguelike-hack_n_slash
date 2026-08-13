@@ -10,7 +10,7 @@ public class ExplodeState : EnemyState
 
     public override bool CanBeInterrupted => false;
 
-    public ExplodeState(EnemyController enemyController) : base(enemyController)
+    public ExplodeState(EnemyController enemyController ) : base(enemyController)
     {
         agent = enemyController.Agent;
         animator = enemyController.Animator;

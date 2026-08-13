@@ -24,11 +24,11 @@ internal class SacrificeAttack : CombatActionState
         animator = enemyController.Animator;
         target = enemyController.TargetTransform;
 
-        lockedInTime = config.lockedInTime;
-        maxAttackRange = config.maxAttackRange;
-        fuseDuration = config.fuseDuration;
-        explosionRadius = config.explosionRadius;
-        explosionDamage = config.explosionDamage;
+        lockedInTime = config.LockedInTime;
+        maxAttackRange = config.MaxAttackRange;
+        fuseDuration = config.FuseDuration;
+        explosionRadius = config.ExplosionRadius;
+        explosionDamage = config.ExplosionDamage;
     }
 
 

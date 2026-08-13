@@ -30,11 +30,19 @@ public class AttackState : EnemyState
         agent = enemyController.Agent;
 
         //add states to all the attacks you need in the game
-        AddState(new MeleeAttack(enemyController));
-        AddState(new RangedShootAttack(enemyController));
-        AddState(new StrongAttack(enemyController));
-        AddState(new ComboAttack(enemyController));
-        AddState(new SacrificeAttack(enemyController, enemyController.SacrificeConfig));
+        // -------------------------------------------------need adds for each attack state--------------------------------------------------------------
+
+        //AddState(new MeleeAttack(enemyController));
+        //AddState(new RangedShootAttack(enemyController));
+        //var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
+        //AddState(new StrongAttack(enemyController));
+
+        var comboParts = enemyController.GetComponent<ComboAttackComponents>();
+        if( comboParts != null )
+            AddState(new ComboAttack(enemyController));
+        var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
+        if (sacrificeParts != null)
+            AddState(new SacrificeAttack(enemyController, sacrificeParts.Config));
     }
 
     public override bool CanBeInterrupted{

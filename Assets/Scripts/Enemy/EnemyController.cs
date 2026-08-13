@@ -54,7 +54,8 @@ public class EnemyController : MonoBehaviour
     private NavMeshAgent agent;
     private Animator animator;
 
-    [SerializeField] Transform targetTransform;
+    Transform targetTransform;
+
     [SerializeField] PatrolRoute patrolRoute;
 
     [Header("------------chasing the player------------")]
@@ -73,9 +74,8 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private EnemyEntity enemyEntity;
 
     [Header("-------------Attack components-------------")]
-    [SerializeField] private SacrificeAttackConfig sacrificeConfig;
+    [SerializeField] private EnemyAttackConfig enemyAttackConfig;
     [SerializeField] private GameObject explosionParticles;
-
 
     private bool hasTarget;
 
@@ -84,6 +84,8 @@ public class EnemyController : MonoBehaviour
 
     public Dictionary<System.Type, EnemyState> EnemyStates =>
         EStateMachine.EnemyStates;
+
+
 
     public EnemyEntity EnemyEntity => enemyEntity;
     public PatrolRoute PatrolRoute => patrolRoute;
@@ -94,7 +96,7 @@ public class EnemyController : MonoBehaviour
     public NavMeshAgent Agent => agent;
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
-    public SacrificeAttackConfig SacrificeConfig => sacrificeConfig;
+    public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
     public GameObject ExplosionParticles => explosionParticles;
 
     void Start()
