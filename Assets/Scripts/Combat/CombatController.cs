@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Drakkar.GameUtils;
 using UnityEngine;
 
 
@@ -15,9 +16,9 @@ public class CombatController : MonoBehaviour
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
 
-
     void Awake()
     {
+        SetTrailReferenceTEMPORARY();
         _playerController = GetComponent<PlayerController>();
         comboSystem = new ComboSystem(this);
         referencesContext = _playerController.ReferencesContext;
@@ -54,6 +55,13 @@ public class CombatController : MonoBehaviour
         };
     }
 
+    void SetTrailReferenceTEMPORARY()
+    {
+        if (combatContext.currentWeapon != null)
+        {
+            combatContext.currentWeapon.Trail = gameObject.GetComponentInChildren<DrakkarTrail>();
+        }
+    }
     void CalculateHoldTime()
     {
         if (combatContext.inputState.lightAttackPressed)

@@ -30,6 +30,7 @@ public class CombatLightHoldState : State<CombatController>
         _OverrideController["LightAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
         ExecuteLunge().Forget();
+        _owner.CombatContext.currentWeapon.Trail.Begin();
     }
 
     private UniTask ExecuteLunge()
@@ -74,5 +75,6 @@ public class CombatLightHoldState : State<CombatController>
     {
         _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
         _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        _owner.CombatContext.currentWeapon.Trail.End();
     }
 }

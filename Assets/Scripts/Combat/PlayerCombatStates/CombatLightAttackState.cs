@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
+using Drakkar.GameUtils;
 
 public class CombatLightAttackState : State<CombatController>
 {
@@ -30,6 +31,7 @@ public class CombatLightAttackState : State<CombatController>
         _OverrideController["LightAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
         ExecuteLunge().Forget();
+        _owner.CombatContext.currentWeapon.Trail.Begin();
     }
 
     private UniTask ExecuteLunge()
@@ -74,5 +76,7 @@ public class CombatLightAttackState : State<CombatController>
     {
         _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
         _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        _owner.CombatContext.currentWeapon.Trail.End();
+
     }
 }

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Drakkar.GameUtils;
 
 [CreateAssetMenu(fileName = "New Weapon", menuName = "Weapons/Weapon")]
 public class WeaponObject : ScriptableObject
@@ -11,6 +12,7 @@ public class WeaponObject : ScriptableObject
     [SerializeField] private float baseSize = 1f;
     [SerializeField] private float baseAttackSpeed = 1f;
     [SerializeField] private GameObject weaponPrefab;
+    [SerializeField] private DrakkarTrail trail;
     [SerializeField] private AnimationClip chargeAnimation;
     [SerializeField] private SerializableDictionary<InputType, AttackData> entryAttacks;
 
@@ -21,5 +23,18 @@ public class WeaponObject : ScriptableObject
     public float BaseAttackSpeed { get { return baseAttackSpeed; } } 
     public AnimationClip ChargeAnimation { get { return chargeAnimation; } }
     public GameObject WeaponPrefab { get { return weaponPrefab; } }
+    public DrakkarTrail Trail { get { return trail; } set { trail = value; } }
     public SerializableDictionary<InputType, AttackData> EntryAttacks { get { return entryAttacks; } }
+
+    void OnValidate()
+    {
+        if (weaponPrefab != null)
+        {
+            DrakkarTrail trailComponent = weaponPrefab.GetComponentInChildren<DrakkarTrail>();
+            if (trailComponent != null)
+            {
+                trail = trailComponent;
+            }
+        }
+    }
 }
