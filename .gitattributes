@@ -1,2 +1,10 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+Assets/Hivemind/**/*.png filter=lfs diff=lfs merge=lfs -text
+Assets/Hivemind/**/*.PNG filter=lfs diff=lfs merge=lfs -text
+Assets/Hivemind/**/*.TGA filter=lfs diff=lfs merge=lfs -text
+Assets/Hivemind/**/*.tga filter=lfs diff=lfs merge=lfs -text
+Assets/Hivemind/**/*.hdr filter=lfs diff=lfs merge=lfs -text
+Assets/Hivemind/**/*.HDR filter=lfs diff=lfs merge=lfs -text
+Assets/Hivemind/**/*.FBX filter=lfs diff=lfs merge=lfs -text
+Assets/Hivemind/**/*.fbx filter=lfs diff=lfs merge=lfs -text
