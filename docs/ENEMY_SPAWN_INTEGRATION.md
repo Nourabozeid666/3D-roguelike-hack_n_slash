@@ -32,7 +32,7 @@ Enemy side never learns about floor progression, multipliers, or growth rates.
 
 | Type | Implements | Detail |
 |---|---|---|
-| `EnemyController` | `IEnemySpawned` + `ISpawnStatConfig` | Forwards `EnemyEntity.OnDied → IEnemySpawned.OnDied`; reads `enemyEntity.MaxHealth/BaseDamage`; `ConfigureForSpawn` → `SetMaxHealth` / `SetBaseDamage`. |
+| `EnemyController` | `IEnemySpawned` + `ISpawnStatConfig` | Forwards `EnemyEntity.OnDied → IEnemySpawned.OnDied`; health via existing `SetMaxHealth`; damage base read from `EnemyAttackConfig` (see §7). |
 | `TestEnemy` (test double) | `IEnemySpawned` + `ISpawnStatConfig` | Stores scaled absolute values as working `Health`/`Damage`; `Die()` fires `OnDied` then destroys itself. |
 | `DoubleNotifyEnemy` (harness-only) | `IEnemySpawned` | Fires `OnDied` twice to prove SpawnSystem death handling is idempotent. |
 
@@ -73,14 +73,19 @@ TakeDamage/Kill → EnemyEntity.OnDied (fires once)
 `OnDied`. `EnemyController.HandleDied()` leaves enemies already in `ExplodeState` alone (their death
 is handled by the explode state), so there is no double state transition. No duplication added.
 
-## 7. Per-instance stat storage
+## 7. Per-instance stat storage (health vs damage)
 
-- `EnemyEntity` already had `SetMaxHealth` (gates `currentHealth <= maxHealth`); `SetBaseDamage` is
-  new (`EnemyEntity.cs`) and mirrors it. `maxHealth`/`baseDamage` remain the stored working stats.
-- `baseDamage` is **stored but not used at runtime**: attacks deal damage via
-  `EnemyAttackConfig.BaseDamage` / `SacrificeAttackConfig.explosionDamage` ScriptableObjects;
-  `MeleeAttack` is anim-only. **Per-instance damage scaling is a known remaining blocker** (the
-  `SetBaseDamage` value is not yet consumed by combat) — documented, not fabricated, not fixed here.
+- **Health:** `EnemyEntity.SetMaxHealth` (existing authoritative API) gates the stored `maxHealth`;
+  `Initialize()` then starts `currentHealth` at the scaled max. Health scaling is fully applied.
+- **Damage (real enemy): NOT faked.** The authoritative runtime damage source is the **per-attack
+  ScriptableObject** config — `EnemyAttackConfig.baseDamage` (currently no runtime consumer) and
+  `SacrificeAttackConfig.explosionDamage` (the one live damage path, `SacrificeAttack.cs:102`).
+  `EnemyEntity.baseDamage` is **unused by combat** (`DealDamage.cs` damage call commented out), so it
+  is deliberately **not** written — a scaled value there would be fake. The base damage is *read*
+  from the authoritative `EnemyAttackConfig`; the scaled damage on the real enemy is deferred to a
+  combat-side per-instance surface (attack configs are read-only shared ScriptableObjects, so scaling
+  them in place would mutate shared assets). **TestEnemy (test infra) still applies both** health and
+  damage through the seam, which is what the harness verifies.
 
 ## 8. TestEnemy contract
 
@@ -100,18 +105,19 @@ is handled by the explode state), so there is no double state transition. No dup
 - `public event Action OnDied;` — forwarded from `enemyEntity.OnDied` in `Start`.
 - `Start()` null-safe: `if (enemyEntity == null) enemyEntity = GetComponent<EnemyEntity>();` before
   `Initialize()`.
-- `BaseMaxHealth` / `BaseDamage` read `enemyEntity.MaxHealth` / `enemyEntity.BaseDamage`.
-- `ConfigureForSpawn` resolves `enemyEntity` via `GetComponent` if needed, then
-  `SetMaxHealth` / `SetBaseDamage`. Runs before `Start/Initialize`, so the scaled stats are the
-  initial stats.
+- `BaseMaxHealth` reads `enemyEntity.MaxHealth`; `BaseDamage` reads the **authoritative runtime
+  damage config** `enemyAttackConfig.BaseDamage` (NOT the unused `EnemyEntity.baseDamage`).
+- `ConfigureForSpawn` resolves `enemyEntity` via `GetComponent` if needed, then `SetMaxHealth` (health
+  is fully applied). Damage is intentionally NOT written to `EnemyEntity` (unused by combat — see §7).
+  Runs before `Start/Initialize`, so the scaled health is the initial health.
 
 ## 10. EnemyEntity changes
 
 `Assets/Scripts/Enemy/EnemyEntity.cs` (tracked at `Assets/Scripts/enemy/EnemyEntity.cs`):
 
 - `TakeDamage` dead-guard: `if (currentHealth <= 0f) return;` after the `damage <= 0` guard — one
-  authoritative death transition.
-- `SetBaseDamage(float)` added next to `SetMaxHealth`.
+  authoritative death transition (supports point 7 of the mandate: a single OnDied flow, no
+  double-notify). This is the only behavioral change to EnemyEntity.
 
 ## 11. Debug/display updates
 
@@ -184,8 +190,8 @@ Unity Play Mode remains unverified on this machine (no Unity Editor); the play-m
 | `Assets/Scripts/Roguelike/Spawning/IEnemySpawned.cs` | Death-only contract (+meta intact). |
 | `Assets/Scripts/Roguelike/Spawning/ISpawnStatConfig.cs` (+`.meta`) | New scaling seam. |
 | `Assets/Scripts/Roguelike/Spawning/SpawnSystem.cs` | OnDied subscription, new `ApplyFloorScaling(GameObject,…)`, idempotent `OnEnemyDied`, doc. |
-| `Assets/Scripts/Enemy/EnemyController.cs` | Implements both interfaces, null-safe Start, forwards OnDied. |
-| `Assets/Scripts/Enemy/EnemyEntity.cs` | `TakeDamage` dead-guard, `SetBaseDamage`. |
+| `Assets/Scripts/Enemy/EnemyController.cs` | Implements both interfaces, null-safe Start, forwards OnDied; health via existing `SetMaxHealth`, damage base read from `EnemyAttackConfig`. |
+| `Assets/Scripts/Enemy/EnemyEntity.cs` | `TakeDamage` dead-guard only (no new setter). |
 | `Assets/Scripts/Roguelike/Spawning/Testing/TestEnemy.cs` | `OnDied`, `ISpawnStatConfig`, guarded `Die()`. |
 | `Assets/Scripts/Roguelike/Spawning/Testing/SpawnTestDebugDisplay.cs` | `enemy.OnDied +=`. |
 | `tools/spawn-integration-test/Program.cs`, `spawn_integration_test.csproj` | Harness: `OnDied`, 2 new scenarios, `ISpawnStatConfig.cs` include. |
@@ -196,7 +202,9 @@ Unity Play Mode remains unverified on this machine (no Unity Editor); the play-m
 
 - `RunBootstrap`, `RunController`, `RunData`, `RunSession`, `SpawnSystemTestDriver` — untouched.
 - `TreeEntAsh.prefab` production wiring — blocked (see §14).
-- Real combat damage scaling (`EnemyAttackConfig` / `SacrificeAttackConfig`) — documented blocker (§7).
+- Real combat per-instance damage scaling (`EnemyAttackConfig` / `SacrificeAttackConfig` are read-only
+  shared ScriptableObjects) — deferred combat-side decision (§7); `EnemyEntity.baseDamage` deliberately
+  not written (unused by combat).
 - `docs/PROJECT_AUDIT_2026-08-09.md`, `Assets/_Recovery/0 (1).unity`, `ShaderGraphSettings.asset` —
   preserved/pre-existing, not part of this branch's commit.
 
@@ -204,7 +212,8 @@ Unity Play Mode remains unverified on this machine (no Unity Editor); the play-m
 
 - Fix `TreeEntAsh.prefab` (assign `enemyEntity`, `targetTransform`, `_debugText`, attack/explode
   animations), then swap the archetype `prefab` from `TestEnemy` to the real enemy.
-- Decide per-instance damage application (make combat consume `EnemyEntity.BaseDamage` or keep config
-  damage) so `ISpawnStatConfig` damage scaling is authoritative at runtime.
+- Combat-side per-instance damage: decide how attacks read scaled damage (e.g. an instance damage on
+  `EnemyController`, or per-instance attack config), then `EnemyController.ConfigureForSpawn` applies
+  it — making `ISpawnStatConfig` damage scaling authoritative at runtime.
 - Resolve the `Enemy/` vs `enemy/` directory collision (index case cleanup) — requires a case-sensitive
   checkout.

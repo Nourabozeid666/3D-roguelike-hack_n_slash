@@ -9,7 +9,7 @@
 > The integration this document described as "NOT implemented / BLOCKED — team dependency" has been
 > built on branch `fix/enemy-spawn-integration`: `SpawnSystem` (`Populate`, `ApplyFloorScaling`,
 > `AliveCount`, `FloorCleared`) exists, `EnemyController : IEnemySpawned` surfaces `EnemyEntity.OnDied`
-> (death-only contract), `EnemyEntity` has `SetMaxHealth` / `SetBaseDamage` setters, and floor
+> (death-only contract), health scaling flows through the existing `EnemyEntity.SetMaxHealth`, and floor
 > scaling flows through the **`ISpawnStatConfig`** seam owned by `SpawnSystem`. The current contract
 > is in **`docs/ENEMY_SPAWN_INTEGRATION.md`**; the Sprint 4 Spawning report is
 > `docs/ROGUELIKE_SPAWNING_SPRINT_4.md`. Lines below saying `needs EnemyEntity setters` / death hook
@@ -128,7 +128,7 @@ Interfaces/seams between systems (documented, not yet implemented):
 | Spawn request | Run → Spawn | `StartFloor(budget: float, floorN: int)` | 4 |
 | Floor-ready signal | Spawn → Run | `RunController.BeginFloor()` (FloorStart → FloorActive) | 4 |
 | Alive count | Spawn → Run | `AliveCount() : int` | 4 (consumed 5) |
-| Stat scaling | Spawn → EnemyEntity | `SetMaxHealth / SetBaseDamage` (via `ISpawnStatConfig`) | 4 | **IMPLEMENTED** (see banner) |
+| Stat scaling | Spawn → EnemyEntity | health `SetMaxHealth` (damage deferred — see `docs/ENEMY_SPAWN_INTEGRATION.md §7`) | 4 | **IMPLEMENTED (health)** (see banner) |
 | Floor clear | Enemy/Spawn → Run | "all enemies dead" (`AliveCount() == 0`) | 5 | **IMPLEMENTED** (`SpawnSystem.FloorCleared`) |
 | Death hook | Enemy → Run | `EnemyEntity.OnDied` via `IEnemySpawned.OnDied` | 5+ | **IMPLEMENTED** (see banner) |
 

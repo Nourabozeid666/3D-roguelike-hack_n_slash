@@ -109,18 +109,27 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
     public GameObject ExplosionParticles => explosionParticles;
 
-    // ISpawnStatConfig: SpawnSystem reads the enemy's serialized/prefab base stats and pushes the
-    // floor-scaled absolute values in before Initialize() runs. This is the ONLY place the Enemy
-    // side learns about what stats to use; it never sees floors or multipliers.
+    // ISpawnStatConfig: SpawnSystem reads the enemy's base stats and pushes the floor-scaled
+    // absolute values in before Initialize() runs.
+    //
+    // HEALTH is applied through the existing authoritative EnemyEntity.SetMaxHealth (Initialize()
+    // then starts currentHealth at the scaled max).
+    //
+    // DAMAGE: the authoritative runtime damage source is the per-attack ScriptableObject config
+    // (EnemyAttackConfig.baseDamage / SacrificeAttackConfig.explosionDamage), read-only and shared —
+    // NOT EnemyEntity.baseDamage (unused by combat). So the base damage is READ from that config
+    // here, and the scaled damage is intentionally NOT written to EnemyEntity (that would fake
+    // scaling on an unused field). Per-instance scaled damage on the real enemy needs a combat-side
+    // per-instance damage surface and is deferred.
     public float BaseMaxHealth => enemyEntity != null ? enemyEntity.MaxHealth : 0f;
-    public float BaseDamage => enemyEntity != null ? enemyEntity.BaseDamage : 0f;
+    public float BaseDamage => enemyAttackConfig != null ? enemyAttackConfig.BaseDamage : 0f;
 
     public void ConfigureForSpawn(float maxHealth, float baseDamage)
     {
         if (enemyEntity == null)
             enemyEntity = GetComponent<EnemyEntity>();
         enemyEntity.SetMaxHealth(maxHealth);
-        enemyEntity.SetBaseDamage(baseDamage);
+        // baseDamage intentionally NOT applied here — see the damage note above.
     }
 
     void Start()

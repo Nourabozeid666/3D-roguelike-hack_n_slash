@@ -37,11 +37,6 @@ public class EnemyEntity : IEnemyEntity
             this.currentHealth = maxHealth;
     }
 
-    public void SetBaseDamage(float newBaseDamage)
-    {
-        this.baseDamage = newBaseDamage;
-    }
-
     public void TakeDamage( float damage, float poiseDamage = 0f)
     {
         if (damage <= 0f) 

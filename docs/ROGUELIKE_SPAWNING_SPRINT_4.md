@@ -10,7 +10,7 @@
 > The enemy-facing contract rows below are superseded by the integration branch
 > `fix/enemy-spawn-integration`. `IEnemySpawned` is now a **death-only** contract
 > (`event Action OnDied`) surfaced by `EnemyController` from `EnemyEntity.OnDied` (explode path
-> included); `EnemyEntity` now has `SetMaxHealth` / `SetBaseDamage` setters; floor scaling moved to
+> included); health is applied via the existing `EnemyEntity.SetMaxHealth`; floor scaling moved to
 > the separate **`ISpawnStatConfig`** seam (`BaseMaxHealth` / `BaseDamage` / `ConfigureForSpawn`),
 > owned by `SpawnSystem`. The current contract is documented in **`docs/ENEMY_SPAWN_INTEGRATION.md`**.
 > Everything below that still says `IEnemySpawned.ApplyFloorScaling`, `IEnemySpawned.Died`, or
@@ -109,7 +109,7 @@ SpawnSystem.AliveCount() / IsFloorCleared   → floor-clear reporting (Sprint 5 
 | Floor cleared report | Spawn → Run | `IsFloorCleared : bool` (`AliveCount() == 0`) | 4 | **READY NOW** |
 | Floor-ready transition | Runner → Run | `RunController.BeginFloor()` | 4 | **READY NOW** (`[EXISTS]` `RunController.cs:12`) |
 | Floor scaling (test) | Spawn → TestEnemy | `ISpawnStatConfig.ConfigureForSpawn(maxHealth, baseDamage)` | 4+ | **READY NOW** (test double; superseded signature, see banner) |
-| Floor scaling (real) | Spawn → EnemyEntity | `SetMaxHealth / SetBaseDamage` (EnemyEntity setters) | 4/5 | **IMPLEMENTED** (integration branch; `SetMaxHealth`/`SetBaseDamage` now exist) |
+| Floor scaling (real) | Spawn → EnemyEntity | health `SetMaxHealth`; damage deferred (attack SO configs are the runtime source — see `docs/ENEMY_SPAWN_INTEGRATION.md §7`) | 4/5 | **IMPLEMENTED (health)** (integration branch; no new EnemyEntity setter) |
 | Death hook (real) | Enemy → Spawn | `EnemyEntity.OnDied` surfaced via `IEnemySpawned.OnDied` | 4/5 | **IMPLEMENTED** (integration branch; `EnemyController : IEnemySpawned`) |
 | Floor clear transition | Spawn → Run | `AliveCount() == 0` → `FloorCleared` | 5 | **NOT Sprint 4** |
 
@@ -389,7 +389,7 @@ I cannot run Play Mode myself (no Unity Editor); all my verification is code-lev
 | Risk / Block | Mitigation |
 |---|---|
 | Real Enemy System not ready | Sprint 4 uses isolated `TestEnemy`; no `Enemy/` files touched |
-| `EnemyEntity` setters missing | **RESOLVED (2026-08-16)** — `SetMaxHealth` / `SetBaseDamage` added (integration branch) |
+| `EnemyEntity` setters missing | **RESOLVED (2026-08-16)** — health uses the existing `SetMaxHealth`; no new EnemyEntity setter was needed (damage deferred to combat side, see `docs/ENEMY_SPAWN_INTEGRATION.md §7`) |
 | Real death notification missing | **RESOLVED (2026-08-16)** — `EnemyEntity.OnDied` surfaced via `IEnemySpawned.OnDied` on `EnemyController` (integration branch) |
 | Spawn-ready real prefab missing (`TreeEntAsh.prefab` has 2 missing scripts + null refs) | `[WAITING FOR ENEMY SYSTEM]` — documented; archetype `prefab` swap is the only change |
 | `DieState` crash (`DieState.cs:11-18`) | `[WAITING FOR ENEMY SYSTEM]` — only affects real-enemy killability |
