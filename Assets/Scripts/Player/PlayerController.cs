@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -7,7 +7,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, IEntityProvider
 {
     [SerializeField] internal PlayerContext context = new PlayerContext();
     [SerializeField] internal PlayerEntity playerEntity = new PlayerEntity();
@@ -26,12 +26,15 @@ public class PlayerController : MonoBehaviour
     internal bool CanMove { get { return context.canMove; } set { context.canMove = value; } }
     internal bool UseDrag { get { return context.useDrag; } set { context.useDrag = value; } }
     internal CombatController CombatController { get { return combatController; } }
+    public StateMachine<PlayerController> StateMachine { get { return _stateMachine; } }
     public IEntity Entity {get { return playerEntity; } }
     public ReferencesContext ReferencesContext { get { return referencesContext; } set { referencesContext = value; } }
+    public CharacterState CharacterState { get; private set; }
 
     void Awake()
     {
         combatController = GetComponent<CombatController>();
+        CharacterState = new CharacterState(this, combatController);
         // context.animator = referencesContext.playerModel.GetComponent<Animator>();
         _stateMachine = new StateMachine<PlayerController>(this, referencesContext.debugText);
         _stateMachine.AddState(new PlayerIdleState(referencesContext.animator));
@@ -47,25 +50,56 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+
+    }
+
+    void OnEnable()
+    {
         // Subscribe to action events
-        InputController.OnJumpStart += () =>
+        InputController.OnJumpStart += HandleJumpInput;
+        InputController.OnMoveInput += HandleMoveInput;
+        InputController.OnSprintInput += HandleSprintInput;
+    }
+
+    void OnDisable()
+    {
+        // Unsubscribe from action events
+        InputController.OnJumpStart -= HandleJumpInput;
+        InputController.OnMoveInput -= HandleMoveInput;
+        InputController.OnSprintInput -= HandleSprintInput;
+    }
+
+    private void HandleJumpInput()
+    {
+        if (CharacterState != null && !CharacterState.CanJump) return;
+        if (!IsGrounded())
         {
-            if (!IsGrounded())
-            {
-                queueJump = true;
-                // Debug.Log("Jump Queued");
-            }
-            else
-            {
-                Jump();
-            }
-        };
-        InputController.OnMoveInput += (value) => context.moveDirection = value;
-        InputController.OnSprintInput += (isSprinting) => {
-            context.isSprinting = isSprinting; 
-            if (isSprinting == true) _stateMachine.SetState<PlayerDashState>();
-            };
-        // Debug.Log(Vector3.up * (gravity * risingMultiplier));
+            queueJump = true;
+        }
+        else
+        {
+            Jump();
+        }
+    }
+
+    private void HandleMoveInput(Vector2 value)
+    {
+        context.moveDirection = value;
+    }
+
+    private void HandleSprintInput(bool isSprinting)
+    {
+        if (CharacterState != null && !CharacterState.CanMove) return;
+        context.isSprinting = isSprinting;
+        if (isSprinting && CharacterState != null && CharacterState.CanDash)
+        {
+            _stateMachine.SetState<PlayerDashState>();
+        }
+    }
+
+    public void ResetHorizontalVelocity()
+    {
+        referencesContext.rb.linearVelocity = new Vector3(0f, referencesContext.rb.linearVelocity.y, 0f);
     }
 
 
@@ -120,7 +154,7 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        _stateMachine.Update();
+        MaxVelocityUpdate();
         ApplyCustomGravity();
         ApplyCustomDrag();
         Move(context.moveDirection);
@@ -128,11 +162,15 @@ public class PlayerController : MonoBehaviour
     
     void Update()
     {
+        _stateMachine.Update();
         Rotate(MoveDirectionToWorldSpace());
-        MaxVelocityUpdate();
-        if (queueJump && IsGrounded())
+        if (queueJump && IsGrounded() && CharacterState != null && CharacterState.CanJump)
         {
             Jump();
+            queueJump = false;
+        }
+        else if (CharacterState != null && !CharacterState.CanJump)
+        {
             queueJump = false;
         }
     }
@@ -183,7 +221,7 @@ public class PlayerController : MonoBehaviour
 
     void Move(Vector2 direction)
     {
-        if (!context.canMove) return;
+        if (CharacterState != null ? !CharacterState.CanMove : !context.canMove) return;
         float moveX = direction.y * (context.speed * (IsGrounded() && !_stateMachine.CheckState<PlayerJumpState>() ? 1 : context.airMoveSpeedMultiplier));
         float moveZ = direction.x * (context.speed * (IsGrounded() && !_stateMachine.CheckState<PlayerJumpState>() ? 1 : context.airMoveSpeedMultiplier));
         Vector3 frontCam = new Vector3(referencesContext.playerCamera.forward.x, 0, referencesContext.playerCamera.forward.z).normalized;
@@ -194,6 +232,7 @@ public class PlayerController : MonoBehaviour
 
     void Rotate(Vector3 direction)
     {
+        if (CharacterState != null ? !CharacterState.CanMove : !context.canMove) return;
         Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : referencesContext.playerModel.rotation;
         if (targetRotation != null && targetRotation != referencesContext.playerModel.rotation && direction != Vector3.zero)
         {
@@ -203,6 +242,7 @@ public class PlayerController : MonoBehaviour
 
     void Jump()
     {
+        if (CharacterState != null ? !CharacterState.CanJump : !context.canMove) return;
         _stateMachine.SetState<PlayerJumpState>();
         Vector3 appliedJumpForce = Vector3.up * context.jumpForce * (context.speed == context.sprintSpeed ? 1.2f : 1f);
         if (context.moveDirection.magnitude > 0f)
@@ -220,5 +260,10 @@ public class PlayerController : MonoBehaviour
     internal void UpdateGroundDrag(float newDrag)
     {
         groundDrag = newDrag;
+    }
+
+    public void SetCanMove(bool canMove)
+    {
+        context.canMove = canMove;
     }
 }

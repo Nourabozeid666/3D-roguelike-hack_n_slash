@@ -1,5 +1,13 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+guid: 701d9d92432e1728083a0f2b2bd7e7a1
+=======
+<<<<<<<< HEAD:Assets/Drakkar.meta
+guid: c6f4bc5c406f8e34c81de7f28d27704f
+========
 guid: ce96c46a4bc9b1dad962a3582a443dcc
+>>>>>>>> main:Assets/Prefabs/Player.meta
+>>>>>>> main
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

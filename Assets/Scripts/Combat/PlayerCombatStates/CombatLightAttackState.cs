@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
+using Drakkar.GameUtils;
 
 public class CombatLightAttackState : State<CombatController>
 {
@@ -12,11 +13,10 @@ public class CombatLightAttackState : State<CombatController>
     private AttackData _currentAttack;
     private int hashAnimationState;
     private int hashAnimationTransition;
-    public CombatLightAttackState(Animator animator, Text attackDebugText)
+    public CombatLightAttackState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
     {
         _animator = animator;
-        _OverrideController = _OverrideController != null ? (AnimatorOverrideController)_animator.runtimeAnimatorController : new AnimatorOverrideController(_animator.runtimeAnimatorController);
-        _animator.runtimeAnimatorController = _OverrideController;
+        _OverrideController = overrideController;
         _attackDebugText = attackDebugText;
         hashAnimationState = Animator.StringToHash("LightAttack");
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
@@ -30,7 +30,24 @@ public class CombatLightAttackState : State<CombatController>
 
         _OverrideController["LightAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
+        // Cancel dash if attack started during dash (Rule 4)
+        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsDashing)
+        {
+            _owner._playerController.StateMachine.SetState<PlayerIdleState>();
+        }
+
+        // Damp horizontal momentum if grounded (Rule 5)
+        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsGrounded)
+        {
+            _owner._playerController.ResetHorizontalVelocity();
+        }
+
         ExecuteLunge().Forget();
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.Begin();
+        }
+        _owner._playerController.SetCanMove(false);
     }
 
     private UniTask ExecuteLunge()
@@ -69,11 +86,20 @@ public class CombatLightAttackState : State<CombatController>
         {
             _stateMachine.SetState<CombatIdleState>();
         }
+        if (!stateInfo.IsName("LightAttack"))
+        {
+            _stateMachine.SetState<CombatIdleState>();
+        }
     }
 
     public override void Exit()
     {
         _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
         _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        {
+            _owner.CombatContext.currentWeapon.Trail.End();
+        }
+        _owner._playerController.SetCanMove(true);
     }
 }

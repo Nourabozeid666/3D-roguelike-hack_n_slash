@@ -8,10 +8,10 @@ public interface IEntity
     float BaseDefense { get; }
 
     // Temporarily float, will have its own class later
-    float[] AddedDamage { get; }
-    float[] AddedDefense { get; }
-    float[] DamageMultipliers { get; }
-    float[] DefenseMultipliers { get; }
+    IStatModifier[] AddedDamage { get; }
+    IStatModifier[] AddedDefense { get; }
+    IStatModifier[] DamageMultipliers { get; }
+    IStatModifier[] DefenseMultipliers { get; }
 
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
