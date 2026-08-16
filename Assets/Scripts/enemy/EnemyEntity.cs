@@ -3,10 +3,11 @@ using System;
 [Serializable]
 public class EnemyEntity : IEnemyEntity
 {
-    [SerializeField] float currentHealth;
-    [SerializeField] float maxHealth;
-    [SerializeField] float baseDamage;
-    [SerializeField] float baseDefence;
+    [SerializeField] float currentHealth = 100;
+    [SerializeField] float maxHealth = 100;
+    [SerializeField] float baseDamage = 10;
+    [SerializeField] float baseDefence = 0;
+
 
     [Header("-------------Poise-------------")]
     [SerializeField] float maxPoise = 100f;   // grunt: set this LOW (even 1). boss: set HIGH.
@@ -23,11 +24,16 @@ public class EnemyEntity : IEnemyEntity
     public event Action<float> OnHealed;
     public event Action OnDied;
     public event Action OnStaggered;
+    //public event Action Died;
 
-    public void Initialize()
+    public void Initialize(EnemyArchetypeConfig config)
     {
+        maxHealth = config.maxHealth;
         currentHealth = maxHealth;
+        maxPoise = config.maxPoise;
         currentPoise = maxPoise;
+        baseDamage = config.baseDamage;
+        baseDefence = config.baseDefense;
     }
 
     public void SetMaxHealth(float newMaxHealth)

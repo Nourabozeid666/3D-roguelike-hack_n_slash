@@ -42,7 +42,7 @@ public class AttackState : EnemyState
             AddState(new ComboAttack(enemyController));
         var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
         if (sacrificeParts != null)
-            AddState(new SacrificeAttack(enemyController, sacrificeParts.Config));
+            AddState(new SacrificeAttack(enemyController, sacrificeParts.Config, sacrificeParts.ExplosionParticles));
     }
 
     public override bool CanBeInterrupted{

@@ -11,24 +11,32 @@ internal class SacrificeAttack : CombatActionState
     // the values will be taking from a scriptable object
     float lockedInTime;
     float maxAttackRange;
-    float fuseDuration;
+    float timeToStartExplosionState;
     float explosionRadius;
     float explosionDamage;
+    float explosionDuration;
+    float timeBeforeExplosion;
+    private readonly GameObject explosionParticles;
 
     private readonly SacrificeAttackConfig config;
 
-    public SacrificeAttack(EnemyController enemyController, SacrificeAttackConfig config) : base(enemyController)
+    public SacrificeAttack(EnemyController enemyController, SacrificeAttackConfig config, GameObject explosionParticles) 
+        : base(enemyController)
     {
         this.config = config;
         agent = enemyController.Agent;
         animator = enemyController.Animator;
         target = enemyController.TargetTransform;
+        this.explosionParticles = explosionParticles;
 
         lockedInTime = config.LockedInTime;
         maxAttackRange = config.MaxAttackRange;
-        fuseDuration = config.FuseDuration;
+        timeToStartExplosionState = config.TimeToStartExplosionState;
         explosionRadius = config.ExplosionRadius;
         explosionDamage = config.ExplosionDamage;
+
+        explosionDuration = config.ExplosionDuration;
+        timeBeforeExplosion = config.TimeBeforeExplosion;
     }
 
 
@@ -73,7 +81,7 @@ internal class SacrificeAttack : CombatActionState
             agent.isStopped = true;
         }
 
-        if (fuseTimer >= fuseDuration)
+        if (fuseTimer >= timeToStartExplosionState)
             ExplodingInAction();
     }
 
@@ -102,8 +110,9 @@ internal class SacrificeAttack : CombatActionState
                 player.Entity.TakeDamage(explosionDamage);
             }
         }
+        ExplodeState explodeState = enemyController.GetState<ExplodeState>() as ExplodeState;
 
-        enemyController.SetState<ExplodeState>();
+        explodeState?.SetExplosionParticles(explosionParticles,explosionDuration,timeBeforeExplosion);
         enemyController.EnemyEntity.Kill();
     }
 

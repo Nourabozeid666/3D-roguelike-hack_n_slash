@@ -69,19 +69,22 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private float waypointStoppingDistance;
     [SerializeField] private float viewHalfAngle;
 
-    [Header("----------------------------")]
+    [Header("-------------for every enemy---------------")]
     [SerializeField] Text _debugText;
     [SerializeField] private EnemyEntity enemyEntity;
+    [SerializeField] private EnemyArchetypeConfig archetypeConfig;
 
     [Header("-------------Attack components-------------")]
     [SerializeField] private EnemyAttackConfig enemyAttackConfig;
-    [SerializeField] private GameObject explosionParticles;
 
     [Header("-------------Poise-------------")]
     [SerializeField] float maxPoise = 100f;
     [SerializeField] float currentPoise;
     [SerializeField] float poiseRegenDelay = 1.5f;  // seconds without poise damage before it starts climbing back
     [SerializeField] float poiseRegenRate = 20f;
+
+    [Header("------------Death----------")]
+    [SerializeField] float deathDuration;
 
     private bool hasTarget;
 
@@ -91,7 +94,8 @@ public class EnemyController : MonoBehaviour
     public Dictionary<System.Type, EnemyState> EnemyStates =>
         EStateMachine.EnemyStates;
 
-
+    public EnemyArchetypeConfig ArchetypeConfig => archetypeConfig;
+    public float DeathDuration => deathDuration;
     public EnemyEntity EnemyEntity => enemyEntity;
     public PatrolRoute PatrolRoute => patrolRoute;
     public float PatrolSpeed => patrolSpeed;
@@ -102,7 +106,7 @@ public class EnemyController : MonoBehaviour
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
     public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
-    public GameObject ExplosionParticles => explosionParticles;
+
 
     void Start()
     {
@@ -111,7 +115,7 @@ public class EnemyController : MonoBehaviour
 
         EStateMachine = new EnemyStateMachine<EnemyState>();
 
-        enemyEntity.Initialize();
+        enemyEntity.Initialize(archetypeConfig);
         enemyEntity.OnStaggered += HandleStaggered;
         enemyEntity.OnDied += HandleDied;
         enemyEntity.OnDamageTaken += HandleDamageTaken;
@@ -237,8 +241,12 @@ public class EnemyController : MonoBehaviour
 
     private void HandleDied()
     {
-        if (EStateMachine.CurrentState is ExplodeState)
-            return; // already handling its own death, leave it alone
+        if (EStateMachine.CurrentState is AttackState attackState &&
+            attackState.CurrentCombatAction is SacrificeAttack)
+        {
+            SetState<ExplodeState>();
+            return;
+        }
         SetState<DieState>();
     }
 

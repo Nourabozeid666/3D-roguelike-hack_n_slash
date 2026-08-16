@@ -18,10 +18,10 @@ public class SacrificeAttackConfig : EnemyAttackConfig
         get { return maxAttackRange; }
     }
 
-    [SerializeField] float fuseDuration = 2.5f;
-    public float FuseDuration
+    [SerializeField] float timeToStartExplosionState = 3f;
+    public float TimeToStartExplosionState
     {
-        get { return fuseDuration; }
+        get { return timeToStartExplosionState; }
     }
 
     // the max radius frrom the enenmy to a distance to damage the player
@@ -35,6 +35,18 @@ public class SacrificeAttackConfig : EnemyAttackConfig
     public float ExplosionDamage
     {
         get { return explosionDamage; }
+    }
+
+    [SerializeField] float timeBeforeExplosion = 1f;
+    public float TimeBeforeExplosion
+    {
+        get { return timeBeforeExplosion; }
+    }
+
+    [SerializeField] float explosionDuration = 0.75f;
+    public float ExplosionDuration
+    {
+        get { return explosionDuration; }
     }
 }
 
