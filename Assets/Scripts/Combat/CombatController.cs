@@ -11,6 +11,7 @@ public class CombatController : MonoBehaviour
     [SerializeField] private ReferencesContext referencesContext;
     private ComboSystem comboSystem;
     private StateMachine<CombatController> _stateMachine;
+    internal DamageHitboxHelper damageHitboxHelper;
     internal PlayerController _playerController;
     
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
@@ -20,6 +21,7 @@ public class CombatController : MonoBehaviour
     {
         SetTrailReferenceTEMPORARY();
         _playerController = GetComponent<PlayerController>();
+        damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
         comboSystem = new ComboSystem(this);
         referencesContext = _playerController.ReferencesContext;
         _stateMachine = new StateMachine<CombatController>(this, referencesContext.combatDebugText);
@@ -32,29 +34,48 @@ public class CombatController : MonoBehaviour
         _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.SetState<CombatIdleState>();
+    }
 
-        InputController.OnLightAttackStart += () =>
-        {
-            combatContext.inputState.lightAttackPressed = true;
-        };
-        InputController.OnLightAttackEnd += () =>
-        {
-            combatContext.inputState.lightHoldTimeAtRelease = combatContext.lightHoldTime;
-            combatContext.inputState.lightAttackReleased = true;
-            combatContext.inputState.lightAttackPressed = false;
-            combatContext.inputString += "L";
-        };
-        InputController.OnHeavyAttackStart += () =>
-        {
-            combatContext.inputState.heavyAttackPressed = true;
-        };
-        InputController.OnHeavyAttackEnd += () =>
-        {
-            combatContext.inputState.heavyHoldTimeAtRelease = combatContext.heavyHoldTime;
-            combatContext.inputState.heavyAttackReleased = true;
-            combatContext.inputState.heavyAttackPressed = false;
-            combatContext.inputString += "H";
-        };
+    void OnEnable()
+    {
+        InputController.OnLightAttackStart += HandleLightAttackStart;
+        InputController.OnLightAttackEnd += HandleLightAttackEnd;
+        InputController.OnHeavyAttackStart += HandleHeavyAttackStart;
+        InputController.OnHeavyAttackEnd += HandleHeavyAttackEnd;
+    }
+
+    void OnDisable()
+    {
+        InputController.OnLightAttackStart -= HandleLightAttackStart;
+        InputController.OnLightAttackEnd -= HandleLightAttackEnd;
+        InputController.OnHeavyAttackStart -= HandleHeavyAttackStart;
+        InputController.OnHeavyAttackEnd -= HandleHeavyAttackEnd;
+    }
+
+    private void HandleLightAttackStart()
+    {
+        combatContext.inputState.lightAttackPressed = true;
+    }
+
+    private void HandleLightAttackEnd()
+    {
+        combatContext.inputState.lightHoldTimeAtRelease = combatContext.lightHoldTime;
+        combatContext.inputState.lightAttackReleased = true;
+        combatContext.inputState.lightAttackPressed = false;
+        combatContext.inputString += "L";
+    }
+
+    private void HandleHeavyAttackStart()
+    {
+        combatContext.inputState.heavyAttackPressed = true;
+    }
+
+    private void HandleHeavyAttackEnd()
+    {
+        combatContext.inputState.heavyHoldTimeAtRelease = combatContext.heavyHoldTime;
+        combatContext.inputState.heavyAttackReleased = true;
+        combatContext.inputState.heavyAttackPressed = false;
+        combatContext.inputString += "H";
     }
 
     void SetTrailReferenceTEMPORARY()

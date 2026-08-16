@@ -30,6 +30,18 @@ public class CombatLightAttackState : State<CombatController>
 
         _OverrideController["LightAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
+        // Cancel dash if attack started during dash (Rule 4)
+        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsDashing)
+        {
+            _owner._playerController.StateMachine.SetState<PlayerIdleState>();
+        }
+
+        // Damp horizontal momentum if grounded (Rule 5)
+        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsGrounded)
+        {
+            _owner._playerController.ResetHorizontalVelocity();
+        }
+
         ExecuteLunge().Forget();
         if (_owner.CombatContext.currentWeapon?.Trail != null)
         {
