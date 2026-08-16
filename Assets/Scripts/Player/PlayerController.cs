@@ -7,7 +7,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, IEntityProvider
 {
     [SerializeField] internal PlayerContext context = new PlayerContext();
     [SerializeField] internal PlayerEntity playerEntity = new PlayerEntity();

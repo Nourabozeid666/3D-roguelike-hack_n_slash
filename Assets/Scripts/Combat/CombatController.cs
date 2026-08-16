@@ -11,6 +11,7 @@ public class CombatController : MonoBehaviour
     [SerializeField] private ReferencesContext referencesContext;
     private ComboSystem comboSystem;
     private StateMachine<CombatController> _stateMachine;
+    internal DamageHitboxHelper damageHitboxHelper;
     internal PlayerController _playerController;
     
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
@@ -20,6 +21,7 @@ public class CombatController : MonoBehaviour
     {
         SetTrailReferenceTEMPORARY();
         _playerController = GetComponent<PlayerController>();
+        damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
         comboSystem = new ComboSystem(this);
         referencesContext = _playerController.ReferencesContext;
         _stateMachine = new StateMachine<CombatController>(this, referencesContext.combatDebugText);
