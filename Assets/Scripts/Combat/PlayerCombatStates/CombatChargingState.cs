@@ -35,6 +35,26 @@ public class CombatChargingState : State<CombatController>
         }
         _OverrideController["AttackCharging"] = animationClip;
         _animator.Play(hashAnimationState, 0, 0f);
+
+        // Cancel dash if charging started during dash (Rule 4)
+        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsDashing)
+        {
+            _owner._playerController.StateMachine.SetState<PlayerIdleState>();
+        }
+
+        // Damp horizontal momentum if grounded (Rule 5)
+        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsGrounded)
+        {
+            _owner._playerController.ResetHorizontalVelocity();
+        }
+
+        // Air Hover: pause gravity and freeze vertical velocity while charging in the air (Rule 3)
+        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsAirborne)
+        {
+            _owner._playerController.UseCustomGravity = false;
+            _owner._playerController.referencesContext.rb.linearVelocity = Vector3.zero;
+        }
+
         _owner._playerController.SetCanMove(false);
     }
 
@@ -46,6 +66,7 @@ public class CombatChargingState : State<CombatController>
     public override void Exit()
     {
         _owner.CombatContext.isCharging = false;
+        _owner._playerController.UseCustomGravity = true;
         _owner._playerController.SetCanMove(true);
     }
 }

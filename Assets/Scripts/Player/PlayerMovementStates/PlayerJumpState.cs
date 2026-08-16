@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 
 public class PlayerJumpState : State<PlayerController>
@@ -8,6 +8,11 @@ public class PlayerJumpState : State<PlayerController>
     public PlayerJumpState(Animator animator)
     {
         _animator = animator;
+    }
+
+    public override bool CanEnter()
+    {
+        return _owner.CharacterState != null ? _owner.CharacterState.CanJump : true;
     }
 
     public override void Enter()

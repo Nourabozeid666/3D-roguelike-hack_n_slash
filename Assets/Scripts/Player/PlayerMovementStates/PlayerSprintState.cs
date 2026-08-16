@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class PlayerSprintState : State<PlayerController>
 {
@@ -9,6 +9,11 @@ public class PlayerSprintState : State<PlayerController>
     {
      //   _animator = animator;
        // hashAnimationState = Animator.StringToHash("Sprint");
+    }
+
+    public override bool CanEnter()
+    {
+        return _owner.CharacterState != null ? _owner.CharacterState.CanTransitionToMove : true;
     }
 
     public override void Enter()
@@ -29,6 +34,12 @@ public class PlayerSprintState : State<PlayerController>
 
     public override void Update()
     {
+        if (_owner.CharacterState != null && !_owner.CharacterState.CanTransitionToMove)
+        {
+            _stateMachine.SetState<PlayerIdleState>();
+            return;
+        }
+
         if (_owner.MoveDirection.magnitude < 0.1f)
         {
             _stateMachine.SetState<PlayerIdleState>();
