@@ -54,7 +54,7 @@ public class EnemyController : MonoBehaviour
     private NavMeshAgent agent;
     private Animator animator;
 
-    Transform targetTransform;
+    [SerializeField] Transform targetTransform;
 
     [SerializeField] PatrolRoute patrolRoute;
 
@@ -77,6 +77,12 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private EnemyAttackConfig enemyAttackConfig;
     [SerializeField] private GameObject explosionParticles;
 
+    [Header("-------------Poise-------------")]
+    [SerializeField] float maxPoise = 100f;
+    [SerializeField] float currentPoise;
+    [SerializeField] float poiseRegenDelay = 1.5f;  // seconds without poise damage before it starts climbing back
+    [SerializeField] float poiseRegenRate = 20f;
+
     private bool hasTarget;
 
     // agent = the private field that stores the component
@@ -84,7 +90,6 @@ public class EnemyController : MonoBehaviour
 
     public Dictionary<System.Type, EnemyState> EnemyStates =>
         EStateMachine.EnemyStates;
-
 
 
     public EnemyEntity EnemyEntity => enemyEntity;
