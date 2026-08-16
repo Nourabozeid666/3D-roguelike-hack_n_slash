@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
@@ -43,31 +43,38 @@ public class StateMachine<T>
         _states[state.GetType()] = state;
     }
 
-    public void SetState<TS>() where TS : State<T>
+    public bool SetState<TS>() where TS : State<T>
     {
+        if (!_states.TryGetValue(typeof(TS), out var targetState))
+            return false;
+
+        if (!targetState.CanEnter())
+            return false;
 
         if (_currentState != null)
             _currentState.Exit();
-        if (_states.ContainsKey(typeof(TS)))
-        {
-            _previousState = _currentState;
-            _currentState = _states[typeof(TS)];
-            _currentState.Enter();
-        }
+
+        _previousState = _currentState;
+        _currentState = targetState;
+        _currentState.Enter();
+        return true;
     }
 
-    public void SetState(System.Type stateType)
+    public bool SetState(System.Type stateType)
     {
+        if (stateType == null || !_states.TryGetValue(stateType, out var targetState))
+            return false;
+
+        if (!targetState.CanEnter())
+            return false;
+
         if (_currentState != null)
             _currentState.Exit();
-        if (stateType == null)
-            return;
-        if (_states.ContainsKey(stateType))
-        {
-            _previousState = _currentState;
-            _currentState = _states[stateType];
-            _currentState.Enter();
-        }
+
+        _previousState = _currentState;
+        _currentState = targetState;
+        _currentState.Enter();
+        return true;
     }
 
     // public State<T> GetState<TS>() where TS : State<T>
@@ -81,7 +88,6 @@ public abstract class State<T>
     protected T _owner;
     protected StateMachine<T> _stateMachine;
 
-
     public virtual State<T> SetState(StateMachine<T> sm, T owner)
     {
         _stateMachine = sm;
@@ -89,6 +95,7 @@ public abstract class State<T>
         return this;
     }
 
+    public virtual bool CanEnter() => true;
     public abstract void Enter();
     public abstract void Update();
     public abstract void Exit();

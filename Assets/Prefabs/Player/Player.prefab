@@ -268,8 +268,8 @@ MonoBehaviour:
     airMoveSpeedMultiplier: 0.5
     sprintSpeed: 12
     walkSpeed: 8
-    dashSpeed: 20
-    dashDuration: 0.15
+    dashSpeed: 1000
+    dashDuration: 0.2
     jumpForce: 10
     speed: 8
     customDrag: 1
