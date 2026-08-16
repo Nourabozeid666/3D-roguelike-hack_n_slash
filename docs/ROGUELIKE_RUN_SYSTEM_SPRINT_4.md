@@ -5,6 +5,17 @@
 > Base plan: `docs/ROGUELIKE_RUN_SYSTEM_PLAN.md` (§8 Sprint 4 = "Enemy/Spawn Integration").
 > Prior sprints: 1 (`a473850`), 2 (`2e1d63e`), 3 (`cc11a51`, `RunController`).
 
+> ## ⚠️ SUPERSEDED (2026-08-16) — Sprint 4 enemy/spawn integration IMPLEMENTED
+> The integration this document described as "NOT implemented / BLOCKED — team dependency" has been
+> built on branch `fix/enemy-spawn-integration`: `SpawnSystem` (`Populate`, `ApplyFloorScaling`,
+> `AliveCount`, `FloorCleared`) exists, `EnemyController : IEnemySpawned` surfaces `EnemyEntity.OnDied`
+> (death-only contract), `EnemyEntity` has `SetMaxHealth` / `SetBaseDamage` setters, and floor
+> scaling flows through the **`ISpawnStatConfig`** seam owned by `SpawnSystem`. The current contract
+> is in **`docs/ENEMY_SPAWN_INTEGRATION.md`**; the Sprint 4 Spawning report is
+> `docs/ROGUELIKE_SPAWNING_SPRINT_4.md`. Lines below saying `needs EnemyEntity setters` / death hook
+> `5+ future` are stale. Remaining real-enemy blocker: the production prefab (`TreeEntAsh.prefab`) is
+> still unfinished (see the integration doc) — not a code gap.
+
 ---
 
 ## # Goal
@@ -117,9 +128,9 @@ Interfaces/seams between systems (documented, not yet implemented):
 | Spawn request | Run → Spawn | `StartFloor(budget: float, floorN: int)` | 4 |
 | Floor-ready signal | Spawn → Run | `RunController.BeginFloor()` (FloorStart → FloorActive) | 4 |
 | Alive count | Spawn → Run | `AliveCount() : int` | 4 (consumed 5) |
-| Stat scaling | Spawn → EnemyEntity | `SetMaxHealth / SetBaseDamage / SetBaseDefense / SetMaxPoise` | 4 |
-| Floor clear | Enemy/Spawn → Run | "all enemies dead" (`AliveCount() == 0`) | 5 |
-| Death hook | Enemy → Run (future) | `EnemyEntity.OnDied` `[EXISTS:22]` | 5+ |
+| Stat scaling | Spawn → EnemyEntity | `SetMaxHealth / SetBaseDamage` (via `ISpawnStatConfig`) | 4 | **IMPLEMENTED** (see banner) |
+| Floor clear | Enemy/Spawn → Run | "all enemies dead" (`AliveCount() == 0`) | 5 | **IMPLEMENTED** (`SpawnSystem.FloorCleared`) |
+| Death hook | Enemy → Run | `EnemyEntity.OnDied` via `IEnemySpawned.OnDied` | 5+ | **IMPLEMENTED** (see banner) |
 
 Contract stability rule (from `ROGUELIKE_SPRINT_PLAN.md §10`): signature changes require a team heads-up before merge.
 
@@ -133,7 +144,7 @@ Split by ownership and readiness:
 - (Optional) `EnemyArchetype.cs` + `SpawnTable.cs` + `SpawnPoint.cs` class skeletons under `Assets\Scripts\Roguelike\Spawning\` — **only if SpawnSystem ownership is confirmed as Roguelike**. Writing them before the ownership decision would duplicate or pre-empt another owner's work.
 
 **BLOCKED — TEAM DEPENDENCY:**
-- `SpawnSystem.cs` (`Populate`, `ApplyFloorScaling`, `AliveCount`) — needs the owner decision + EnemyEntity setters + a working enemy prefab.
+- `SpawnSystem.cs` (`Populate`, `ApplyFloorScaling`, `AliveCount`) — **IMPLEMENTED** (integration branch; the owner decision, EnemyEntity setters and a working test prefab resolved it). A working REAL enemy prefab remains the only open item (`TreeEntAsh.prefab` unfinished — see `docs/ENEMY_SPAWN_INTEGRATION.md`).
 - EnemyEntity scaling setters — **Enemy dev**.
 - `DieState` fix — **Enemy dev** (required for killable spawns / floor clear verification).
 

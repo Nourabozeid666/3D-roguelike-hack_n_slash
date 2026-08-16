@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -47,8 +48,12 @@ using UnityEngine.UI;
  * entity and the state machine so it's the one that translates "what happened" into "which state, doing what"
  * and StagerState just plays a clip and holds a timer.
  */
-public class EnemyController : MonoBehaviour
+public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
 {
+    // IEnemySpawned death contract: raised whenever the EnemyEntity dies (forwards its
+    // authoritative OnDied), so SpawnSystem can decrement alive tracking / raise FloorCleared.
+    public event Action OnDied;
+
     private EnemyStateMachine<EnemyState> EStateMachine;
 
     private NavMeshAgent agent;
@@ -104,6 +109,20 @@ public class EnemyController : MonoBehaviour
     public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
     public GameObject ExplosionParticles => explosionParticles;
 
+    // ISpawnStatConfig: SpawnSystem reads the enemy's serialized/prefab base stats and pushes the
+    // floor-scaled absolute values in before Initialize() runs. This is the ONLY place the Enemy
+    // side learns about what stats to use; it never sees floors or multipliers.
+    public float BaseMaxHealth => enemyEntity != null ? enemyEntity.MaxHealth : 0f;
+    public float BaseDamage => enemyEntity != null ? enemyEntity.BaseDamage : 0f;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        if (enemyEntity == null)
+            enemyEntity = GetComponent<EnemyEntity>();
+        enemyEntity.SetMaxHealth(maxHealth);
+        enemyEntity.SetBaseDamage(baseDamage);
+    }
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -111,9 +130,14 @@ public class EnemyController : MonoBehaviour
 
         EStateMachine = new EnemyStateMachine<EnemyState>();
 
+        // Null-safe init: never rely on the inspector slot being filled.
+        if (enemyEntity == null)
+            enemyEntity = GetComponent<EnemyEntity>();
+
         enemyEntity.Initialize();
         enemyEntity.OnStaggered += HandleStaggered;
         enemyEntity.OnDied += HandleDied;
+        enemyEntity.OnDied += () => OnDied?.Invoke();
         enemyEntity.OnDamageTaken += HandleDamageTaken;
 
         // for each state i need to initialise them all first

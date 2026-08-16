@@ -29,6 +29,7 @@
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/EnemyComposition.cs" Link="Repo/EnemyComposition.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/EnemyCompositionSelector.cs" Link="Repo/EnemyCompositionSelector.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/IEnemySpawned.cs" Link="Repo/IEnemySpawned.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/ISpawnStatConfig.cs" Link="Repo/ISpawnStatConfig.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPacingConfig.cs" Link="Repo/SpawnPacingConfig.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPlacementValidator.cs" Link="Repo/SpawnPlacementValidator.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPoint.cs" Link="Repo/SpawnPoint.cs" />

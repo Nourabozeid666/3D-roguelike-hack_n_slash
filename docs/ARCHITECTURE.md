@@ -19,7 +19,7 @@ Each side has one **hub MonoBehaviour** that owns all wiring:
 | Player | `PlayerController` (`Assets\Scripts\Player\PlayerController.cs`) | Runs the movement loop, exposes context properties to states, translates camera-relative input to forces |
 | Enemy | `EnemyController` (`Assets\Scripts\Enemy\EnemyController.cs`) | Owns entity + FSM, translates "what happened" (entity events) into "which state" |
 
-The design intent is captured in the header comment at `EnemyController.cs:7-43` (grunt/sacrifice/ranged/defend archetypes, poise/stagger design, cost-based spawn system). None of the archetype or spawn work is implemented.
+The design intent is captured in the header comment at `EnemyController.cs:7-43` (grunt/sacrifice/ranged/defend archetypes, poise/stagger design, cost-based spawn system). The cost-based spawn system IS implemented (`SpawnSystem` under `Assets\Scripts\Roguelike\Spawning\`), including the enemy death/scaling contract — see `docs/ENEMY_SPAWN_INTEGRATION.md` for the current Enemy ↔ Spawn boundary. The enemy archetype/AI states themselves remain Enemy-side work.
 
 ---
 

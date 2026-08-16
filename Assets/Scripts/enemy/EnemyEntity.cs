@@ -37,9 +37,20 @@ public class EnemyEntity : IEnemyEntity
             this.currentHealth = maxHealth;
     }
 
+    public void SetBaseDamage(float newBaseDamage)
+    {
+        this.baseDamage = newBaseDamage;
+    }
+
     public void TakeDamage( float damage, float poiseDamage = 0f)
     {
         if (damage <= 0f) 
+            return;
+
+        // One authoritative death transition: a dead enemy is dead. This guards against repeated
+        // lethal hits (or a Kill() after death) re-firing OnDied and double-notifying listeners
+        // such as SpawnSystem (which would double-decrement AliveCount / double-raise FloorCleared).
+        if (currentHealth <= 0f)
             return;
 
         this.currentHealth -= damage;

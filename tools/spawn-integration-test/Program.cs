@@ -44,6 +44,8 @@ class Program
         UpgradeOfferDataScenario();
         GameOverScenario();
         GameOverRunTimeScenario();
+        SpawnStatConfigScenario();
+        DeathIdempotencyScenario();
 
         Console.WriteLine(failures.Count == 0
             ? $"[SpawnIntegration] ALL {checks} CHECKS PASSED"
@@ -92,7 +94,7 @@ class Program
         var te = go.AddComponent<TestEnemy>();
         Invoke(te, "Awake");
         bool died = false;
-        te.Died += () => died = true;
+        te.OnDied += () => died = true;
 
         Invoke(te, "OnTriggerEnter", playerCol);
         Check(died, "touch: OnTriggerEnter from Player hierarchy kills the enemy");
@@ -109,7 +111,7 @@ class Program
         var te = go.AddComponent<TestEnemy>();
         Invoke(te, "Awake");
         bool died = false;
-        te.Died += () => died = true;
+        te.OnDied += () => died = true;
 
         Invoke(te, "OnTriggerEnter", col);
         Check(!died, "touch: non-Player collider does NOT kill");
@@ -1312,6 +1314,98 @@ class Program
         Check(new GameOverData(0, 0, -10f).RunTimeText() == "0:00", "time: negative clamps to 0:00");
     }
 
+    // 30. ISpawnStatConfig seam (enemy integration): SpawnSystem reads the enemy's BASE stats and
+    //     pushes floor-scaled ABSOLUTE values in through ConfigureForSpawn before initialization.
+    //     TestEnemy stores them as its working stats; the raw base is never overwritten.
+    static void SpawnStatConfigScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("TestEnemy");
+        prefab.AddComponent<TestEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (3)", new Vector3(5, 0.5f, 3), new List<Vector3>());
+
+        sys.Populate(9f, 2);
+        Check(sys.AliveCount() == 3, "scale: floor 2 spawns 3 enemies");
+        foreach (GameObject c in UnityEngine.Object.Clones)
+        {
+            var te = c.GetComponent<TestEnemy>();
+            Check(Mathf.Approximately(te.BaseMaxHealth, 10f), "scale: BaseMaxHealth reads the raw base (10)");
+            Check(Mathf.Approximately(te.BaseDamage, 1f), "scale: BaseDamage reads the raw base (1)");
+            Check(Mathf.Approximately(te.Health, 10f * 1.12f), "scale: floor 2 health scaled 10 * 1.12^1");
+            Check(Mathf.Approximately(te.Damage, 1f * 1.08f), "scale: floor 2 damage scaled 1 * 1.08^1");
+        }
+    }
+
+    // 31. Death idempotency (enemy integration): a double death notification must decrement exactly
+    //     once per enemy and raise FloorCleared exactly once; TestEnemy.Die() is a no-op when dead.
+    static void DeathIdempotencyScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("DoubleNotifyEnemy");
+        prefab.AddComponent<DoubleNotifyEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (3)", new Vector3(5, 0.5f, 3), new List<Vector3>());
+
+        int cleared = 0;
+        sys.FloorCleared += () => cleared++;
+
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 3, "idem: 3 spawned");
+
+        // Double-notify one enemy: AliveCount must drop by exactly 1, floor not cleared yet.
+        var first = UnityEngine.Object.Clones[0].GetComponent<DoubleNotifyEnemy>();
+        first.FireTwice();
+        Check(sys.AliveCount() == 2, "idem: double-notify decrements once (3 -> 2)");
+        Check(cleared == 0, "idem: floor NOT cleared while others live");
+
+        // Double-notify the rest: floor clears exactly once despite the duplicate notifications.
+        foreach (GameObject c in UnityEngine.Object.Clones)
+            c.GetComponent<DoubleNotifyEnemy>().FireTwice();
+        Check(sys.AliveCount() == 0, "idem: AliveCount 0 after all enemies double-notify");
+        Check(sys.IsFloorCleared, "idem: floor cleared");
+        Check(cleared == 1, "idem: FloorCleared fired exactly once despite double-notifies");
+
+        // TestEnemy.Die() itself is guarded: the second call is a no-op.
+        var teSys = BuildSystem();
+        teSys.Populate(9f, 1);
+        var te = UnityEngine.Object.FindObjectsOfType<TestEnemy>()[0];
+        te.Die();
+        int afterFirst = teSys.AliveCount();
+        te.Die();
+        Check(teSys.AliveCount() == afterFirst, "idem: TestEnemy.Die() twice decrements once");
+    }
+
     sealed class RecordingHudView : IPlayerHudView
     {
         public int PresentCount;
@@ -1350,5 +1444,19 @@ class Program
             PresentCount++;
             Last = data;
         }
+    }
+}
+
+/// <summary>Test fake that implements IEnemySpawned and can fire its death notification twice, to
+/// prove SpawnSystem's death handling is idempotent (a duplicate OnDied must never double-decrement
+/// AliveCount or double-raise FloorCleared).</summary>
+sealed class DoubleNotifyEnemy : MonoBehaviour, IEnemySpawned
+{
+    public event Action OnDied;
+
+    public void FireTwice()
+    {
+        OnDied?.Invoke();
+        OnDied?.Invoke();
     }
 }
