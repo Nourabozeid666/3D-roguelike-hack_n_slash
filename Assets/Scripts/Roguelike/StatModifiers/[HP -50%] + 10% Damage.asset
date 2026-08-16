@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8871d2258031cd88e989c3b233c8807c, type: 3}
   m_Name: '[HP -50%] + 10% Damage'
   m_EditorClassIdentifier: Assembly-CSharp::ConditionalEffect
-  baseValue: 10
-  _modifierType: 0
+  baseValue: 1.1
+  _modifierType: 1
   _modifierPolarity: 0
   _targetStat: 3
-  _conditionStat: 0
-  _condition: 0
+  _conditionStat: 1
+  _condition: 1
   _conditionPercentageValue: 50
-  _chance: 1
+  _chance: 0.6
