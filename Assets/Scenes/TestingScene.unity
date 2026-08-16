@@ -2876,6 +2876,54 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1669640432}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &324947057 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
+  m_PrefabInstance: {fileID: 1741412312}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &324947062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324947057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 628557688023fba4b8e58d004aaacf45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Drakkar::Drakkar.DrakkarUpdater
+  PreUpdateSlots: 100
+  NormalUpdateSlots: 1000
+  PostUpdateSlots: 100
+  PreLateUpdateSlots: 30
+  LateUpdateSlots: 400
+  PostLateUpdateSlots: 30
+  FixedUpdateSlots: 10
+--- !u!114 &324947063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324947057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0984cf082085f0e429bf56329c69c7ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Drakkar::Drakkar.DrakkarUpdaterPost
+--- !u!114 &324947064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324947057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d088f73d4d2f7694493ea80d35f89b7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Drakkar::Drakkar.DrakkarUpdaterPre
 --- !u!1 &390228820
 GameObject:
   m_ObjectHideFlags: 0
@@ -4047,6 +4095,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 542774167695460662, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
+      propertyPath: Steps
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 542774167695460662, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
+      propertyPath: Length
+      value: 5.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 542774167695460662, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
+      propertyPath: TrailMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: dbd10b2e6f8662d4ba820adc07e5e569, type: 2}
     - target: {fileID: 4766421622624024043, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
       propertyPath: m_Name
       value: Player
@@ -5789,7 +5849,16 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 324947064}
+    - targetCorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 324947063}
+    - targetCorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 324947062}
   m_SourcePrefab: {fileID: 100100000, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
 --- !u!1 &1791506514
 GameObject:
