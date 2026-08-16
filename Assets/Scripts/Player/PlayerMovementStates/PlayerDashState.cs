@@ -15,15 +15,18 @@ public class PlayerDashState : State<PlayerController>
         _animator = animator;
     }
 
-    public override async void Enter()
+    public override void Enter()
     {
         _owner.UseDrag = false;
         _owner.UseCustomGravity = false;
         _owner.CanMove = false;
         _dashDuration = _owner.context.dashDuration;
         _dashSpeed = _owner.context.dashSpeed;
-        _animator.CrossFade(_dashAnimationHash, 0.1f);
-        await DashCoroutine();
+        if (!_owner.CombatController.CombatContext.isAttacking)
+        {
+            _animator.CrossFade(_dashAnimationHash, 0.1f);
+        }
+        DashCoroutine().Forget();
     }
 
     public override void Update()

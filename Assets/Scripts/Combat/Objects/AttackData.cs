@@ -15,9 +15,12 @@ public struct AttackTransition
 [CreateAssetMenu(fileName = "New Attack", menuName = "Weapons/Attack")]
 public class AttackData : ScriptableObject
 {
+    #nullable enable
+
     [SerializeField] private string attackName;
     [SerializeField] private float damageMultiplier = 1f; // default
     [SerializeField] private AnimationClip animation;
+    [SerializeField] private AnimationClip? chargeAnimationOverride;
     [SerializeField] private float comboWindow = 0.5f; // default
     [SerializeField] private float recoveryStartTime = 0.75f; // default
     [SerializeField] private float holdTime = 0.5f; // default
@@ -30,6 +33,7 @@ public class AttackData : ScriptableObject
     public string AttackName { get { return attackName; } }
     public float DamageMultiplier { get { return damageMultiplier; } }
     public AnimationClip Animation { get { return animation; } }
+    public AnimationClip? ChargeAnimationOverride { get { return chargeAnimationOverride; } }
     public float ComboWindow { get { return comboWindow; } }
     public float RecoveryStartTime { get { return recoveryStartTime; } }
     public float HoldTime { get { return holdTime; } }
@@ -38,7 +42,7 @@ public class AttackData : ScriptableObject
     public float LungeDuration { get { return lungeDuration; } }
     public bool IsHoldAttack { get { return isHoldAttack; } }
 
-    public AttackData GetNext(InputType input)
+    public AttackData? GetNext(InputType input)
     {
         foreach (var t in transitions)
             if (t.input == input)
@@ -61,7 +65,7 @@ public class AttackData : ScriptableObject
     }
 
     #endif
-private void PrintAllCombos(string comboString = "", HashSet<AttackData> visited = null)
+private void PrintAllCombos(string comboString = "", HashSet<AttackData>? visited = null)
 {
     visited ??= new HashSet<AttackData>();
     if (!visited.Add(this))

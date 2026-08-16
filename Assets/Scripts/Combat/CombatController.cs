@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using Drakkar.GameUtils;
 using UnityEngine;
 
 
@@ -15,15 +16,21 @@ public class CombatController : MonoBehaviour
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
 
-
     void Awake()
     {
+        SetTrailReferenceTEMPORARY();
         _playerController = GetComponent<PlayerController>();
         comboSystem = new ComboSystem(this);
         referencesContext = _playerController.ReferencesContext;
         _stateMachine = new StateMachine<CombatController>(this, referencesContext.combatDebugText);
+        combatContext.overrideController = new AnimatorOverrideController(referencesContext.animator.runtimeAnimatorController);
+        referencesContext.animator.runtimeAnimatorController = combatContext.overrideController;
         _stateMachine.AddState(new CombatIdleState(referencesContext.animator));
-        _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatHeavyAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatLightHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.SetState<CombatIdleState>();
 
         InputController.OnLightAttackStart += () =>
@@ -32,6 +39,8 @@ public class CombatController : MonoBehaviour
         };
         InputController.OnLightAttackEnd += () =>
         {
+            combatContext.inputState.lightHoldTimeAtRelease = combatContext.lightHoldTime;
+            combatContext.inputState.lightAttackReleased = true;
             combatContext.inputState.lightAttackPressed = false;
             combatContext.inputString += "L";
         };
@@ -41,11 +50,20 @@ public class CombatController : MonoBehaviour
         };
         InputController.OnHeavyAttackEnd += () =>
         {
+            combatContext.inputState.heavyHoldTimeAtRelease = combatContext.heavyHoldTime;
+            combatContext.inputState.heavyAttackReleased = true;
             combatContext.inputState.heavyAttackPressed = false;
             combatContext.inputString += "H";
         };
     }
 
+    void SetTrailReferenceTEMPORARY()
+    {
+        if (combatContext.currentWeapon != null)
+        {
+            combatContext.currentWeapon.Trail = gameObject.GetComponentInChildren<DrakkarTrail>();
+        }
+    }
     void CalculateHoldTime()
     {
         if (combatContext.inputState.lightAttackPressed)
@@ -85,14 +103,11 @@ public class CombatController : MonoBehaviour
             case InputType.LightAttack:
                 return typeof(CombatLightAttackState);
             case InputType.HeavyAttack:
-                // return _stateMachine.GetState<CombatHeavyAttackState>().GetType();
-                break;
+                return typeof(CombatHeavyAttackState);
             case InputType.LightHold:
-                // return _stateMachine.GetState<CombatLightHoldAttackState>().GetType();
-                break;
+                return typeof(CombatLightHoldState);
             case InputType.HeavyHold:
-                // return _stateMachine.GetState<CombatHeavyHoldAttackState>().GetType();
-                break;
+                return typeof(CombatHeavyHoldState);
         }
         return null;
     }

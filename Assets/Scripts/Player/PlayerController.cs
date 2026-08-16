@@ -26,6 +26,7 @@ public class PlayerController : MonoBehaviour
     internal bool CanMove { get { return context.canMove; } set { context.canMove = value; } }
     internal bool UseDrag { get { return context.useDrag; } set { context.useDrag = value; } }
     internal CombatController CombatController { get { return combatController; } }
+    public StateMachine<PlayerController> StateMachine { get { return _stateMachine; } }
     public IEntity Entity {get { return playerEntity; } }
     public ReferencesContext ReferencesContext { get { return referencesContext; } set { referencesContext = value; } }
 
@@ -47,6 +48,11 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+
+    }
+
+    void OnEnable()
+    {
         // Subscribe to action events
         InputController.OnJumpStart += () =>
         {
@@ -62,10 +68,33 @@ public class PlayerController : MonoBehaviour
         };
         InputController.OnMoveInput += (value) => context.moveDirection = value;
         InputController.OnSprintInput += (isSprinting) => {
+            if (!context.canMove) return;
             context.isSprinting = isSprinting; 
             if (isSprinting == true) _stateMachine.SetState<PlayerDashState>();
             };
-        // Debug.Log(Vector3.up * (gravity * risingMultiplier));
+    }
+
+    void OnDisable()
+    {
+        // Unsubscribe from action events
+        InputController.OnJumpStart -= () =>
+        {
+            if (!IsGrounded())
+            {
+                queueJump = true;
+                // Debug.Log("Jump Queued");
+            }
+            else
+            {
+                Jump();
+            }
+        };
+        InputController.OnMoveInput -= (value) => context.moveDirection = value;
+        InputController.OnSprintInput -= (isSprinting) => {
+            if (!context.canMove) return;
+            context.isSprinting = isSprinting; 
+            if (isSprinting == true) _stateMachine.SetState<PlayerDashState>();
+            };
     }
 
 
@@ -120,7 +149,7 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        _stateMachine.Update();
+        MaxVelocityUpdate();
         ApplyCustomGravity();
         ApplyCustomDrag();
         Move(context.moveDirection);
@@ -128,8 +157,8 @@ public class PlayerController : MonoBehaviour
     
     void Update()
     {
+        _stateMachine.Update();
         Rotate(MoveDirectionToWorldSpace());
-        MaxVelocityUpdate();
         if (queueJump && IsGrounded())
         {
             Jump();
@@ -194,6 +223,7 @@ public class PlayerController : MonoBehaviour
 
     void Rotate(Vector3 direction)
     {
+        if (!context.canMove) return;
         Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : referencesContext.playerModel.rotation;
         if (targetRotation != null && targetRotation != referencesContext.playerModel.rotation && direction != Vector3.zero)
         {
@@ -203,6 +233,7 @@ public class PlayerController : MonoBehaviour
 
     void Jump()
     {
+        if (!context.canMove) return;
         _stateMachine.SetState<PlayerJumpState>();
         Vector3 appliedJumpForce = Vector3.up * context.jumpForce * (context.speed == context.sprintSpeed ? 1.2f : 1f);
         if (context.moveDirection.magnitude > 0f)
@@ -220,5 +251,10 @@ public class PlayerController : MonoBehaviour
     internal void UpdateGroundDrag(float newDrag)
     {
         groundDrag = newDrag;
+    }
+
+    public void SetCanMove(bool canMove)
+    {
+        context.canMove = canMove;
     }
 }
