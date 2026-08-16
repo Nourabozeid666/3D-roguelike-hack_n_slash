@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1247fd33749ea378b7a1cbe1b912b8e, type: 3}
+  m_Name: '[Passive] +5 Damage'
+  m_EditorClassIdentifier: Assembly-CSharp::BasicModifier
+  baseValue: 10
+  _modifierType: 0
+  _modifierPolarity: 0
+  _targetStat: 2
+  _chance: 1
