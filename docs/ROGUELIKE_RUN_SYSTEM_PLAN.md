@@ -4,6 +4,8 @@
 > Evidence labels: `[EXISTS]` / `[PARTIAL]` / `[MISSING]` / `[PROPOSED]` / `[TEAM DECISION]` / `[BLOCKED]` / `[FUTURE]`
 > Source-of-truth docs: `docs/ROGUELIKE_SYSTEM.md`, `docs/ROGUELIKE_IMPLEMENTATION_PLAN.md`, `docs/ROGUELIKE_SPRINT_PLAN.md`, `docs/ARCHITECTURE.md`.
 
+> **Status note (cleanup branch `fix/roguelike-spawn-cleanup`):** the `WeaponData` data container this plan references was **removed as obsolete** — the merged Combat system owns weapons via `Assets/Scripts/Combat/Objects/WeaponObject.cs` + `AttackData.cs`. See `docs/ROGUELIKE_IMPLEMENTATION_PLAN.md` for the same note.
+
 ---
 
 ## 1. RUN SYSTEM RESPONSIBILITY

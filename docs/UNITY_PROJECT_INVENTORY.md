@@ -6,6 +6,8 @@
 - **Evidence base:** `Assets/Scenes/TestingScene.unity` (15,848 lines, 542 serialized blocks), prefabs under `Assets/prefabs/`, `ProjectSettings/TagManager.asset`, script GUID→file mapping via `.meta` files.
 - **Status of this doc:** untracked planning material under `docs/`. Nothing modified, committed, or pushed.
 
+> **Status note (cleanup branch `fix/roguelike-spawn-cleanup`):** this inventory is a historical snapshot of `feature/roguelike-system`. `WeaponType.cs` / `WeaponData.cs` (see §1/§9 below) were **removed as obsolete** on the cleanup branch — the merged Combat system provides the real weapon abstraction (`Assets/Scripts/Combat/Objects/WeaponObject.cs` + `AttackData.cs`). Prefab paths cited here (`Assets/prefabs/…`) were since renamed to `Assets/Prefabs/…` on `main`.
+
 ---
 
 ## 1. SCENES

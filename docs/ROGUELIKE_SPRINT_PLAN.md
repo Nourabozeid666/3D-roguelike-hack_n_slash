@@ -3,6 +3,8 @@
 > Planning-only document. No code, assets, or project files are modified by this plan.
 > Evidence labels: `[EXISTS]` in project / `[PARTIAL]` / `[MISSING]` / `[PROPOSED]` / `[TEAM DECISION]` / `[BLOCKED]` / `[FUTURE]`
 
+> **Status note (cleanup branch `fix/roguelike-spawn-cleanup`):** the V0.1 `WeaponType` / `WeaponData` data layer described below was **removed as obsolete** after the Combat system merged with its own real weapon model (`Assets/Scripts/Combat/Objects/WeaponObject.cs` + `AttackData.cs`). The run system shipped anyway (run FSM, save/load, spawning, UI) without the weapon prototype; this plan's weapon section is now history.
+
 ---
 
 ## 1. EXECUTIVE SUMMARY

@@ -4,6 +4,8 @@
 **Scope of this document:** practical, incremental plan for building the Roguelike System in a team project.
 **Base document:** `docs/ROGUELIKE_SYSTEM.md` (high-level design — NOT all of it is approved or planned for now).
 
+> **Status note (cleanup branch `fix/roguelike-spawn-cleanup`):** the `WeaponData` ScriptableObject / `WeaponType` enum described in this plan were implemented then **removed as obsolete** — the merged Combat system ships the real weapon abstraction (`Assets/Scripts/Combat/Objects/WeaponObject.cs` + `AttackData.cs`, `KatanaWeapon.prefab`, `BasicTestingSword.asset`), and `WeaponData`/`WeaponType` had zero references. The weapon-stats parts of this plan should be read as history, not as the current design.
+
 > **How to read this document**
 > Every claim about existing code is labeled:
 > - **[EXISTS]** — present in the repo today, with a file reference.

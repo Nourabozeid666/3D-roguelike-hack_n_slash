@@ -13,8 +13,9 @@
   <!--
     Compile the REAL game sources straight from Assets/Scripts/... so CI tests the actual spawner /
     run code (same files the local harness copies in), never stale duplicates. Only the files the
-    harness references are included. WeaponData.cs, WeaponType.cs, PauseController.cs and
-    SettingsController.cs are NOT part of the harness and are deliberately excluded.
+    harness references are included. PauseController.cs and SettingsController.cs are NOT part of the
+    harness and are deliberately excluded (WeaponData.cs/WeaponType.cs were removed on the cleanup
+    branch as obsolete).
   -->
   <ItemGroup>
     <Compile Include="../../Assets/Scripts/Roguelike/RunBootstrap.cs" Link="Repo/RunBootstrap.cs" />
