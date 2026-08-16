@@ -662,6 +662,7 @@ class Program
         SetField(ctrl, "settingsButton", settingsBtn.GetComponent<Button>());
         SetField(ctrl, "quitButton", quitBtn.GetComponent<Button>());
         SetField(ctrl, "settingsPanel", panel);
+        Invoke(ctrl, "Awake");
         Invoke(ctrl, "Start");
 
         Check(!continueBtn.GetComponent<Button>().interactable, "menu: Continue disabled with no save");
@@ -710,6 +711,7 @@ class Program
         SetField(boot, "floorClearPauseSeconds", 0f);
 
         RunSession.EnterFromMenu = true;
+        Invoke(boot, "Awake");
         Invoke(boot, "Start");
         RunSession.EnterFromMenu = false;
 
@@ -737,6 +739,7 @@ class Program
         SetField(boot2, "floorClearPauseSeconds", 0f);
 
         RunSession.EnterFromMenu = true;
+        Invoke(boot2, "Awake");
         Invoke(boot2, "Start");
         RunSession.EnterFromMenu = false;
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 public interface IEstate
 {
@@ -11,13 +12,11 @@ public interface IEstate
 public class EnemyStateMachine <T> where T : class ,IEstate
 {
     private T currentState = null;
-
     private T previousState;
-
+    private bool isTransitioning;
     private readonly Dictionary<System.Type, T> enemyStates = new();
 
     public Dictionary<System.Type, T> EnemyStates => enemyStates;
-
     public T CurrentState => currentState;
     public T PreviousState => previousState;
 
@@ -42,16 +41,25 @@ public class EnemyStateMachine <T> where T : class ,IEstate
         if (currentState is TState)
             return;
 
-        T previousState = currentState;
-
-        currentState?.Exit();
-
-        if (enemyStates.ContainsKey(typeof(TState)))
+        if (isTransitioning)
         {
-            currentState = enemyStates[typeof(TState)];
-            currentState.Enter();
-            this.previousState = previousState;
+            Debug.LogWarning($"SetState<{typeof(TState).Name}> called while already mid-transition — ignored. Something is calling SetState from inside an Enter()/Exit().");
+            return;
         }
+
+        if (!enemyStates.ContainsKey(typeof(TState)))
+        {
+            Debug.LogWarning($"Tried to enter unregistered state {typeof(TState).Name}");
+            return;
+        }
+
+        isTransitioning = true;
+        T previous = currentState;
+        currentState?.Exit();
+        currentState = enemyStates[typeof(TState)];
+        currentState.Enter();
+        previousState = previous;
+        isTransitioning = false;
     }
 
     public T GetState<TState>() where TState : T

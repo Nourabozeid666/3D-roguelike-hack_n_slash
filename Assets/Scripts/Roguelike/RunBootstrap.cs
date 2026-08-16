@@ -23,7 +23,12 @@ public class RunBootstrap : MonoBehaviour
     /// cleared state is visible (matches the test driver's default). Tuning value.</summary>
     [SerializeField] float floorClearPauseSeconds = 1f;
 
-    readonly RunSaveService saves = new();
+    RunSaveService saves;
+
+    void Awake()
+    {
+        saves = new();
+    }
 
     /// <summary>The real RunController this bootstrap drives, exposed so the debug HUD can read live
     /// run state/floor (SpawnTestDebugDisplay).</summary>

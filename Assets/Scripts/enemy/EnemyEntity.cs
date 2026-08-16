@@ -62,5 +62,11 @@ public class EnemyEntity : IEnemyEntity
 
         OnDamageTaken?.Invoke(damage);
     }
-
+    public void Kill()
+    {
+        if (currentHealth <= 0) 
+            return;
+        currentHealth = 0;
+        OnDied?.Invoke();
+    }
 }

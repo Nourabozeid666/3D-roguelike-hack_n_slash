@@ -78,3 +78,10 @@ crashlytics-build.properties
 !tools/spawn-integration-test/spawn_integration_test.csproj
 tools/spawn-integration-test/bin/
 tools/spawn-integration-test/obj/
+
+# Local Codex runtime and generated presentation artifacts
+/.cache/
+/.codex-work/
+/Decision_Trees_Updated*.pptx
+/Decision_Trees_Updated*.pptx.inspect.ndjson
+

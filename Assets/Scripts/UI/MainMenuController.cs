@@ -19,7 +19,12 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Temporary target until the build scene list is finalized.")]
     [SerializeField] private string gameSceneName = "TestingScene";
 
-    readonly RunSaveService saves = new();
+    RunSaveService saves;
+
+    void Awake()
+    {
+        saves = new();
+    }
 
     void Start()
     {

@@ -8,6 +8,11 @@ public enum AttackType {
 public abstract class CombatActionState : IEstate
 {
     protected EnemyController enemyController;
+
+    public virtual bool CanBeInterrupted => true;
+    public virtual bool IsFinished { get; protected set; }
+    public virtual bool IsEligible => true; // “Can this attack start right now?”, eligible only when its cooldown is finished.
+
     protected CombatActionState(EnemyController enemyController) => this.enemyController = enemyController;
     public abstract void Enter();
     public abstract void Exit();
@@ -25,23 +30,37 @@ public class AttackState : EnemyState
         agent = enemyController.Agent;
 
         //add states to all the attacks you need in the game
-        AddState(new MeleeAttack(enemyController));
-        AddState(new RangedShootAttack(enemyController));
-        AddState(new SacrificeAttack(enemyController));
-        AddState(new StrongAttack(enemyController));
-        AddState(new ComboAttack(enemyController));
-        AddState(new ExplodingAttack(enemyController));
+        // -------------------------------------------------need adds for each attack state--------------------------------------------------------------
+
+        //AddState(new MeleeAttack(enemyController));
+        //AddState(new RangedShootAttack(enemyController));
+        //var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
+        //AddState(new StrongAttack(enemyController));
+
+        var comboParts = enemyController.GetComponent<ComboAttackComponents>();
+        if( comboParts != null )
+            AddState(new ComboAttack(enemyController));
+        var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
+        if (sacrificeParts != null)
+            AddState(new SacrificeAttack(enemyController, sacrificeParts.Config));
     }
+
+    public override bool CanBeInterrupted{
+        get{
+            if (CurrentCombatAction == null)
+                return true;
+
+            return CurrentCombatAction.CanBeInterrupted;
+        }
+    }
+
     public override void Enter()
     {
-        agent.isStopped = true;
-
-        //combatActions.SetState<MeleeAttack>();
+        combatActions.SetState<SacrificeAttack>();
     }
 
     public override void Exit()
     {
-        agent.isStopped = false;
         combatActions.Exit();
     }
 

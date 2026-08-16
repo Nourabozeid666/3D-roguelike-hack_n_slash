@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: routeA
   m_EditorClassIdentifier: Assembly-CSharp::PatrolRoute
   wayPoints:
-  - {fileID: 6397629718730891800, guid: cb3599299ebed074db275a9e1ec51115, type: 3}
-  - {fileID: 5477536819004360569, guid: 149596c79b14c584dbb35011a2d93fa5, type: 3}
-  - {fileID: 7185315033265556448, guid: 3568a9447f8f4094886db828c9887769, type: 3}
-  - {fileID: 5504942880991314456, guid: c0fa5d5cbb1850b4aa2916e11aa266a5, type: 3}
+  - {fileID: 8573534921875259923, guid: 3adb2f28458066b4bbb0c21b0f33418e, type: 3}
+  - {fileID: 3714922478335189337, guid: f01bac28152775d44a9c6e3ebe2684bb, type: 3}
+  - {fileID: 300669296816806765, guid: 21d13b9fddcd14b41a2cdd1476e6bd1a, type: 3}
+  - {fileID: 2110102069928915838, guid: 00a9d8be775a2fc42a3475036d820f38, type: 3}

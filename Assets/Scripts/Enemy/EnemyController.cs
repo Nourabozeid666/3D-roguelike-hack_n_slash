@@ -24,7 +24,7 @@ using UnityEngine.UI;
             boss : 
              does not feel any thing unless the stager bar is full and then empty it and make him hurt for some seconds
         }
-
+        
     basic attackState for Melee archetypes
     {
     #Standard
@@ -55,13 +55,13 @@ public class EnemyController : MonoBehaviour
     private Animator animator;
 
     [SerializeField] Transform targetTransform;
+
     [SerializeField] PatrolRoute patrolRoute;
 
-    [Header("-----chasing the player-----")]
+    [Header("------------chasing the player------------")]
     [SerializeField] private float detectionDistance;
     [SerializeField] private float loseTargetDistance;
     [SerializeField] private float attackRange;
-    [SerializeField] private float attackExitBuffer = 0.5f; // new
 
     [SerializeField] private float patrolSpeed;
     [SerializeField] private float chaseSpeed;
@@ -73,6 +73,16 @@ public class EnemyController : MonoBehaviour
     [SerializeField] Text _debugText;
     [SerializeField] private EnemyEntity enemyEntity;
 
+    [Header("-------------Attack components-------------")]
+    [SerializeField] private EnemyAttackConfig enemyAttackConfig;
+    [SerializeField] private GameObject explosionParticles;
+
+    [Header("-------------Poise-------------")]
+    [SerializeField] float maxPoise = 100f;
+    [SerializeField] float currentPoise;
+    [SerializeField] float poiseRegenDelay = 1.5f;  // seconds without poise damage before it starts climbing back
+    [SerializeField] float poiseRegenRate = 20f;
+
     private bool hasTarget;
 
     // agent = the private field that stores the component
@@ -80,6 +90,7 @@ public class EnemyController : MonoBehaviour
 
     public Dictionary<System.Type, EnemyState> EnemyStates =>
         EStateMachine.EnemyStates;
+
 
     public EnemyEntity EnemyEntity => enemyEntity;
     public PatrolRoute PatrolRoute => patrolRoute;
@@ -90,6 +101,8 @@ public class EnemyController : MonoBehaviour
     public NavMeshAgent Agent => agent;
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
+    public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
+    public GameObject ExplosionParticles => explosionParticles;
 
     void Start()
     {
@@ -113,15 +126,11 @@ public class EnemyController : MonoBehaviour
         AddState(new PatrolState(this));
         AddState(new StaggerState(this));
         AddState(new DieState(this));
+        AddState(new ExplodeState(this));
         // set the first state the enemy will enter
         SetState<SpownState>();
 
         agent.stoppingDistance = waypointStoppingDistance;
-    }
-
-    private void HandleDied()
-    {
-        SetState<DieState>();
     }
 
     private void HandleDamageTaken(float damage)
@@ -191,6 +200,10 @@ public class EnemyController : MonoBehaviour
         if (!EStateMachine.CurrentState.CanBeInterrupted)
             return;
 
+        // an active attack manages its own positioning and knows when it's done
+        if (EStateMachine.CurrentState is AttackState)
+            return; 
+
         Vector3 direction = targetTransform.position - transform.position;
         float distance = direction.magnitude;
         float angle = Vector3.Angle(direction, transform.forward);
@@ -203,11 +216,7 @@ public class EnemyController : MonoBehaviour
             hasTarget = true;
         }
 
-        bool inAttackRange = EStateMachine.CurrentState is AttackState
-            ? distance <= attackRange + attackExitBuffer
-            : distance <= attackRange;
-
-        if (inAttackRange)
+        if (distance <= attackRange)
         {
             SetState<AttackState>();
             return;
@@ -226,6 +235,12 @@ public class EnemyController : MonoBehaviour
         agent.SetDestination(lookAtVector);
     }
 
+    private void HandleDied()
+    {
+        if (EStateMachine.CurrentState is ExplodeState)
+            return; // already handling its own death, leave it alone
+        SetState<DieState>();
+    }
 
     // exit state here
     public void SetState<T>() where T : EnemyState
