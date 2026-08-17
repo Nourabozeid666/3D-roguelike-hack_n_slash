@@ -117,19 +117,23 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     //
     // DAMAGE: the authoritative runtime damage source is the per-attack ScriptableObject config
     // (EnemyAttackConfig.baseDamage / SacrificeAttackConfig.explosionDamage), read-only and shared —
-    // NOT EnemyEntity.baseDamage (unused by combat). So the base damage is READ from that config
-    // here, and the scaled damage is intentionally NOT written to EnemyEntity (that would fake
-    // scaling on an unused field). Per-instance scaled damage on the real enemy needs a combat-side
-    // per-instance damage surface and is deferred.
+    // NOT EnemyEntity.baseDamage (unused by combat). The base damage is READ from that config here;
+    // the floor-scaled damage is stored in `runtimeDamage` so attacks (DealDamage, SacrificeAttack)
+    // can read the per-instance value instead of mutating the shared ScriptableObject.
     public float BaseMaxHealth => enemyEntity != null ? enemyEntity.MaxHealth : 0f;
     public float BaseDamage => enemyAttackConfig != null ? enemyAttackConfig.BaseDamage : 0f;
+
+    /// <summary>Per-instance runtime damage written by SpawnSystem via ConfigureForSpawn.
+    /// Attacks read this instead of the shared ScriptableObject to respect floor scaling.</summary>
+    float runtimeDamage;
+    public float RuntimeDamage => runtimeDamage;
 
     public void ConfigureForSpawn(float maxHealth, float baseDamage)
     {
         if (enemyEntity == null)
             enemyEntity = GetComponent<EnemyEntity>();
         enemyEntity.SetMaxHealth(maxHealth);
-        // baseDamage intentionally NOT applied here — see the damage note above.
+        runtimeDamage = baseDamage;
     }
 
     void Start()

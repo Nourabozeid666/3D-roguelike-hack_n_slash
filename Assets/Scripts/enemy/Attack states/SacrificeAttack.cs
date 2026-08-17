@@ -28,7 +28,12 @@ internal class SacrificeAttack : CombatActionState
         maxAttackRange = config.MaxAttackRange;
         fuseDuration = config.FuseDuration;
         explosionRadius = config.ExplosionRadius;
-        explosionDamage = config.ExplosionDamage;
+
+        // Scale explosion damage proportionally to the runtime melee damage so floor-scaled
+        // enemies deal floor-scaled explosion damage. Uses RuntimeDamage (written by SpawnSystem
+        // through ConfigureForSpawn) relative to the shared SO base; shared assets are never mutated.
+        float ratio = config.BaseDamage > 0f ? enemyController.RuntimeDamage / config.BaseDamage : 1f;
+        explosionDamage = config.ExplosionDamage * ratio;
     }
 
 

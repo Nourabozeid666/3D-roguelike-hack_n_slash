@@ -46,6 +46,9 @@ class Program
         GameOverRunTimeScenario();
         SpawnStatConfigScenario();
         DeathIdempotencyScenario();
+        RuntimeDamageConfigScenario();
+        OnDiedLethalDamageScenario();
+        ExplosionDeathFlowScenario();
 
         Console.WriteLine(failures.Count == 0
             ? $"[SpawnIntegration] ALL {checks} CHECKS PASSED"
@@ -1406,6 +1409,137 @@ class Program
         Check(teSys.AliveCount() == afterFirst, "idem: TestEnemy.Die() twice decrements once");
     }
 
+    // 32. Runtime damage config (enemy integration): a stub mimicking EnemyController stores the
+    //     floor-scaled damage in a per-instance runtimeDamage field (exposed as RuntimeDamage); attacks
+    //     read this instead of the shared SO base. ConfigureForSpawn writes both health and damage.
+    static void RuntimeDamageConfigScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("RuntimeDamageEnemy");
+        prefab.AddComponent<RuntimeDamageEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+
+        sys.Populate(3f, 1);
+        Check(sys.AliveCount() == 1, "rdamage: floor 1 spawns 1 enemy");
+        var rde = UnityEngine.Object.Clones[0].GetComponent<RuntimeDamageEnemy>();
+        Check(Mathf.Approximately(rde.BaseDamage, 5f), "rdamage: BaseDamage reads the raw base (5)");
+        Check(Mathf.Approximately(rde.RuntimeDamage, 5f), "rdamage: floor 1 RuntimeDamage == base (no scaling)");
+        Check(Mathf.Approximately(rde.RuntimeDamage, rde.Damage), "rdamage: RuntimeDamage matches working Damage");
+
+        // Floor 3: damageScale = 1.08^2 = 1.1664
+        UnityEngine.Object.ResetWorld();
+        sys.Populate(3f, 3);
+        Check(sys.AliveCount() == 1, "rdamage: floor 3 spawns 1 enemy");
+        rde = UnityEngine.Object.Clones[0].GetComponent<RuntimeDamageEnemy>();
+        Check(Mathf.Approximately(rde.RuntimeDamage, 5f * 1.08f * 1.08f), "rdamage: floor 3 RuntimeDamage == 5 * 1.08^2");
+        Check(Mathf.Approximately(rde.Damage, 5f * 1.08f * 1.08f), "rdamage: floor 3 working Damage matches RuntimeDamage");
+    }
+
+    // 33. OnDied-once on lethal TakeDamage (enemy integration): a stub mimicking EnemyEntity fires
+    //     OnDied exactly once when TakeDamage reduces health to zero; a second TakeDamage is a no-op.
+    static void OnDiedLethalDamageScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("LethalEnemy");
+        prefab.AddComponent<LethalEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0f);
+        SetField(archetype, "damageGrowthPerFloor", 0f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+
+        int deaths = 0;
+        sys.FloorCleared += () => deaths++;
+
+        sys.Populate(3f, 1);
+        Check(sys.AliveCount() == 1, "lethal: 1 spawned");
+
+        var le = UnityEngine.Object.Clones[0].GetComponent<LethalEnemy>();
+        le.TakeDamage(4f);
+        Check(sys.AliveCount() == 1, "lethal: partial damage keeps enemy alive");
+        Check(deaths == 0, "lethal: no death on partial damage");
+
+        le.TakeDamage(1f);
+        Check(sys.AliveCount() == 0, "lethal: lethal damage decrements alive");
+        Check(deaths == 1, "lethal: FloorCleared fired exactly once");
+
+        // Second TakeDamage is a no-op (dead guard).
+        le.TakeDamage(10f);
+        Check(sys.AliveCount() == 0, "lethal: post-death TakeDamage is a no-op");
+        Check(deaths == 1, "lethal: post-death TakeDamage does not fire again");
+    }
+
+    // 34. Explosion death flow (enemy integration): a stub mimicking SacrificeAttack calls Kill()
+    //     which fires OnDied exactly once; SpawnSystem receives it and decrements alive.
+    static void ExplosionDeathFlowScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("ExplodingEnemy");
+        prefab.AddComponent<ExplodingEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0f);
+        SetField(archetype, "damageGrowthPerFloor", 0f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+
+        int deaths = 0;
+        sys.FloorCleared += () => deaths++;
+
+        sys.Populate(3f, 1);
+        Check(sys.AliveCount() == 1, "explode: 1 spawned");
+
+        var ee = UnityEngine.Object.Clones[0].GetComponent<ExplodingEnemy>();
+        Check(Mathf.Approximately(ee.RuntimeDamage, 5f), "explode: RuntimeDamage is set by ConfigureForSpawn");
+
+        // Mimic SacrificeAttack: scale explosion proportionally and then Kill().
+        float ratio = ExplodingEnemy.ConfigBaseDamage > 0f ? ee.RuntimeDamage / ExplodingEnemy.ConfigBaseDamage : 1f;
+        float scaledExplosion = ExplodingEnemy.ConfigExplosionDamage * ratio;
+        Check(Mathf.Approximately(scaledExplosion, 40f), "explode: explosion damage unscaled on floor 1");
+
+        ee.Kill();
+        Check(sys.AliveCount() == 0, "explode: Kill() decrements alive");
+        Check(deaths == 1, "explode: FloorCleared fired exactly once");
+
+        // Double Kill is a no-op.
+        ee.Kill();
+        Check(sys.AliveCount() == 0, "explode: double Kill() is a no-op");
+        Check(deaths == 1, "explode: double Kill() does not fire again");
+    }
+
     sealed class RecordingHudView : IPlayerHudView
     {
         public int PresentCount;
@@ -1457,6 +1591,93 @@ sealed class DoubleNotifyEnemy : MonoBehaviour, IEnemySpawned
     public void FireTwice()
     {
         OnDied?.Invoke();
+        OnDied?.Invoke();
+    }
+}
+
+/// <summary>Test fake mimicking EnemyController: stores runtimeDamage per-instance (written by
+/// ConfigureForSpawn), exposes it as RuntimeDamage so attacks can read the scaled value.</summary>
+sealed class RuntimeDamageEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
+{
+    [SerializeField] float baseHealth = 10f;
+    [SerializeField] float baseDamage = 5f;
+
+    public event Action OnDied;
+
+    public float Health { get; private set; }
+    public float Damage { get; private set; }
+    public float RuntimeDamage { get; private set; }
+
+    public float BaseMaxHealth => baseHealth;
+    public float BaseDamage => baseDamage;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        Health = maxHealth;
+        Damage = baseDamage;
+        RuntimeDamage = baseDamage;
+    }
+}
+
+/// <summary>Test fake mimicking EnemyEntity: has health, TakeDamage with dead-guard, Kill() with
+/// dead-guard, and fires OnDied exactly once. Used to verify the death flow from lethal damage.</summary>
+sealed class LethalEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
+{
+    float health = 5f;
+    bool dead;
+
+    public event Action OnDied;
+
+    public float BaseMaxHealth => 5f;
+    public float BaseDamage => 1f;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        health = maxHealth;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (dead) return;
+        if (damage <= 0f) return;
+        health -= damage;
+        if (health <= 0f)
+        {
+            health = 0f;
+            dead = true;
+            OnDied?.Invoke();
+        }
+    }
+}
+
+/// <summary>Test fake mimicking SacrificeAttack + EnemyEntity: has per-instance RuntimeDamage,
+/// ConfigBaseDamage, ConfigExplosionDamage for proportional scaling, and Kill() with dead-guard.
+/// Proves the explosion → Kill → OnDied → SpawnSystem path works correctly.</summary>
+sealed class ExplodingEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
+{
+    public const float ConfigBaseDamage = 5f;
+    public const float ConfigExplosionDamage = 40f;
+
+    float health = 10f;
+    bool dead;
+
+    public event Action OnDied;
+
+    public float RuntimeDamage { get; private set; }
+    public float BaseMaxHealth => 10f;
+    public float BaseDamage => ConfigBaseDamage;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        health = maxHealth;
+        RuntimeDamage = baseDamage;
+    }
+
+    public void Kill()
+    {
+        if (dead) return;
+        dead = true;
+        health = 0f;
         OnDied?.Invoke();
     }
 }

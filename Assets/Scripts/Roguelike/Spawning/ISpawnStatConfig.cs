@@ -8,9 +8,9 @@
 ///
 ///   - TestEnemy (test double)   -> local baseHealth/baseDamage fields (both applied).
 ///   - real enemy (EnemyController) -> HEALTH via the authoritative EnemyEntity.SetMaxHealth;
-///     DAMAGE base is read from the authoritative runtime damage config (EnemyAttackConfig), and the
-///     scaled damage is NOT applied yet: combat deals damage per-attack through read-only shared
-///     attack ScriptableObjects, so per-instance damage scaling needs a combat-side surface.
+///     DAMAGE stored as a per-instance `runtimeDamage` so attacks (DealDamage, SacrificeAttack)
+///     read the scaled value instead of the shared ScriptableObject base. Shared SOs are never
+///     mutated.
 ///
 /// Nothing here is floor-aware: no multipliers, no growth rates, no Roguelike concepts leak into
 /// the Enemy system. SpawnSystem is the only place that knows what "floor 7" means.
@@ -25,6 +25,7 @@ public interface ISpawnStatConfig
     float BaseDamage { get; }
 
     /// <summary>Apply the resulting (floor-scaled absolute) stats before the enemy initializes.
-    /// Implementers apply what their stat storage supports (health always; damage per the note above).</summary>
+    /// Implementers apply what their stat storage supports (health via SetMaxHealth; damage stored
+    /// as a per-instance runtime value read by attacks).</summary>
     void ConfigureForSpawn(float maxHealth, float baseDamage);
 }
