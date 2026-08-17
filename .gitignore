@@ -85,3 +85,6 @@ tools/spawn-integration-test/obj/
 /Decision_Trees_Updated*.pptx
 /Decision_Trees_Updated*.pptx.inspect.ndjson
 
+# Personal / AI-agent session docs (not shared project docs)
+docs/personal/
+
