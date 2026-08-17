@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -8,7 +9,6 @@ public class ComboSystem
 
     private float queueCooldown = 0.1f;
     private bool canQueue = true;
-
     public ComboSystem(CombatController owner)
     {
         this.owner = owner;
@@ -88,6 +88,13 @@ public class ComboSystem
     public void CheckInput()
     {
         var input = owner.CombatContext.inputState;
+        if (owner._playerController.CharacterState != null && !owner._playerController.CharacterState.CanAttack)
+        {
+            input.lightAttackReleased = false;
+            input.heavyAttackReleased = false;
+            return;
+        }
+
         if (input.lightAttackReleased)
         {
             owner.CombatContext.inputState.lightAttackReleased = false;

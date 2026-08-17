@@ -16,6 +16,7 @@ public class CombatController : MonoBehaviour
     
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
+    public ComboSystem ComboSystem { get { return comboSystem; } }
 
     void Awake()
     {
@@ -33,6 +34,7 @@ public class CombatController : MonoBehaviour
         _stateMachine.AddState(new CombatLightHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatRecoveryState(referencesContext.animator, combatContext.overrideController));
         _stateMachine.SetState<CombatIdleState>();
     }
 
@@ -115,6 +117,11 @@ public class CombatController : MonoBehaviour
             Debug.Log("Executing queued attack: " + combatContext.queuedAttack.name);
             comboSystem.ExecuteCombo();
         }
+    }
+
+    internal void ResetBuffer()
+    {
+        combatContext.bufferExpiryTime = Mathf.Infinity;
     }
 
     public Type GetNextState(InputType inputType)

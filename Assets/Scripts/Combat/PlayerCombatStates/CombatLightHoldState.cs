@@ -21,6 +21,11 @@ public class CombatLightHoldState : State<CombatController>
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
     }
 
+    public override bool CanEnter()
+    {
+        return _owner._playerController.CharacterState != null ? _owner._playerController.CharacterState.CanAttack : true;
+    }
+
     public override void Enter()
     {
         AttackData attack = _owner.CombatContext.currentAttack;
@@ -30,18 +35,13 @@ public class CombatLightHoldState : State<CombatController>
         _OverrideController["LightHoldAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
 
-        // Cancel dash if attack started during dash (Rule 4)
-        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsDashing)
-        {
-            _owner._playerController.StateMachine.SetState<PlayerIdleState>();
-        }
-
         // Damp horizontal momentum if grounded (Rule 5)
         if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsGrounded)
         {
             _owner._playerController.ResetHorizontalVelocity();
         }
 
+        AdjustRotationDuringLunge(_owner._playerController.MoveDirectionToWorldSpace()).Forget();
         ExecuteLunge().Forget();
         if (_owner.CombatContext.currentWeapon?.Trail != null)
         {
@@ -58,6 +58,18 @@ public class CombatLightHoldState : State<CombatController>
             UseLunge(_currentAttack.LungeDirection, _currentAttack.LungeDistance);
             lungeDuration -= Time.deltaTime;
             return lungeDuration > 0f;
+        });
+    }
+
+    private UniTask AdjustRotationDuringLunge(Vector3 moveDirection)
+    {
+        const float angleThreshold = 0.05f; // degrees
+        return UniTask.WaitUntil(() =>
+        {
+            if (moveDirection == Vector3.zero) return true;
+            _owner._playerController.CustomRotate(moveDirection);
+            float angle = Vector3.Angle(_owner.transform.forward, moveDirection);
+            return angle <= angleThreshold || !_owner._playerController.CharacterState.IsAttacking;
         });
     }
 
@@ -79,12 +91,8 @@ public class CombatLightHoldState : State<CombatController>
         && _owner.CombatContext.isAttacking)
         {
             _owner.CombatContext.isAttacking = false;
-        }
-        if (stateInfo.IsName("LightHoldAttack")
-        && stateInfo.normalizedTime >= _currentAttack.ComboWindow + _currentAttack.RecoveryStartTime
-        && !_owner.CombatContext.isAttacking)
-        {
-            _stateMachine.SetState<CombatIdleState>();
+            _owner.CombatContext.isRecovering = true;
+            _stateMachine.SetState<CombatRecoveryState>();
         }
         if (!stateInfo.IsName("LightHoldAttack"))
         {
@@ -94,12 +102,12 @@ public class CombatLightHoldState : State<CombatController>
 
     public override void Exit()
     {
-        _OverrideController["AttackTransition"] = _OverrideController["LightHoldAttack"];
-        _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        // _OverrideController["AttackTransition"] = _OverrideController["LightHoldAttack"];
+        // _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
         if (_owner.CombatContext.currentWeapon?.Trail != null)
         {
             _owner.CombatContext.currentWeapon.Trail.End();
         }
-        _owner._playerController.SetCanMove(true);
+        // _owner._playerController.SetCanMove(true);
     }
 }

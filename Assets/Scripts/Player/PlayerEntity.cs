@@ -20,11 +20,17 @@ public class PlayerEntity : IEntity
     public event Action<float> OnHealed;
     public event Action<float> OnMaxHealthChanged;
     public event Action OnDied;
+    public event Action<IStatModifier> OnModifierAdded;
 
     public float Health => health;
     public float MaxHealth => maxHealth;
     public float BaseDamage => baseDamage;
     public float BaseDefense => baseDefense;
+    public float AttackSpeed => attackSpeed;
+    public float CritChance => critChance;
+    public float WeaponLength => weaponLength;
+    public float WeaponSize => weaponSize;
+    public bool IsDead => isDead;
 
     public IStatModifier[] Modifiers => modifiers;
 
@@ -33,6 +39,7 @@ public class PlayerEntity : IEntity
         OnDamageTaken += TakeDamage;
         OnHealed += Heal;
         OnMaxHealthChanged += SetMaxHealth;
+        OnModifierAdded += HandleModifierAdded;
     }
     private float CalculateDamageReduction(float damage)
     {
@@ -83,7 +90,7 @@ public class PlayerEntity : IEntity
         health = healthPercentage * maxHealth;
     }
 
-    void OnModifierAdded(IStatModifier modifier)
+    void HandleModifierAdded(IStatModifier modifier)
     {
         if (modifier.TargetStat == StatType.MaxHealth)
         {

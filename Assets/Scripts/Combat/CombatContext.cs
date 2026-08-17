@@ -15,13 +15,17 @@ public class CombatContext
     [SerializeField] internal AttackData previousAttack;
     [SerializeField] internal InputType currentInputType;
     [SerializeField] internal InputType queuedInputType;
+
+    [Header("Enemy Interaction Data")]
+    [SerializeField] internal Transform currentTargetPos;
     
     [Header("Input Data")]
     [SerializeField] internal string inputString = "";
     [SerializeField] internal InputState inputState;
 
     [Header("Running Values")]
-    [SerializeField] internal bool isAttacking = false; // True when in middle of an attack animation
+    [SerializeField] internal bool isAttacking = false; // True when in middle of active hit frames of an attack animation
+    [SerializeField] internal bool isRecovering = false; // True during recovery frames of an attack animation
     [SerializeField] internal bool isCharging = false; // True when in middle of a charge animation
     [SerializeField] internal float lightHoldTime = 0f; // Increase after .performed and reset after .canceled
     [SerializeField] internal float heavyHoldTime = 0f; // Increase after .performed and reset after .canceled
