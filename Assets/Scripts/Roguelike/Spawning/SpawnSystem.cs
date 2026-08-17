@@ -251,14 +251,15 @@ public class SpawnSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Blocking-geometry overlap using the zone's configured footprint radius (a real volume, not a
-    /// center-only point test). Layer numbers are never hardcoded — the mask comes from
-    /// SpawnZone.BlockingLayers.
+    /// Blocking-geometry overlap using the zone's configured footprint radius + safety margin
+    /// (a real volume, not a center-only point test). The effective clearance is the enemy's
+    /// physical footprint plus a configurable buffer around obstacles. Layer numbers are never
+    /// hardcoded — the mask comes from SpawnZone.BlockingLayers.
     /// </summary>
     bool IsBlocked(Vector3 candidate)
     {
         if (zone == null || zone.BlockingLayers.value == 0) return false;
-        float radius = zone.FootprintRadius;
+        float radius = zone.FootprintRadius + zone.SafetyMargin;
         if (radius <= 0f) return false;
         return Physics.CheckSphere(candidate, radius, zone.BlockingLayers.value);
     }

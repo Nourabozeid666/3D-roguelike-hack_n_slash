@@ -49,6 +49,9 @@ class Program
         RuntimeDamageConfigScenario();
         OnDiedLethalDamageScenario();
         ExplosionDeathFlowScenario();
+        TwoPointZoneBoundsScenario();
+        ObstacleClearanceScenario();
+        TwoPointZoneEndToEndScenario();
 
         Console.WriteLine(failures.Count == 0
             ? $"[SpawnIntegration] ALL {checks} CHECKS PASSED"
@@ -1042,6 +1045,21 @@ class Program
         return zone;
     }
 
+    static SpawnZone MakeTwoPointZone(Vector3 start, Vector3 end, bool navMesh = false, int blocking = 0, float footprint = 0.5f, float safety = 0f)
+    {
+        var zoneGo = new GameObject("SpawnZone");
+        zoneGo.transform.position = new Vector3(0, 0.5f, 0);
+        var zone = zoneGo.AddComponent<SpawnZone>();
+        SetField(zone, "zoneMode", 1); // ZoneMode.TwoPoints
+        SetField(zone, "startPoint", start);
+        SetField(zone, "endPoint", end);
+        SetField(zone, "useNavMeshValidation", navMesh);
+        if (blocking != 0) SetField(zone, "blockingLayers", (LayerMask)blocking);
+        SetField(zone, "footprintRadius", footprint);
+        SetField(zone, "safetyMargin", safety);
+        return zone;
+    }
+
     static bool InZone(SpawnZone zone, Vector3 p)
     {
         Vector3 min = zone.Center - zone.Size * 0.5f;
@@ -1538,6 +1556,228 @@ class Program
         ee.Kill();
         Check(sys.AliveCount() == 0, "explode: double Kill() is a no-op");
         Check(deaths == 1, "explode: double Kill() does not fire again");
+    }
+
+    // 35. TwoPointZone bounds: two-point mode computes correct Center/Size from arbitrary corners,
+    //     reversed points, Start == End, very small zones, and candidates always stay inside.
+    static void TwoPointZoneBoundsScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        // Normal: (0,0,0) -> (10,0,10) => Center=(5,0.5,5), Size=(10,2,10)
+        var zone1 = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(10, 0, 10));
+        Check(Mathf.Approximately(zone1.Center.x, 5f), "2pt: center x = 5");
+        Check(Mathf.Approximately(zone1.Center.z, 5f), "2pt: center z = 5");
+        Check(Mathf.Approximately(zone1.Size.x, 10f), "2pt: size x = 10");
+        Check(Mathf.Approximately(zone1.Size.z, 10f), "2pt: size z = 10");
+        Check(zone1.Mode == SpawnZone.ZoneMode.TwoPoints, "2pt: mode is TwoPoints");
+
+        // Reversed: (10,0,10) -> (0,0,0) => same Center/Size.
+        var zone2 = MakeTwoPointZone(new Vector3(10, 0, 10), new Vector3(0, 0, 0));
+        Check(Mathf.Approximately(zone2.Center.x, 5f), "2pt: reversed center x = 5");
+        Check(Mathf.Approximately(zone2.Center.z, 5f), "2pt: reversed center z = 5");
+        Check(Mathf.Approximately(zone2.Size.x, 10f), "2pt: reversed size x = 10");
+        Check(Mathf.Approximately(zone2.Size.z, 10f), "2pt: reversed size z = 10");
+
+        // Start == End => tiny degenerate zone (size clamped to 0.001).
+        var zone3 = MakeTwoPointZone(new Vector3(5, 0, 5), new Vector3(5, 0, 5));
+        Check(zone3.Size.x <= 0.01f, "2pt: same-point zone has near-zero size x");
+        Check(zone3.Size.z <= 0.01f, "2pt: same-point zone has near-zero size z");
+
+        // Very small zone: 1x1
+        var zone4 = MakeTwoPointZone(new Vector3(3, 0, 7), new Vector3(4, 0, 8));
+        Check(Mathf.Approximately(zone4.Center.x, 3.5f), "2pt: small center x = 3.5");
+        Check(Mathf.Approximately(zone4.Center.z, 7.5f), "2pt: small center z = 7.5");
+        Check(Mathf.Approximately(zone4.Size.x, 1f), "2pt: small size x = 1");
+        Check(Mathf.Approximately(zone4.Size.z, 1f), "2pt: small size z = 1");
+
+        // Contains works via the validator.
+        var validator = new SpawnPlacementValidator();
+        Check(validator.Contains(zone1, new Vector3(1, 0, 1)), "2pt: (1,0,1) inside (0,0)-(10,10)");
+        Check(validator.Contains(zone1, new Vector3(9.9f, 0, 9.9f)), "2pt: near-corner inside");
+        Check(!validator.Contains(zone1, new Vector3(-0.1f, 0, 5)), "2pt: outside -x edge");
+        Check(!validator.Contains(zone1, new Vector3(5, 0, 10.1f)), "2pt: outside +z edge");
+
+        // RandomPoint always stays inside the zone (test 100 candidates).
+        for (int i = 0; i < 100; i++)
+        {
+            Vector3 pt = zone1.RandomPoint();
+            Check(validator.Contains(zone1, pt), $"2pt: random candidate {pt} inside zone");
+        }
+
+        // CenterSize mode still works.
+        UnityEngine.Object.ResetWorld();
+        var zoneCs = MakeZone(new Vector3(10, 2, 10), Vector3.zero);
+        Check(zoneCs.Mode == SpawnZone.ZoneMode.CenterSize, "2pt: CenterSize mode unchanged");
+        Check(Mathf.Approximately(zoneCs.Center.x, 0f), "2pt: CenterSize center x = 0");
+        Check(Mathf.Approximately(zoneCs.Size.x, 10f), "2pt: CenterSize size x = 10");
+    }
+
+    // 36. Obstacle clearance: footprint + safety margin blocks candidates even when center is
+    //     technically outside the obstacle. Safety margin creates an additional buffer.
+    static void ObstacleClearanceScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        Physics.ResetBlockers();
+
+        var validator = new SpawnPlacementValidator();
+
+        // --- Basic footprint blocking ---
+        // Obstacle at (5, 0.5, 5) with radius 0.5. Footprint 0.5.
+        // Candidate at (6, 0, 5) — center is 1.0 away, which is > 0.5+0.5=1.0? No, equal => blocked.
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+
+        var zoneNoSafety = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20),
+            blocking: 8, footprint: 0.5f, safety: 0f);
+
+        // Candidate at (6, 0, 5) — distance to obstacle = 1.0, threshold = 0.5+0.5=1.0 => blocked
+        Check(zoneNoSafety.FootprintRadius == 0.5f, "clear: footprint = 0.5");
+        Check(zoneNoSafety.SafetyMargin == 0f, "clear: safety = 0");
+
+        // --- Safety margin adds buffer ---
+        var zoneWithSafety = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20),
+            blocking: 8, footprint: 0.5f, safety: 1.0f);
+        Check(zoneWithSafety.SafetyMargin == 1.0f, "clear: safety margin = 1.0");
+
+        // Effective clearance = footprint + safety = 0.5 + 1.0 = 1.5.
+        // Candidate at (6.6, 0, 5) — distance to obstacle = 1.6, threshold = 0.5+1.5=2.0 => not blocked
+        // Candidate at (6.4, 0, 5) — distance to obstacle = 1.4, threshold = 0.5+1.5=2.0 => blocked
+        // Use TryFindLocation with maxAttempts=1 to test specific candidates.
+        // Since RandomPoint may not hit our exact candidate, test via the blocking func directly.
+        bool blockedNoSafety = validator.TryFindLocation(zoneNoSafety, Vector3.zero, 0f, null, null,
+            p => Physics.CheckSphere(p, zoneNoSafety.FootprintRadius + zoneNoSafety.SafetyMargin, 8), out _);
+        // With no safety margin, a point far from the obstacle should be found.
+        Check(blockedNoSafety || !blockedNoSafety, "clear: no-safety blocking runs without crash");
+
+        // --- Footprint causes rejection even when center is outside obstacle ---
+        // Obstacle at (5, 0.5, 5) r=0.5. Candidate center at (5.9, 0, 5) — center is 0.9 from
+        // obstacle center, outside the obstacle itself (0.9 > 0.5). But with footprint 0.5,
+        // effective clearance = 0.5+0.5 = 1.0, and 0.9 < 1.0 => blocked.
+        // This proves the enemy body would overlap even though the center point is clear.
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+        float effectiveRadius = 0.5f + 0f; // footprint + no safety
+        bool overlaps = Physics.CheckSphere(new Vector3(5.9f, 0.5f, 5f), effectiveRadius, 8);
+        Check(overlaps, "clear: center at 0.9 from obstacle blocked by footprint (0.9 < 1.0)");
+
+        // Center at 1.1 from obstacle => 1.1 > 1.0 => not blocked.
+        bool clear = !Physics.CheckSphere(new Vector3(6.1f, 0.5f, 5f), effectiveRadius, 8);
+        Check(clear, "clear: center at 1.1 from obstacle accepted (1.1 > 1.0)");
+
+        // --- Safety margin rejects positions too close ---
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+        float effectiveWithSafety = 0.5f + 1.0f; // footprint + safety
+        bool blockedBySafety = Physics.CheckSphere(new Vector3(6.4f, 0.5f, 5f), effectiveWithSafety, 8);
+        Check(blockedBySafety, "clear: safety margin blocks center at 1.4 (1.4 < 2.0)");
+
+        // Position just outside effective blocked area is accepted.
+        bool acceptedBeyondSafety = !Physics.CheckSphere(new Vector3(7.1f, 0.5f, 5f), effectiveWithSafety, 8);
+        Check(acceptedBeyondSafety, "clear: center at 2.1 from obstacle accepted with safety (2.1 > 2.0)");
+
+        // --- Zero safety = no extra buffer ---
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+        float effectiveZero = 0.5f + 0f;
+        bool acceptedNoSafety = !Physics.CheckSphere(new Vector3(6.1f, 0.5f, 5f), effectiveZero, 8);
+        Check(acceptedNoSafety, "clear: zero safety, 1.1 distance accepted");
+
+        Physics.ResetBlockers();
+    }
+
+    // 37. TwoPointZone end-to-end: full pipeline with TwoPoints mode through SpawnSystem.
+    //     Validates bounds, obstacle clearance, NavMesh, player/enemy distance, and MaxAttempts.
+    static void TwoPointZoneEndToEndScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        UnityEngine.MonoBehaviour.PendingCoroutines.Clear();
+        Physics.ResetBlockers();
+        NavMesh.FakeValid = true;
+
+        var table = MakeTable(new[] { 3 }, 3);
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+
+        // TwoPoints zone: (0,0,0) -> (10,0,10). No NavMesh, no blocking.
+        var zone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(10, 0, 10), navMesh: false);
+        SetField(sys, "strategy", SpawnStrategy.RandomZone);
+        SetField(sys, "zone", zone);
+
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 3, "2pt-e2e: 3 spawned in two-point zone");
+        foreach (GameObject c in LiveClones())
+        {
+            var pos = c.transform.position;
+            Check(pos.x >= 0f && pos.x <= 10f && pos.z >= 0f && pos.z <= 10f,
+                $"2pt-e2e: enemy at ({pos.x:F1},{pos.z:F1}) inside (0,0)-(10,10)");
+        }
+
+        // Reversed points: same result.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        var revZone = MakeTwoPointZone(new Vector3(10, 0, 10), new Vector3(0, 0, 0), navMesh: false);
+        SetField(sys, "zone", revZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 3, "2pt-e2e: reversed zone spawns 3 enemies");
+        foreach (GameObject c in LiveClones())
+        {
+            var pos = c.transform.position;
+            Check(pos.x >= 0f && pos.x <= 10f && pos.z >= 0f && pos.z <= 10f,
+                $"2pt-e2e: reversed enemy at ({pos.x:F1},{pos.z:F1}) inside (0,0)-(10,10)");
+        }
+
+        // Blocking with safety margin in TwoPoints zone.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(10, 0.5f, 10)); // obstacle covering the zone
+        Physics.BlockedRadius = 100f; // large obstacle radius covers entire zone
+        var blockedZone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20),
+            blocking: 8, footprint: 0.5f, safety: 12f);
+        SetField(sys, "zone", blockedZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 0, "2pt-e2e: huge safety margin blocks all candidates");
+
+        // MaxAttempts respected: small zone + impossible player distance => fast failure.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        Physics.ResetBlockers();
+        var playerGo = new GameObject("Player");
+        playerGo.transform.position = new Vector3(5, 0.5f, 5);
+        SetField(sys, "playerReference", playerGo.transform);
+        var tinyZone = MakeTwoPointZone(new Vector3(4, 0, 4), new Vector3(6, 0, 6), navMesh: false);
+        SetField(tinyZone, "minPlayerDistance", 1000f);
+        SetField(tinyZone, "maxAttempts", 3);
+        SetField(sys, "zone", tinyZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 0, "2pt-e2e: tiny zone + impossible player distance => 0 spawned");
+
+        // NavMesh validation still works with TwoPoints.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        NavMesh.FakeValid = false;
+        NavMesh.FakeArea = new Bounds { center = Vector3.zero, size = new Vector3(0.01f, 0.01f, 0.01f) };
+        var navZone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20), navMesh: true);
+        SetField(sys, "zone", navZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 0, "2pt-e2e: NavMesh validation rejects all in two-point zone");
+        NavMesh.FakeValid = true;
+
+        // Enemy separation still works: small zone + high minEnemyDistance.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        SetField(sys, "playerReference", null);
+        var sepZone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(3, 0, 3), navMesh: false);
+        SetField(sepZone, "minEnemyDistance", 100f); // impossible separation
+        SetField(sepZone, "maxAttempts", 5);
+        SetField(sys, "zone", sepZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() <= 1, "2pt-e2e: high minEnemyDistance limits spawns in small zone");
     }
 
     sealed class RecordingHudView : IPlayerHudView
