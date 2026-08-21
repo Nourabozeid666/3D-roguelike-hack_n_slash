@@ -2525,11 +2525,6 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: BACK
---- !u!4 &25127336 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 374422515787505998, guid: 3e949fb5423af68bebd9e5a8d97e1c2f, type: 3}
-  m_PrefabInstance: {fileID: 2011873323}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &68171747
 GameObject:
   m_ObjectHideFlags: 0
@@ -3162,15 +3157,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2715996955295861999, guid: a5d848a047eeb0af1b3eab98d51e6766, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.15
+      value: 2.13351
       objectReference: {fileID: 0}
     - target: {fileID: 2715996955295861999, guid: a5d848a047eeb0af1b3eab98d51e6766, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.99
+      value: 4.33
       objectReference: {fileID: 0}
     - target: {fileID: 2715996955295861999, guid: a5d848a047eeb0af1b3eab98d51e6766, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.1
+      value: -1.55338
       objectReference: {fileID: 0}
     - target: {fileID: 2715996955295861999, guid: a5d848a047eeb0af1b3eab98d51e6766, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3763,18 +3758,6 @@ PrefabInstance:
       propertyPath: referencesContext.combatDebugText
       value: 
       objectReference: {fileID: 298752773}
-    - target: {fileID: 9104018863096216662, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
-      propertyPath: equipmentSystem.currentWeapon
-      value: 
-      objectReference: {fileID: 11400000, guid: d1fda456c8554624eb17f54a0831d3fd, type: 2}
-    - target: {fileID: 9104018863096216662, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
-      propertyPath: combatContext.enableEquipmentSystem
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 9104018863096216662, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
-      propertyPath: equipmentSystem.enableEquipmentSystem
-      value: 1
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3927,6 +3910,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1669640432}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &722448516 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3683042941648016861, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
+  m_PrefabInstance: {fileID: 688205777}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &725846137
 GameObject:
   m_ObjectHideFlags: 0
@@ -4920,15 +4908,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1626135560357070998, guid: 44763889d43b35e248e41682ef45d549, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.15
+      value: 2.13351
       objectReference: {fileID: 0}
     - target: {fileID: 1626135560357070998, guid: 44763889d43b35e248e41682ef45d549, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.99
+      value: 4.33
       objectReference: {fileID: 0}
     - target: {fileID: 1626135560357070998, guid: 44763889d43b35e248e41682ef45d549, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.1
+      value: -1.55338
       objectReference: {fileID: 0}
     - target: {fileID: 1626135560357070998, guid: 44763889d43b35e248e41682ef45d549, type: 3}
       propertyPath: m_LocalRotation.w
@@ -4961,7 +4949,7 @@ PrefabInstance:
     - target: {fileID: 5097280537110145165, guid: 44763889d43b35e248e41682ef45d549, type: 3}
       propertyPath: Target.TrackingTarget
       value: 
-      objectReference: {fileID: 25127336}
+      objectReference: {fileID: 722448516}
     - target: {fileID: 7849970166152320744, guid: 44763889d43b35e248e41682ef45d549, type: 3}
       propertyPath: m_Name
       value: FreeLook Camera
