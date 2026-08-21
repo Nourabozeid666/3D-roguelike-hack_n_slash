@@ -17,7 +17,7 @@ public class AttackData : ScriptableObject
 {
     #nullable enable
 
-    [SerializeField] private string attackName;
+    [SerializeField] private string attackName = "New Attack";
     [SerializeField] private float damageMultiplier = 1f; // default
     [SerializeField] private AnimationClip animation;
     [SerializeField] private AnimationClip? chargeAnimationOverride;

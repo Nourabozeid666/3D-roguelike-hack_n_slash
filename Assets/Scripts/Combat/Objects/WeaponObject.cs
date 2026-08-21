@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using Drakkar.GameUtils;
 
+public enum SocketType { RightHand, LeftHand, Hip }
+
 [CreateAssetMenu(fileName = "New Weapon", menuName = "Weapons/Weapon")]
 public class WeaponObject : ScriptableObject
 {
@@ -12,6 +14,7 @@ public class WeaponObject : ScriptableObject
     [SerializeField] private float baseSize = 1f;
     [SerializeField] private float baseAttackSpeed = 1f;
     [SerializeField] private GameObject weaponPrefab;
+    [SerializeField] private GameObject[] accessoriesPrefabs;
     [SerializeField] private DrakkarTrail trail;
     [SerializeField] private AnimationClip chargeAnimation;
     [SerializeField] private SerializableDictionary<InputType, AttackData> entryAttacks;

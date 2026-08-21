@@ -239,12 +239,12 @@ public class PlayerController : MonoBehaviour, IEntityProvider
         }
     }
 
-    public void CustomRotate(Vector3 direction)
+    public void CustomRotate(Vector3 direction , float alpha = 0.1f)
     {
         Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : referencesContext.playerModel.rotation;
         if (targetRotation != null && targetRotation != referencesContext.playerModel.rotation && direction != Vector3.zero)
         {
-            referencesContext.playerModel.rotation = Quaternion.Slerp(referencesContext.playerModel.rotation, targetRotation, 0.1f);
+            referencesContext.playerModel.rotation = Quaternion.Slerp(referencesContext.playerModel.rotation, targetRotation, alpha);
         }
     }
 

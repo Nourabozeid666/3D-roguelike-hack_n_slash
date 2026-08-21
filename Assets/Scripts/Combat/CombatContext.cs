@@ -15,6 +15,10 @@ public class CombatContext
     [SerializeField] internal AttackData previousAttack;
     [SerializeField] internal InputType currentInputType;
     [SerializeField] internal InputType queuedInputType;
+    [Header("Weapon Equipment Data")]
+    [SerializeField] internal bool enableEquipmentSystem = false;
+    [SerializeField] internal WeaponModelData currentWeaponModelData;
+    [SerializeField] internal SerializableDictionary<SocketType, Transform> availableSockets;
 
     [Header("Enemy Interaction Data")]
     [SerializeField] internal Transform currentTargetPos;

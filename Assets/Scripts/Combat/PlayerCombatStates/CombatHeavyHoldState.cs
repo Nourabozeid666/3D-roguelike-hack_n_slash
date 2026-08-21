@@ -64,11 +64,14 @@ public class CombatHeavyHoldState : State<CombatController>
     private UniTask AdjustRotationDuringLunge(Vector3 moveDirection)
     {
         const float angleThreshold = 0.05f; // degrees
+        float alpha = 0.1f; // Slerp factor for smooth rotation
         return UniTask.WaitUntil(() =>
         {
             if (moveDirection == Vector3.zero) return true;
-            _owner._playerController.CustomRotate(moveDirection);
+            _owner._playerController.CustomRotate(moveDirection, alpha);
             float angle = Vector3.Angle(_owner.transform.forward, moveDirection);
+            alpha += 0.1f;
+            alpha = Mathf.Clamp01(alpha); // Ensure alpha stays within [0, 1]
             return angle <= angleThreshold || !_owner._playerController.CharacterState.IsAttacking;
         });
     }
