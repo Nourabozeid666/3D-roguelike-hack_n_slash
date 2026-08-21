@@ -17,12 +17,12 @@ public class AttackData : ScriptableObject
 {
     #nullable enable
 
-    [SerializeField] private string attackName;
+    [SerializeField] private string attackName = "New Attack";
     [SerializeField] private float damageMultiplier = 1f; // default
     [SerializeField] private AnimationClip animation;
     [SerializeField] private AnimationClip? chargeAnimationOverride;
     [SerializeField] private float comboWindow = 0.5f; // default
-    [SerializeField] private float recoveryStartTime = 0.75f; // default
+    [SerializeField, Range(0f, 1f)] private float recoveryStartTime = 0.75f; // default
     [SerializeField] private float holdTime = 0.5f; // default
     [SerializeField] private Vector3 lungeDirection = Vector3.forward; // default
     [SerializeField] private float lungeDistance = 1f; // default

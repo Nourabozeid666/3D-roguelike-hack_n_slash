@@ -89,9 +89,8 @@ public class PlayerController : MonoBehaviour, IEntityProvider
 
     private void HandleSprintInput(bool isSprinting)
     {
-        if (CharacterState != null && !CharacterState.CanMove) return;
         context.isSprinting = isSprinting;
-        if (isSprinting && CharacterState != null && CharacterState.CanDash)
+        if (isSprinting && (CharacterState == null || CharacterState.CanDash))
         {
             _stateMachine.SetState<PlayerDashState>();
         }
@@ -237,6 +236,15 @@ public class PlayerController : MonoBehaviour, IEntityProvider
         if (targetRotation != null && targetRotation != referencesContext.playerModel.rotation && direction != Vector3.zero)
         {
             referencesContext.playerModel.rotation = Quaternion.Slerp(referencesContext.playerModel.rotation, targetRotation, 0.1f);
+        }
+    }
+
+    public void CustomRotate(Vector3 direction , float alpha = 0.1f)
+    {
+        Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : referencesContext.playerModel.rotation;
+        if (targetRotation != null && targetRotation != referencesContext.playerModel.rotation && direction != Vector3.zero)
+        {
+            referencesContext.playerModel.rotation = Quaternion.Slerp(referencesContext.playerModel.rotation, targetRotation, alpha);
         }
     }
 

@@ -15,11 +15,12 @@ MonoBehaviour:
   attackName: Basic Attack 2 Light
   damageMultiplier: 1
   animation: {fileID: 7400000, guid: 3676de37c3bd9324fa4e1f80811ae429, type: 2}
+  chargeAnimationOverride: {fileID: 0}
   comboWindow: 0.5
   recoveryStartTime: 0.75
   holdTime: 0.5
   lungeDirection: {x: 0, y: 0, z: 1}
-  lungeDistance: 200
+  lungeDistance: 350
   lungeDuration: 0.3
   isHoldAttack: 0
   transitions:
