@@ -6,11 +6,10 @@ public class DealDamage : MonoBehaviour
     [SerializeField] EnemyController enemyController;
     private void OnTriggerEnter(Collider other)
     {
-        PlayerController playerController = other.GetComponentInParent<PlayerController>();
-        if (playerController == null)
-        {
-            return;
-        }
+        //PlayerController playerController = other.GetComponentInParent<PlayerController>();
+        //if (playerController == null || alreadyHit.Contains(playerController))
+            //return;
+
         //if ()
         //{
             //playerController.Entity.TakeDamage(damage);

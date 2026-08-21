@@ -32,7 +32,6 @@ public class AttackState : EnemyState
         //add states to all the attacks you need in the game
         // -------------------------------------------------need adds for each attack state--------------------------------------------------------------
 
-        //AddState(new MeleeAttack(enemyController));
         //AddState(new RangedShootAttack(enemyController));
         //var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
         //AddState(new StrongAttack(enemyController));
@@ -56,7 +55,10 @@ public class AttackState : EnemyState
 
     public override void Enter()
     {
-        combatActions.SetState<SacrificeAttack>();
+        if (combatActions.EnemyStates.ContainsKey(typeof(SacrificeAttack)))
+            combatActions.SetState<SacrificeAttack>();
+        else if(combatActions.EnemyStates.ContainsKey(typeof(ComboAttack)))
+            combatActions.SetState<ComboAttack>();
     }
 
     public override void Exit()

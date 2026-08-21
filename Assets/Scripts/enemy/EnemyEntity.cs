@@ -8,10 +8,14 @@ public class EnemyEntity : IEnemyEntity
     [SerializeField] float baseDamage = 10;
     [SerializeField] float baseDefence = 0;
 
-
     [Header("-------------Poise-------------")]
     [SerializeField] float maxPoise = 100f;   // grunt: set this LOW (even 1). boss: set HIGH.
     [SerializeField] float currentPoise;
+    [SerializeField] float poiseRegenDelay = 1.5f; // seconds without poise damage before it starts climbing back
+    [SerializeField] float poiseRegenRate = 20f;
+
+
+    private float timeSinceLastPoiseDamage;
 
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
@@ -28,12 +32,33 @@ public class EnemyEntity : IEnemyEntity
 
     public void Initialize(EnemyArchetypeConfig config)
     {
+        if (config == null)
+        {
+            Debug.LogWarning($"EnemyEntity.Initialize called with no archetype config — using default field values.", null);
+            currentHealth = maxHealth;
+            currentPoise = maxPoise;
+            return;
+        }
+
         maxHealth = config.maxHealth;
         currentHealth = maxHealth;
         maxPoise = config.maxPoise;
         currentPoise = maxPoise;
         baseDamage = config.baseDamage;
         baseDefence = config.baseDefense;
+    }
+
+    public void TickPoiseRegen(float deltaTime)
+    {
+        if (currentPoise >= maxPoise)
+            return;
+
+        timeSinceLastPoiseDamage += deltaTime;
+
+        if (timeSinceLastPoiseDamage < poiseRegenDelay)
+            return;
+
+        currentPoise = Mathf.Min(maxPoise, currentPoise + poiseRegenRate * deltaTime);
     }
 
     public void SetMaxHealth(float newMaxHealth)
@@ -57,8 +82,6 @@ public class EnemyEntity : IEnemyEntity
             return; // dead things don't also stagger
         }
 
-        //for stagger
-        this.currentPoise -= poiseDamage;
         if (this.currentPoise <= 0)
         {
             currentPoise = maxPoise;
@@ -66,7 +89,14 @@ public class EnemyEntity : IEnemyEntity
             return;
         }
 
+        if (poiseDamage > 0f)
+        {
+            timeSinceLastPoiseDamage = 0f;
+            this.currentPoise -= poiseDamage;
+        }
+
         OnDamageTaken?.Invoke(damage);
+        Debug.Log($"TakeDamage — dmg:{damage} poise:{poiseDamage} | HP:{currentHealth} | Poise:{currentPoise}");
     }
     public void Kill()
     {

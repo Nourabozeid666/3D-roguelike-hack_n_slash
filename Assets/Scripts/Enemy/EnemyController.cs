@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
@@ -54,7 +55,7 @@ public class EnemyController : MonoBehaviour
     private NavMeshAgent agent;
     private Animator animator;
 
-    [SerializeField] Transform targetTransform;
+    Transform targetTransform;
 
     [SerializeField] PatrolRoute patrolRoute;
 
@@ -73,18 +74,17 @@ public class EnemyController : MonoBehaviour
     [SerializeField] Text _debugText;
     [SerializeField] private EnemyEntity enemyEntity;
     [SerializeField] private EnemyArchetypeConfig archetypeConfig;
+    // can get into the stagger state 
+    [SerializeField] private bool flinchesOnHit = true; // grunts: true, bosses: false
 
     [Header("-------------Attack components-------------")]
     [SerializeField] private EnemyAttackConfig enemyAttackConfig;
 
-    [Header("-------------Poise-------------")]
-    [SerializeField] float maxPoise = 100f;
-    [SerializeField] float currentPoise;
-    [SerializeField] float poiseRegenDelay = 1.5f;  // seconds without poise damage before it starts climbing back
-    [SerializeField] float poiseRegenRate = 20f;
 
     [Header("------------Death----------")]
     [SerializeField] float deathDuration;
+    [SerializeField] float hitDuration;
+    [SerializeField] float stunDuration;
 
     private bool hasTarget;
 
@@ -95,6 +95,8 @@ public class EnemyController : MonoBehaviour
         EStateMachine.EnemyStates;
 
     public EnemyArchetypeConfig ArchetypeConfig => archetypeConfig;
+    public float HitDuration => hitDuration;
+    public float StunDuration => stunDuration;
     public float DeathDuration => deathDuration;
     public EnemyEntity EnemyEntity => enemyEntity;
     public PatrolRoute PatrolRoute => patrolRoute;
@@ -107,11 +109,19 @@ public class EnemyController : MonoBehaviour
     public Transform TargetTransform => targetTransform;
     public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
 
-
-    void Start()
+    void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        PlayerController player = Object.FindFirstObjectByType<PlayerController>();
+        if (player != null)
+            targetTransform = player.transform;
+        else
+            Debug.LogWarning($"{name}: no PlayerController found in scene.", this);
+    }
+
+    void Start()
+    {
 
         EStateMachine = new EnemyStateMachine<EnemyState>();
 
@@ -139,20 +149,44 @@ public class EnemyController : MonoBehaviour
 
     private void HandleDamageTaken(float damage)
     {
-        if (!EStateMachine.CurrentState.CanBeInterrupted)
-            return;
         StaggerState staggerState = GetState<StaggerState>() as StaggerState;
+
+        if (EStateMachine.CurrentState is StaggerState activeStagger)
+        {
+            activeStagger.ReceiveHit(StaggerState.ReactionType.Hit);
+            return;
+        }
+
+        if (!flinchesOnHit) 
+            return;
+
+        if (!EStateMachine.CurrentState.CanBeInterrupted) 
+            return;
+
         staggerState?.SetReaction(StaggerState.ReactionType.Hit);
         SetState<StaggerState>();
+
+        Debug.Log($"HandleDamageTaken — state:{EStateMachine.CurrentState?.GetType().Name}" +
+            $" canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted} flinches:{flinchesOnHit}");
     }
 
     private void HandleStaggered()
     {
+        if(EStateMachine.CurrentState is StaggerState activeStagger)
+        {
+            activeStagger.ReceiveHit(StaggerState.ReactionType.Stun);
+            return;
+        }
+
         if (!EStateMachine.CurrentState.CanBeInterrupted)
             return;
+
         StaggerState staggerState = GetState<StaggerState>() as StaggerState;
         staggerState?.SetReaction(StaggerState.ReactionType.Stun);
         SetState<StaggerState>();
+
+        Debug.Log($"HandleStaggered — state:{EStateMachine.CurrentState?.GetType().Name} " +
+            $"canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted}");
     }
 
     // update state here
@@ -161,6 +195,8 @@ public class EnemyController : MonoBehaviour
         EStateMachine.Tick();
 
         SeeThePlayer();
+
+        enemyEntity.TickPoiseRegen(Time.deltaTime);
 
         if (Keyboard.current.hKey.wasPressedThisFrame)
             enemyEntity.TakeDamage(10, 5); // small poise damage
@@ -188,7 +224,9 @@ public class EnemyController : MonoBehaviour
                 attackState?.CurrentCombatAction != null
                     ? attackState?.CurrentCombatAction.GetType().ToString()
                     : "None"
-            );
+            ) +
+            "\ncurrect poise: " + (enemyEntity.CurrentPoise) +
+            "\ncurrect Health: " + (enemyEntity.CurrentHealth);
     }
 
     void AddState(EnemyState state)
