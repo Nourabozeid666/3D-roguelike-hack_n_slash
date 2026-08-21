@@ -9,4 +9,3 @@ public class EnemyAttackConfig : ScriptableObject
         get { return baseDamage; }
     }
 }
-

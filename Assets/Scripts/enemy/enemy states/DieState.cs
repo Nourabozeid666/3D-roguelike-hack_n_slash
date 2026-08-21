@@ -6,12 +6,13 @@ public class DieState : EnemyState
 {
     NavMeshAgent agent;
     Animator animator;
-
+    float deathDuration;
     public override bool CanBeInterrupted => false;
     public DieState(EnemyController enemyController) : base(enemyController)
     {
         agent = enemyController.Agent;
         animator = enemyController.Animator;
+        deathDuration = enemyController.DeathDuration;
     }
 
     public override void Enter()
@@ -31,7 +32,7 @@ public class DieState : EnemyState
 
     IEnumerator UpdateCoroutine()
     {
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(deathDuration);
         Object.Destroy(enemyController.gameObject);
     }
 }

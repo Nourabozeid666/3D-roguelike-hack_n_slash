@@ -9,10 +9,10 @@ public class PlayerEntity : IEntity
     [SerializeField] private float baseDamage = 10f;
     [SerializeField] private float baseDefense = 5f;
 
-    [SerializeField] private float[] addedDamage = new float[0];
-    [SerializeField] private float[] addedDefense = new float[0];
-    [SerializeField] private float[] damageMultipliers = new float[0];
-    [SerializeField] private float[] defenseMultipliers = new float[0];
+    [SerializeField] private IStatModifier[] addedDamage = new IStatModifier[0];
+    [SerializeField] private IStatModifier[] addedDefense = new IStatModifier[0];
+    [SerializeField] private IStatModifier[] damageMultipliers = new IStatModifier[0];
+    [SerializeField] private IStatModifier[] defenseMultipliers = new IStatModifier[0];
 
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
@@ -22,10 +22,10 @@ public class PlayerEntity : IEntity
     public float BaseDamage => baseDamage;
     public float BaseDefense => baseDefense;
 
-    public float[] AddedDamage => addedDamage;
-    public float[] AddedDefense => addedDefense;
-    public float[] DamageMultipliers => damageMultipliers;
-    public float[] DefenseMultipliers => defenseMultipliers;
+    public IStatModifier[] AddedDamage => addedDamage;
+    public IStatModifier[] AddedDefense => addedDefense;
+    public IStatModifier[] DamageMultipliers => damageMultipliers;
+    public IStatModifier[] DefenseMultipliers => defenseMultipliers;
 
     public PlayerEntity()
     {
