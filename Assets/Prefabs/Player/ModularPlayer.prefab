@@ -281,23 +281,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 288e42e6df1fe07cfa871fb4b049b31f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatController
-  combatContext:
-    overrideController: {fileID: 0}
-    currentWeapon: {fileID: 11400000, guid: d1fda456c8554624eb17f54a0831d3fd, type: 2}
-    currentAttack: {fileID: 0}
-    queuedAttack: {fileID: 0}
-    previousAttack: {fileID: 0}
-    currentInputType: 0
-    queuedInputType: 0
-    currentTargetPos: {fileID: 0}
-    inputString: 
-    isAttacking: 0
-    isRecovering: 0
-    isCharging: 0
-    lightHoldTime: 0
-    heavyHoldTime: 0
-    lastInputTime: 0
-    bufferExpiryTime: 0
   referencesContext:
     groundLayer:
       serializedVersion: 2
@@ -312,6 +295,34 @@ MonoBehaviour:
     animator: {fileID: 0}
     combatDebugText: {fileID: 0}
     attackDebugText: {fileID: 0}
+  combatContext:
+    overrideController: {fileID: 0}
+    currentAttack: {fileID: 0}
+    queuedAttack: {fileID: 0}
+    previousAttack: {fileID: 0}
+    currentInputType: 0
+    queuedInputType: 0
+    currentTargetPos: {fileID: 0}
+    inputString: 
+    canAttack: 1
+    isAttacking: 0
+    isRecovering: 0
+    isCharging: 0
+    lightHoldTime: 0
+    heavyHoldTime: 0
+    lastInputTime: 0
+    bufferExpiryTime: 0
+  equipmentSystem:
+    currentWeaponModelData: {fileID: 0}
+    availableSockets:
+      keys: 000000000100000002000000
+      values:
+      - {fileID: 4763080310330837779}
+      - {fileID: 4844525599025966566}
+      - {fileID: 6686801969271232612}
+    enableEquipmentSystem: 1
+    currentWeapon: {fileID: 11400000, guid: d1fda456c8554624eb17f54a0831d3fd, type: 2}
+    currentWeaponModel: {fileID: 0}
 --- !u!1 &4763080310330837779
 GameObject:
   m_ObjectHideFlags: 0

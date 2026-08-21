@@ -28,7 +28,7 @@ public class CombatChargingState : State<CombatController>
     public override void Enter()
     {
         _currentAttack = _owner.CombatContext.currentAttack;
-        _weaponObject = _owner.CombatContext.currentWeapon;
+        _weaponObject = _owner.equipmentSystem.CurrentWeapon;
         AnimationClip animationClip;
         if (_currentAttack == null)
         {

@@ -26,6 +26,7 @@ public class WeaponObject : ScriptableObject
     public float BaseAttackSpeed { get { return baseAttackSpeed; } } 
     public AnimationClip ChargeAnimation { get { return chargeAnimation; } }
     public GameObject WeaponPrefab { get { return weaponPrefab; } }
+    public GameObject[] Accessories { get { return accessoriesPrefabs; } }
     public DrakkarTrail Trail { get { return trail; } set { trail = value; } }
     public SerializableDictionary<InputType, AttackData> EntryAttacks { get { return entryAttacks; } }
 

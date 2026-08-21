@@ -9,16 +9,11 @@ public class CombatContext
 {
     [Header("Current Weapon Data")]
     [SerializeField] internal AnimatorOverrideController overrideController;
-    [SerializeField] internal WeaponObject currentWeapon;
     [SerializeField] internal AttackData currentAttack;
     [SerializeField] internal AttackData queuedAttack;
     [SerializeField] internal AttackData previousAttack;
     [SerializeField] internal InputType currentInputType;
     [SerializeField] internal InputType queuedInputType;
-    [Header("Weapon Equipment Data")]
-    [SerializeField] internal bool enableEquipmentSystem = false;
-    [SerializeField] internal WeaponModelData currentWeaponModelData;
-    [SerializeField] internal SerializableDictionary<SocketType, Transform> availableSockets;
 
     [Header("Enemy Interaction Data")]
     [SerializeField] internal Transform currentTargetPos;
@@ -28,6 +23,7 @@ public class CombatContext
     [SerializeField] internal InputState inputState;
 
     [Header("Running Values")]
+    [SerializeField] internal bool canAttack = true; // True when not in middle of an attack animation or recovery frames
     [SerializeField] internal bool isAttacking = false; // True when in middle of active hit frames of an attack animation
     [SerializeField] internal bool isRecovering = false; // True during recovery frames of an attack animation
     [SerializeField] internal bool isCharging = false; // True when in middle of a charge animation

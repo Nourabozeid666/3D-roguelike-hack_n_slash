@@ -43,9 +43,9 @@ public class CombatHeavyAttackState : State<CombatController>
 
         AdjustRotationDuringLunge(_owner._playerController.MoveDirectionToWorldSpace()).Forget();
         ExecuteLunge().Forget();
-        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)
         {
-            _owner.CombatContext.currentWeapon.Trail.Begin();
+            _owner.equipmentSystem.CurrentWeapon.Trail.Begin();
         }
         _owner._playerController.SetCanMove(false);
     }
@@ -107,9 +107,9 @@ public class CombatHeavyAttackState : State<CombatController>
     {
         // _OverrideController["AttackTransition"] = _OverrideController["HeavyAttack"];
         // _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
-        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)
         {
-            _owner.CombatContext.currentWeapon.Trail.End();
+            _owner.equipmentSystem.CurrentWeapon.Trail.End();
         }
         // _owner._playerController.SetCanMove(true);
     }

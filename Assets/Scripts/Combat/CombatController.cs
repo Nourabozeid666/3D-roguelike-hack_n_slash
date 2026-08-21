@@ -7,8 +7,9 @@ using UnityEngine;
 public class CombatController : MonoBehaviour
 {
 
-    [SerializeField] private CombatContext combatContext;
     [SerializeField] private ReferencesContext referencesContext;
+    [SerializeField] private CombatContext combatContext;
+    [SerializeField] internal EquipmentSystem equipmentSystem = new EquipmentSystem(null);
     private ComboSystem comboSystem;
     private StateMachine<CombatController> _stateMachine;
     internal DamageHitboxHelper damageHitboxHelper;
@@ -24,6 +25,7 @@ public class CombatController : MonoBehaviour
         _playerController = GetComponent<PlayerController>();
         damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
         comboSystem = new ComboSystem(this);
+        equipmentSystem._owner = this;
         referencesContext = _playerController.ReferencesContext;
         _stateMachine = new StateMachine<CombatController>(this, referencesContext.combatDebugText);
         combatContext.overrideController = new AnimatorOverrideController(referencesContext.animator.runtimeAnimatorController);
@@ -36,6 +38,20 @@ public class CombatController : MonoBehaviour
         _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatRecoveryState(referencesContext.animator, combatContext.overrideController));
         _stateMachine.SetState<CombatIdleState>();
+    }
+
+    void Start()
+    {
+        if (equipmentSystem.EnableEquipmentSystem && equipmentSystem.CurrentWeapon == null)
+        {
+            Debug.LogWarning("No weapon equipped at start. Please equip a weapon in the inspector.");
+        } else if (!equipmentSystem.EnableEquipmentSystem)
+        {
+            Debug.LogWarning("Equipment system is disabled. Please enable it in the inspector.");
+        } else
+        {
+            equipmentSystem.EquipWeapon(equipmentSystem.CurrentWeapon);
+        }
     }
 
     void OnEnable()
@@ -82,9 +98,9 @@ public class CombatController : MonoBehaviour
 
     void SetTrailReferenceTEMPORARY()
     {
-        if (combatContext.currentWeapon != null)
+        if (equipmentSystem.CurrentWeapon != null)
         {
-            combatContext.currentWeapon.Trail = gameObject.GetComponentInChildren<DrakkarTrail>();
+            equipmentSystem.CurrentWeapon.Trail = gameObject.GetComponentInChildren<DrakkarTrail>();
         }
     }
     void CalculateHoldTime()
@@ -112,7 +128,7 @@ public class CombatController : MonoBehaviour
         CalculateHoldTime();
         comboSystem.CheckInput();
         _stateMachine.Update();
-        if (combatContext.queuedAttack != null && !combatContext.isAttacking)
+        if (combatContext.queuedAttack != null && !combatContext.isAttacking && combatContext.canAttack)
         {
             Debug.Log("Executing queued attack: " + combatContext.queuedAttack.name);
             comboSystem.ExecuteCombo();

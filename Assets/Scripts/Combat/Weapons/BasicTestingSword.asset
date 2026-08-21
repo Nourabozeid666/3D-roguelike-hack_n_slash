@@ -17,8 +17,10 @@ MonoBehaviour:
   baseLength: 1
   baseSize: 1
   baseAttackSpeed: 1
-  weaponPrefab: {fileID: 8683444070957982370, guid: 578ff1032cbca0fe29a7fd8d51c56d95, type: 3}
-  trail: {fileID: 3217118813617797166, guid: 578ff1032cbca0fe29a7fd8d51c56d95, type: 3}
+  weaponPrefab: {fileID: 8911134569810046108, guid: 66b721e88aa2a83b2956c54ec2f7e321, type: 3}
+  accessoriesPrefabs:
+  - {fileID: 5532393997357567188, guid: dd5471cf62caabddabd05c1d288e44fd, type: 3}
+  trail: {fileID: 1695694017040185308, guid: 66b721e88aa2a83b2956c54ec2f7e321, type: 3}
   chargeAnimation: {fileID: 7400000, guid: 767effc5e3d4b8ceea6307470187b2d5, type: 2}
   entryAttacks:
     keys: 0100000003000000
