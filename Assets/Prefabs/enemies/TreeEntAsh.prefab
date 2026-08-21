@@ -346,6 +346,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: -12.483799
       objectReference: {fileID: 0}
+    - target: {fileID: -5151492872390713093, guid: cbbfbfed98a59d041a4645301e1ebdb9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: -4239682363867214445, guid: cbbfbfed98a59d041a4645301e1ebdb9, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: -11.744902
@@ -1494,6 +1498,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   damage: 20
+  enemyController: {fileID: 0}
 --- !u!4 &4943927596569933580 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 88557215932375470, guid: cbbfbfed98a59d041a4645301e1ebdb9, type: 3}
@@ -1596,7 +1601,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0875c81e6cfa4664abb3d790241cbca4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  targetTransform: {fileID: 0}
   patrolRoute: {fileID: 11400000, guid: 0095e02a9c96ded418130a7d23ab223d, type: 2}
   detectionDistance: 12
   loseTargetDistance: 16
@@ -1606,6 +1610,20 @@ MonoBehaviour:
   waypointStoppingDistance: 1
   viewHalfAngle: 290
   _debugText: {fileID: 0}
+  enemyEntity:
+    currentHealth: 100
+    maxHealth: 100
+    baseDamage: 10
+    baseDefence: 0
+    maxPoise: 100
+    currentPoise: 0
+  archetypeConfig: {fileID: 0}
+  enemyAttackConfig: {fileID: 0}
+  maxPoise: 100
+  currentPoise: 0
+  poiseRegenDelay: 1.5
+  poiseRegenRate: 20
+  deathDuration: 3
 --- !u!54 &7679645558351980359
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2065,3 +2083,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   damage: 20
+  enemyController: {fileID: 0}

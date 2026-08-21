@@ -7,14 +7,14 @@ public class ExplodeState : EnemyState
     NavMeshAgent agent;
     Animator animator;
     GameObject explosionParticles;
-
+    float explosionDuration;
+    float timeBeforeExplosion;
     public override bool CanBeInterrupted => false;
 
-    public ExplodeState(EnemyController enemyController ) : base(enemyController)
+    public ExplodeState(EnemyController enemyController) : base(enemyController)
     {
         agent = enemyController.Agent;
         animator = enemyController.Animator;
-        explosionParticles = enemyController.ExplosionParticles;
     }
 
     public override void Enter()
@@ -37,9 +37,17 @@ public class ExplodeState : EnemyState
 
     IEnumerator DestroyAfterDelay()
     {
-        yield return new WaitForSeconds(1.25f);
+        yield return new WaitForSeconds(timeBeforeExplosion);
         explosionParticles?.SetActive(true);
-        yield return new WaitForSeconds(.75f);
+        yield return new WaitForSeconds(explosionDuration);
         Object.Destroy(enemyController.gameObject);
     }
+
+    public void SetExplosionParticles(GameObject particles, float explosionDuration, float timeBeforeExplosion)
+    {
+        explosionParticles = particles;
+        this.explosionDuration = explosionDuration;
+        this.timeBeforeExplosion = timeBeforeExplosion;
+    }
+
 }
