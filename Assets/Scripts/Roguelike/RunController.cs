@@ -26,6 +26,16 @@ public class RunController
     }
 
     /// <summary>
+    /// End the run from any live state: FloorActive/FloorCleared -> RunEnd. Returns false when the
+    /// state machine disallows it (Lobby/FloorStart/RunEnd), so repeated death notifications are
+    /// naturally idempotent. The only exit from RunEnd is Reset() back to Lobby.
+    /// </summary>
+    public bool EndRun()
+    {
+        return StateMachine.TryTransition(RunState.RunEnd);
+    }
+
+    /// <summary>
     /// Advance past a cleared floor: leave FloorCleared into the next floor's start and apply
     /// RunData.AdvanceFloor() (floor++, clearedRooms++, enemyBudget *= 1.4). The caller populates
     /// the new floor's enemies, then calls BeginFloor() to go live. Returns false if not in FloorCleared.

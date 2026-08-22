@@ -69,6 +69,24 @@ public class SpawnSystem : MonoBehaviour
     public event System.Action FloorCleared;
 
     /// <summary>
+    /// Run-end suspension switch (game over): when false, deaths stay tracked/counted but no wave
+    /// is released and FloorCleared never fires. Populate() re-enables it for a fresh floor.
+    /// </summary>
+    public bool WaveReleaseEnabled { get; private set; } = true;
+
+    /// <summary>Total enemies defeated across the whole run: every unique death increments this,
+    /// accumulating across Populate floors. Never reset here — a new run reloads the scene and with
+    /// it this component. Game-over summary data.</summary>
+    public int TotalDefeated { get; private set; }
+
+    /// <summary>Stop releasing waves and reporting clears (run ended / game over). Deaths remain
+    /// tracked and counted. Idempotent; reversed by the next Populate().</summary>
+    public void DisableWaveRelease()
+    {
+        WaveReleaseEnabled = false;
+    }
+
+    /// <summary>
     /// Read-only summary of the last Populate: floor, available (unlocked) types, target count,
     /// chosen composition, total cost and budget. Debug/test info only.
     /// </summary>
@@ -98,6 +116,7 @@ public class SpawnSystem : MonoBehaviour
     public void Populate(float budget, int floor)
     {
         floorVersion++;
+        WaveReleaseEnabled = true; // a fresh floor re-arms release; suspension is per-run
         ClearAlive();
         pacing = null;
         occupiedPositions.Clear();
@@ -270,6 +289,10 @@ public class SpawnSystem : MonoBehaviour
         // twice. Remove returns false if the enemy was already removed (double OnDied, or the
         // floor was replaced by ClearAlive while a stale event was in flight), so we stop there.
         if (!alive.Remove(enemy)) return;
+
+        TotalDefeated++;
+
+        if (!WaveReleaseEnabled) return;
 
         if (alive.Count > 0) return;
 
