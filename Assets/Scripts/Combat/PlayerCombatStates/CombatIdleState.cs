@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class CombatIdleState : State<CombatController>
 {
@@ -17,6 +17,7 @@ public class CombatIdleState : State<CombatController>
         _animator.CrossFade(hashAnimationState, 0.1f, 0);
         Debug.Log("Animation: CombatIdleState");
         _owner.CombatContext.isAttacking = false;
+        _owner.CombatContext.isRecovering = false;
         _owner.CombatContext.currentAttack = null;
         _owner.CombatContext.currentInputType = InputType.None;        
         _owner.CombatContext.queuedAttack = null; 

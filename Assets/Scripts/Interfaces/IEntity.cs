@@ -8,13 +8,12 @@ public interface IEntity
     float BaseDefense { get; }
 
     // Temporarily float, will have its own class later
-    IStatModifier[] AddedDamage { get; }
-    IStatModifier[] AddedDefense { get; }
-    IStatModifier[] DamageMultipliers { get; }
-    IStatModifier[] DefenseMultipliers { get; }
+    IStatModifier[] Modifiers { get; }
 
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
+    public event Action<float> OnMaxHealthChanged;
+    public event Action OnDied;
 
     void TakeDamage(float damage);
     void Heal(float healAmount);

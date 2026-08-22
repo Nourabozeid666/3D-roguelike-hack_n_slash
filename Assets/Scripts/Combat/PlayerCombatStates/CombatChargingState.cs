@@ -20,10 +20,15 @@ public class CombatChargingState : State<CombatController>
         hashAnimationState = Animator.StringToHash("AttackCharging");
     }
 
+    public override bool CanEnter()
+    {
+        return _owner._playerController.CharacterState != null ? _owner._playerController.CharacterState.CanAttack : true;
+    }
+
     public override void Enter()
     {
         _currentAttack = _owner.CombatContext.currentAttack;
-        _weaponObject = _owner.CombatContext.currentWeapon;
+        _weaponObject = _owner.equipmentSystem.CurrentWeapon;
         AnimationClip animationClip;
         if (_currentAttack == null)
         {
@@ -35,12 +40,6 @@ public class CombatChargingState : State<CombatController>
         }
         _OverrideController["AttackCharging"] = animationClip;
         _animator.Play(hashAnimationState, 0, 0f);
-
-        // Cancel dash if charging started during dash (Rule 4)
-        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsDashing)
-        {
-            _owner._playerController.StateMachine.SetState<PlayerIdleState>();
-        }
 
         // Damp horizontal momentum if grounded (Rule 5)
         if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsGrounded)
@@ -66,6 +65,7 @@ public class CombatChargingState : State<CombatController>
     public override void Exit()
     {
         _owner.CombatContext.isCharging = false;
+        _owner.CombatContext.isRecovering = false;
         _owner._playerController.UseCustomGravity = true;
         _owner._playerController.SetCanMove(true);
     }
