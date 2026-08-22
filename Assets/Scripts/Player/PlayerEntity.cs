@@ -17,6 +17,12 @@ public class PlayerEntity : IEntity
     public event Action<float> OnDamageTaken;
     public event Action<float> OnHealed;
 
+    /// <summary>Raised exactly once per life when health reaches 0. Cleared by Heal, so a revived
+    /// player can die (and notify) again. Listeners: game-over flow, HUD flashes, audio.</summary>
+    public event Action OnDied;
+
+    bool died;
+
     public float Health => health;
     public float MaxHealth => maxHealth;
     public float BaseDamage => baseDamage;
@@ -27,13 +33,15 @@ public class PlayerEntity : IEntity
     public IStatModifier[] DamageMultipliers => damageMultipliers;
     public IStatModifier[] DefenseMultipliers => defenseMultipliers;
 
-    public PlayerEntity()
-    {
-        OnDamageTaken += TakeDamage;
-    }
+    // NOTE: no constructor wiring. The old `OnDamageTaken += TakeDamage` self-subscription was a
+    // landmine: every raise of OnDamageTaken would have called TakeDamage again (double damage,
+    // infinite recursion once TakeDamage itself started raising it). Events are raised explicitly
+    // by the mutators below instead.
+
     private float CalculateDamageReduction(float damage)
     {
-        return damage - (baseDefense * Constants.ALPHA);
+        // Clamped at zero: a hit weaker than defense deals 0 — it must never heal the player.
+        return Mathf.Max(0f, damage - baseDefense * Constants.ALPHA);
     }
 
     private float CalculateAttackDamage(float damage)
@@ -44,18 +52,30 @@ public class PlayerEntity : IEntity
     public void TakeDamage(float damage)
     {
         health -= CalculateDamageReduction(damage);
-        if (health < 0) health = 0;
+        if (health < 0f) health = 0f;
+        OnDamageTaken?.Invoke(damage);
+        CheckDeath();
     }
 
     public void Heal(float healAmount)
     {
         health += healAmount;
         if (health > maxHealth) health = maxHealth;
+        if (health > 0f) died = false; // revived: allow a future death notification
+        OnHealed?.Invoke(healAmount);
     }
 
     public void SetMaxHealth(float maxHealth)
     {
         this.maxHealth = maxHealth;
         if (health > maxHealth) health = maxHealth;
+        CheckDeath();
+    }
+
+    void CheckDeath()
+    {
+        if (health > 0f || died) return;
+        died = true;
+        OnDied?.Invoke();
     }
 }
