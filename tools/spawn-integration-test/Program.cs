@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 class Program
@@ -52,6 +53,10 @@ class Program
         TwoPointZoneBoundsScenario();
         ObstacleClearanceScenario();
         TwoPointZoneEndToEndScenario();
+        RunEndScenario();
+        WaveReleaseStopScenario();
+        GameOverFlowScenario();
+        RunBootstrapGameFlowScenario();
 
         Console.WriteLine(failures.Count == 0
             ? $"[SpawnIntegration] ALL {checks} CHECKS PASSED"
@@ -1778,6 +1783,297 @@ class Program
         SetField(sys, "zone", sepZone);
         sys.Populate(9f, 1);
         Check(sys.AliveCount() <= 1, "2pt-e2e: high minEnemyDistance limits spawns in small zone");
+    }
+
+    // 40. RunController.EndRun(): guarded terminal transition from FloorActive/FloorCleared,
+    //     rejected everywhere else; idempotent; Reset() reopens Lobby.
+    static void RunEndScenario()
+    {
+        var run = new RunController();
+        Check(!run.EndRun(), "runend: Lobby -> RunEnd rejected");
+        Check(run.CurrentState == RunState.Lobby, "runend: state stays Lobby");
+
+        Check(run.StartRun(), "runend: StartRun ok");
+        Check(!run.EndRun(), "runend: FloorStart -> RunEnd rejected");
+
+        Check(run.BeginFloor(), "runend: BeginFloor ok");
+        Check(run.EndRun(), "runend: FloorActive -> RunEnd allowed");
+        Check(run.CurrentState == RunState.RunEnd, "runend: state == RunEnd");
+        Check(!run.EndRun(), "runend: repeated EndRun rejected (idempotent)");
+        Check(!run.CompleteFloor(), "runend: CompleteFloor after end rejected");
+        Check(!run.BeginFloor(), "runend: BeginFloor after end rejected");
+        Check(!run.StartNextFloor(), "runend: StartNextFloor after end rejected");
+
+        var other = new RunController();
+        other.StartRun();
+        Check(!other.TryRestore(run.Capture()), "runend: TryRestore on live run rejected");
+
+        run.Reset();
+        Check(run.CurrentState == RunState.Lobby, "runend: Reset returns to Lobby");
+        Check(run.StartRun(), "runend: fresh run starts after Reset");
+
+        var late = new RunController();
+        late.StartRun();
+        late.BeginFloor();
+        Check(late.CompleteFloor(), "runend: CompleteFloor ok");
+        Check(late.EndRun(), "runend: FloorCleared -> RunEnd allowed (death during clear pause)");
+        Check(late.CurrentState == RunState.RunEnd, "runend: late-death state == RunEnd");
+    }
+
+    // 41. SpawnSystem.DisableWaveRelease()/TotalDefeated: suspension stops wave release and
+    //     clears, deaths keep counting exactly once, Populate re-arms release.
+    static void WaveReleaseStopScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("TestEnemy");
+        prefab.AddComponent<TestEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (3)", new Vector3(5, 0.5f, 3), new List<Vector3>());
+
+        int clearedEvents = 0;
+        sys.FloorCleared += () => clearedEvents++;
+
+        Check(sys.WaveReleaseEnabled, "wavestop: release enabled by default");
+        Check(sys.TotalDefeated == 0, "wavestop: TotalDefeated starts at 0");
+
+        sys.Populate(18f, 1); // budget 18 / cost 3 -> 6 enemies, single wave (waves off)
+        Check(sys.AliveCount() == 6, "wavestop: 6 spawned in one wave");
+
+        sys.DisableWaveRelease(); // the player died mid-floor
+        Check(!sys.WaveReleaseEnabled, "wavestop: DisableWaveRelease flips the flag");
+
+        TestEnemy[] clones = UnityEngine.Object.FindObjectsOfType<TestEnemy>();
+        clones[0].Die();
+        Check(sys.TotalDefeated == 1, "wavestop: death counted while suspended");
+        Check(sys.AliveCount() == 5, "wavestop: alive decremented while suspended");
+        Check(clearedEvents == 0, "wavestop: no clear while others still alive");
+
+        foreach (TestEnemy te in clones) te.Die();
+        Check(sys.AliveCount() == 0, "wavestop: alive drained to 0 while suspended");
+        Check(clearedEvents == 0, "wavestop: FloorCleared suppressed even on final death");
+        Check(UnityEngine.MonoBehaviour.PendingCoroutines.Count == 0,
+            "wavestop: no wave coroutine queued while suspended");
+
+        sys.Populate(18f, 2); // next floor re-arms release
+        Check(sys.WaveReleaseEnabled, "wavestop: Populate re-enables release");
+        Check(sys.TotalDefeated == 6, "wavestop: TotalDefeated accumulates across floors");
+        Check(sys.AliveCount() == 6, "wavestop: floor 2 populated");
+
+        foreach (TestEnemy te in UnityEngine.Object.FindObjectsOfType<TestEnemy>()) te.Die();
+        Check(sys.TotalDefeated == 12, "wavestop: floor 2 deaths counted");
+        Check(clearedEvents == 1, "wavestop: FloorCleared fires again after re-arm");
+
+        // Multi-wave floor: killing out the current wave while suspended releases nothing further.
+        UnityEngine.Object.ResetWorld();
+        UnityEngine.MonoBehaviour.PendingCoroutines.Clear();
+        clearedEvents = 0;
+
+        var prefab2 = new GameObject("TestEnemy");
+        prefab2.AddComponent<TestEnemy>();
+        var archetype2 = new EnemyArchetype();
+        SetField(archetype2, "prefab", prefab2);
+        SetField(archetype2, "cost", 3);
+        SetField(archetype2, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype2, "damageGrowthPerFloor", 0.08f);
+        var table2 = new SpawnTable();
+        SetField(table2, "archetypes", new List<EnemyArchetype> { archetype2 });
+
+        var waveGo = new GameObject("WaveSpawnSystem");
+        var waveSys = waveGo.AddComponent<SpawnSystem>();
+        SetField(waveSys, "table", table2);
+        var pacing = new SpawnPacingConfig();
+        SetField(pacing, "waveStartFloor", 1);
+        SetField(pacing, "waveSize", 2);
+        SetField(waveSys, "pacingConfig", pacing);
+        AddPoint(waveGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(waveGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+
+        int waveClears = 0;
+        waveSys.FloorCleared += () => waveClears++;
+
+        waveSys.Populate(15f, 1); // composition of 5 -> waves of 2+2+1; wave 1 live now
+        Check(waveSys.AliveCount() == 2, "wavestop: multi-wave floor starts with wave 1 (2 alive)");
+        Check(waveSys.RemainingInComposition == 3, "wavestop: 3 entries remain for later waves");
+
+        waveSys.DisableWaveRelease();
+        foreach (TestEnemy te in UnityEngine.Object.FindObjectsOfType<TestEnemy>()) te.Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        Check(waveSys.AliveCount() == 0, "wavestop: wave 1 drained while suspended");
+        Check(waveSys.RemainingInComposition == 3, "wavestop: composition untouched (no wave 2 released)");
+        Check(waveClears == 0, "wavestop: no clear event on a suspended multi-wave floor");
+        Check(waveSys.TotalDefeated == 2, "wavestop: multi-wave deaths still counted");
+    }
+
+    // 42. GameOverFlow: player death -> waves off, run -> RunEnd, time frozen, cursor freed,
+    //     pause disabled, real summary published exactly once through IGameOverSource.
+    static void GameOverFlowScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        Time.timeScale = 1f;
+        Time.time = 200f;
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        GameObject playerGo = new GameObject("Player");
+        PlayerController player = playerGo.AddComponent<PlayerController>();
+        player.Entity = new StubPlayerEntity { Health = 25f };
+
+        GameObject sysGo = new GameObject("SpawnSystem");
+        SpawnSystem sys = sysGo.AddComponent<SpawnSystem>(); // no table needed: only flags/counters
+
+        var run = new RunController();
+        run.StartRun();
+        run.BeginFloor();
+
+        GameObject uiGo = new GameObject("PlayerUI");
+        PlayerUiBootstrap ui = uiGo.AddComponent<PlayerUiBootstrap>();
+        ui.GameOverSource = new MockGameOverSource();
+        int published = 0;
+        ui.GameOverSource.Changed += _ => published++;
+
+        GameObject pauseGo = new GameObject("PausePanel");
+        PauseController pause = pauseGo.AddComponent<PauseController>();
+
+        GameObject flowGo = new GameObject("GameOverFlow");
+        GameOverFlow flow = flowGo.AddComponent<GameOverFlow>();
+        flow.Configure(player, sys, run, ui, pause);
+
+        Check(!flow.Triggered, "flow: not triggered at configure");
+        Check(sys.WaveReleaseEnabled, "flow: release enabled at configure");
+
+        Invoke(flow, "Update"); // alive -> nothing
+        Check(!flow.Triggered, "flow: alive player does not trigger");
+
+        Time.time = 240f; // 40s of scaled play time since Configure
+        player.Entity.Health = 0f;
+        Invoke(flow, "Update");
+
+        Check(flow.Triggered, "flow: zero health triggers the flow");
+        Check(published == 1, "flow: summary published exactly once");
+        Check(Mathf.Approximately(Time.timeScale, 0f), "flow: timeScale == 0 after trigger");
+        Check(Cursor.visible && Cursor.lockState == CursorLockMode.None,
+            "flow: cursor freed for end-screen buttons");
+        Check(!pause.enabled, "flow: pause controller disabled");
+        Check(!sys.WaveReleaseEnabled, "flow: wave release disabled on death");
+        Check(run.CurrentState == RunState.RunEnd, "flow: run -> RunEnd");
+
+        GameOverData summary = ui.GameOverSource.GetGameOver();
+        Check(summary.floorReached == 1, "flow: summary floorReached == 1");
+        Check(summary.enemiesDefeated == 0, "flow: summary enemiesDefeated == 0");
+        Check(Mathf.Approximately(summary.runTimeSeconds, 40f),
+            $"flow: summary runTimeSeconds == 40 (got {summary.runTimeSeconds})");
+
+        // Idempotency: repeated polls / explicit Trigger must not re-publish or re-freeze.
+        Invoke(flow, "Update");
+        flow.Trigger();
+        Check(published == 1, "flow: repeated updates do not re-publish");
+        Check(Mathf.Approximately(Time.timeScale, 0f), "flow: timeScale stays 0");
+
+        // Null tolerance: an unconfigured flow never throws and never triggers.
+        GameObject bareGo = new GameObject("BareFlow");
+        GameOverFlow bare = bareGo.AddComponent<GameOverFlow>();
+        Invoke(bare, "Update");
+        Check(!bare.Triggered, "flow: null-config Update is a safe no-op");
+    }
+
+    // 43. Full production loop in a fake scene: RunBootstrap wires GameOverFlow via scene fallbacks,
+    //     death ends the run and publishes the summary, Retry reloads TestingScene with the save
+    //     deleted, Main Menu reloads MainMenu keeping the checkpoint semantics.
+    static void RunBootstrapGameFlowScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        UnityEngine.MonoBehaviour.PendingCoroutines.Clear();
+        Time.timeScale = 0f;              // frozen by the game over that just happened
+        Time.time = 100f;
+        SceneManager.lastLoadedScene = null;
+
+        Application.persistentDataPath = Path.Combine(
+            Path.GetTempPath(), "opencode", "pd_rbflow_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        Directory.CreateDirectory(Application.persistentDataPath);
+        new RunSaveService().Delete();    // deterministic fresh-run start
+
+        SpawnSystem sys = BuildSystem();
+
+        GameObject playerGo = new GameObject("Player");
+        PlayerController playerCtl = playerGo.AddComponent<PlayerController>();
+        playerCtl.Entity = new StubPlayerEntity { Health = 30f };
+
+        GameObject uiGo = new GameObject("PlayerUI");
+        PlayerUiBootstrap ui = uiGo.AddComponent<PlayerUiBootstrap>();
+        ui.GameOverSource = new MockGameOverSource();
+        int published = 0;
+        ui.GameOverSource.Changed += _ => published++;
+
+        GameObject pauseGo = new GameObject("PausePanel");
+        PauseController pause = pauseGo.AddComponent<PauseController>();
+
+        GameObject bootGo = new GameObject("RunBootstrap");
+        RunBootstrap boot = bootGo.AddComponent<RunBootstrap>();
+        SetField(boot, "spawnSystem", sys);
+        SetField(boot, "floorClearPauseSeconds", 0f);
+
+        RunSession.EnterFromMenu = true;
+        Invoke(boot, "Awake");
+        Invoke(boot, "Start");
+        RunSession.EnterFromMenu = false;
+
+        Check(boot.Run.CurrentState == RunState.FloorActive, "rbflow: production Start reaches FloorActive");
+        Check(boot.Run.CurrentFloor == 1, "rbflow: fresh run at floor 1");
+        Check(sys.AliveCount() == 3, "rbflow: floor populated (BuildSystem budget 10, cost 3)");
+        Check(sys.WaveReleaseEnabled, "rbflow: release enabled after start");
+
+        GameOverFlow flow = UnityEngine.Object.FindObjectOfType<GameOverFlow>();
+        Check(flow != null, "rbflow: bootstrap created GameOverFlow");
+        if (flow == null) return;
+
+        Check(!flow.Triggered, "rbflow: not triggered while player alive");
+
+        Time.time = 160f; // 60s of run time
+        playerCtl.Entity.Health = 0f;
+        Invoke(flow, "Update");
+
+        Check(flow.Triggered, "rbflow: death triggers the flow");
+        Check(published == 1, "rbflow: summary published once");
+        Check(Mathf.Approximately(Time.timeScale, 0f), "rbflow: gameplay frozen on game over");
+        Check(!pause.enabled, "rbflow: pause disabled on game over");
+        Check(!sys.WaveReleaseEnabled, "rbflow: spawn suspension active");
+        Check(boot.Run.CurrentState == RunState.RunEnd, "rbflow: run ended");
+
+        GameOverData summary = ui.GameOverSource.GetGameOver();
+        Check(summary.floorReached == 1, "rbflow: summary floor 1");
+        Check(summary.enemiesDefeated == 0, "rbflow: summary defeats 0 (nobody killed yet)");
+        Check(Mathf.Approximately(summary.runTimeSeconds, 60f),
+            $"rbflow: summary runTime 60s (got {summary.runTimeSeconds})");
+
+        // Retry intent: unfreeze, delete save, reload the game scene.
+        SceneManager.lastLoadedScene = null;
+        ui.RetryRequested?.Invoke();
+        Check(SceneManager.lastLoadedScene == RunBootstrap.GameSceneName,
+            $"rbflow: retry loads {RunBootstrap.GameSceneName} (got {SceneManager.lastLoadedScene})");
+        Check(Mathf.Approximately(Time.timeScale, 1f), "rbflow: retry unfreezes time");
+        Check(!new RunSaveService().HasSave(), "rbflow: retry deletes the save (clean new run)");
+
+        // Main-menu intent: unfreeze, keep-save semantics, load menu.
+        ui.MainMenuRequested?.Invoke();
+        Check(SceneManager.lastLoadedScene == RunBootstrap.MenuSceneName,
+            $"rbflow: main menu loads {RunBootstrap.MenuSceneName} (got {SceneManager.lastLoadedScene})");
+        Check(!new RunSaveService().HasSave(), "rbflow: menu keeps save absent (was already deleted)");
+        Check(Mathf.Approximately(Time.timeScale, 1f), "rbflow: menu leaves time unfrozen");
     }
 
     sealed class RecordingHudView : IPlayerHudView

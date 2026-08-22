@@ -141,6 +141,7 @@ namespace UnityEngine
 
     public static class Time
     {
+        public static float time;
         public static float timeScale = 1f;
     }
 
@@ -235,6 +236,8 @@ namespace UnityEngine
             T[] all = FindObjectsOfType<T>();
             return all.Length > 0 ? all[0] : null;
         }
+
+        public static T FindFirstObjectByType<T>() where T : Component => FindObjectOfType<T>();
 
         public static void ResetWorld()
         {

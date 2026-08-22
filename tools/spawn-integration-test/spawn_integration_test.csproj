@@ -13,10 +13,13 @@
   <!--
     Compile the REAL game sources straight from Assets/Scripts/... so CI tests the actual spawner /
     run code (same files the local harness copies in), never stale duplicates. Only the files the
-    harness references are included. WeaponData.cs, WeaponType.cs, PauseController.cs and
-    SettingsController.cs are NOT part of the harness and are deliberately excluded.
+    harness references are included. WeaponData.cs, WeaponType.cs and SettingsController.cs are NOT
+    part of the harness and are deliberately excluded. The real PlayerController / PauseController /
+    PlayerUiBootstrap scene scripts are excluded too; GameOverFlow/RunBootstrap compile against the
+    minimal doubles in GameStubs.cs instead.
   -->
   <ItemGroup>
+    <Compile Include="../../Assets/Scripts/Roguelike/GameOverFlow.cs" Link="Repo/GameOverFlow.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunBootstrap.cs" Link="Repo/RunBootstrap.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunController.cs" Link="Repo/RunController.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunData.cs" Link="Repo/RunData.cs" />
