@@ -123,6 +123,11 @@ public class StaggerState : EnemyState
             enemyController.StopCoroutine(reactionCoroutine);
             reactionCoroutine = null;
         }
+        if (hitFlashCoroutine != null)
+        {
+            enemyController.StopCoroutine(hitFlashCoroutine);
+            hitFlashCoroutine = null;
+        }
     }
 
     IEnumerator DurationCoroutine(float duration)

@@ -17,6 +17,7 @@ public class DieState : EnemyState
 
     public override void Enter()
     {
+        Debug.Log("DieState Entered");
         agent.isStopped = true;
         animator.Play(Animator.StringToHash("Death"), 0, 0);
         enemyController.StartCoroutine(UpdateCoroutine());

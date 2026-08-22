@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a06308acca3af344fb893ba13bec408b, type: 3}
   m_Name: grant
   m_EditorClassIdentifier: Assembly-CSharp::EnemyArchetypeConfig
-  maxHealth: 1000
+  maxHealth: 100
   baseDamage: 10
   baseDefense: 0
   maxPoise: 100
