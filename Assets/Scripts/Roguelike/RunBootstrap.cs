@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Production run owner for the game scene (TestingScene.unity). When the scene is entered from the
@@ -18,6 +19,11 @@ using UnityEngine;
 public class RunBootstrap : MonoBehaviour
 {
     [SerializeField] SpawnSystem spawnSystem;
+    [SerializeField] PlayerUiBootstrap playerUi;
+    [SerializeField] PauseController pauseController;
+
+    public const string GameSceneName = "TestingScene";
+    public const string MenuSceneName = "MainMenu";
 
     /// <summary>How long the run stays in FloorCleared before the next floor populates, so the
     /// cleared state is visible (matches the test driver's default). Tuning value.</summary>
@@ -37,6 +43,11 @@ public class RunBootstrap : MonoBehaviour
     void OnDestroy()
     {
         if (spawnSystem != null) spawnSystem.FloorCleared -= OnFloorCleared;
+        if (playerUi != null)
+        {
+            playerUi.RetryRequested -= OnRetryRequested;
+            playerUi.MainMenuRequested -= OnMainMenuRequested;
+        }
     }
 
     void Start()
@@ -54,6 +65,8 @@ public class RunBootstrap : MonoBehaviour
         }
 
         spawnSystem.FloorCleared += OnFloorCleared;
+
+        WireGameOverFlow();
 
         SaveData save;
         if (saves.TryLoad(out save) && Run.TryRestore(save))
@@ -75,6 +88,55 @@ public class RunBootstrap : MonoBehaviour
     {
         spawnSystem.Populate(Run.Data.enemyBudget, Run.Data.floor);
         Run.BeginFloor();
+    }
+
+    /// <summary>
+    /// Game-over wiring (production mode only): create the runtime GameOverFlow bridge and route
+    /// the end screen's Retry / Main Menu intents back here. Serialized references win; the
+    /// FindFirstObjectByType fallbacks keep this working when only some references are assigned.
+    /// Every collaborator is optional — a scene without UI/pause/player degrades to a flow that
+    /// still ends the run, just without publishing a summary.
+    /// </summary>
+    void WireGameOverFlow()
+    {
+        if (playerUi == null) playerUi = Object.FindFirstObjectByType<PlayerUiBootstrap>();
+        if (pauseController == null) pauseController = Object.FindFirstObjectByType<PauseController>();
+
+        GameObject flowGo = new GameObject("GameOverFlow");
+        GameOverFlow flow = flowGo.AddComponent<GameOverFlow>();
+        flow.Configure(
+            Object.FindFirstObjectByType<PlayerController>(),
+            spawnSystem,
+            Run,
+            playerUi,
+            pauseController);
+
+        if (playerUi == null)
+        {
+            Debug.LogWarning("[RunBootstrap] PlayerUiBootstrap not found; retry/menu intents unwired");
+            return;
+        }
+        playerUi.RetryRequested += OnRetryRequested;
+        playerUi.MainMenuRequested += OnMainMenuRequested;
+    }
+
+    /// <summary>Game Over > Retry: clean new run with exactly Main Menu > New Run semantics — delete
+    /// the save, unfreeze time, reload the game scene so this bootstrap starts a fresh floor 1.</summary>
+    void OnRetryRequested()
+    {
+        Time.timeScale = 1f;
+        saves.Delete();
+        RunSession.EnterFromMenu = true;
+        SceneManager.LoadScene(GameSceneName);
+    }
+
+    /// <summary>Game Over > Main Menu: unfreeze time and load the menu. The save is kept on purpose:
+    /// the checkpoint written at the current floor's start stays available via Continue.</summary>
+    void OnMainMenuRequested()
+    {
+        Time.timeScale = 1f;
+        RunSession.EnterFromMenu = true;
+        SceneManager.LoadScene(MenuSceneName);
     }
 
     /// <summary>

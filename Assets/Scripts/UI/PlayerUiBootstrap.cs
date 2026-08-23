@@ -14,6 +14,14 @@ public class PlayerUiBootstrap : MonoBehaviour
 {
     public event Action Ready;
 
+    /// <summary>Raised after RetryRun() reset the screens/HUD mocks — the run owner subscribes to
+    /// restart the actual run (delete save + scene reload). UI owns none of that.</summary>
+    public event Action RetryRequested;
+
+    /// <summary>Raised when the game-over screen's main-menu button is clicked — the run owner
+    /// subscribes to load the menu scene.</summary>
+    public event Action MainMenuRequested;
+
     public MockPlayerHudSource HudSource { get; private set; }
     public MockUpgradeSource UpgradeSource { get; private set; }
     public MockGameOverSource GameOverSource { get; private set; }
@@ -82,8 +90,7 @@ public class PlayerUiBootstrap : MonoBehaviour
 
         UpgradeSelectController.CardClicked += index => UpgradePresenter.Select(index);
         GameOverScreenController.RetryClicked += RetryRun;
-        GameOverScreenController.MainMenuClicked += () =>
-            Debug.Log("[PlayerUI] Main menu return requested (no menu scene wired in TestingScene yet).");
+        GameOverScreenController.MainMenuClicked += () => MainMenuRequested?.Invoke();
 
         HudPresenter.Bind(HudSource);
         UpgradePresenter.Bind(UpgradeSource);
@@ -92,11 +99,13 @@ public class PlayerUiBootstrap : MonoBehaviour
         Ready?.Invoke();
     }
 
-    /// <summary>Close the end screens and reset the mock HUD to defaults (a fresh run).</summary>
+    /// <summary>Close the end screens and reset the mock HUD to defaults (a fresh run), then raise
+    /// RetryRequested so the run owner can restart the real run.</summary>
     public void RetryRun()
     {
         GameOverScreenController.Hide();
         UpgradeSelectController.Hide();
         HudSource.SetPlayerHud(PlayerHudData.Default());
+        RetryRequested?.Invoke();
     }
 }

@@ -34,6 +34,10 @@ public class PlayerEntity : IEntity
 
     public IStatModifier[] Modifiers => modifiers;
 
+    // NOTE: these self-subscriptions are the Combat branch's intended pattern (the events double as
+    // external entry points, e.g. EquipmentSystem raising OnModifierAdded). Keep them in sync with
+    // raisers: TakeDamage/Heal must NEVER raise OnDamageTaken/OnHealed themselves, or this wiring
+    // recurses infinitely. All current damage flows call TakeDamage() directly.
     public PlayerEntity()
     {
         OnDamageTaken += TakeDamage;
@@ -41,6 +45,7 @@ public class PlayerEntity : IEntity
         OnMaxHealthChanged += SetMaxHealth;
         OnModifierAdded += HandleModifierAdded;
     }
+
     private float CalculateDamageReduction(float damage)
     {
         float modifiedDefense = baseDefense;
@@ -51,7 +56,8 @@ public class PlayerEntity : IEntity
                 modifiedDefense = modifiers[i].GetValue(modifiedDefense, this);
             }
         }
-        return damage - (modifiedDefense * Constants.ALPHA);
+        // Clamped at zero: a hit weaker than defense deals 0 - it must never heal the player.
+        return Mathf.Max(0f, damage - modifiedDefense * Constants.ALPHA);
     }
 
     private float CalculateAttackDamage()
@@ -72,8 +78,12 @@ public class PlayerEntity : IEntity
         health -= CalculateDamageReduction(damage);
         if (health < 0) {
             health = 0;
-            isDead = true;
-            OnDied?.Invoke();
+            // Fire exactly once per life: repeated post-death hits must not re-raise OnDied.
+            if (!isDead)
+            {
+                isDead = true;
+                OnDied?.Invoke();
+            }
         };
     }
 
@@ -81,6 +91,7 @@ public class PlayerEntity : IEntity
     {
         health += healAmount;
         if (health > maxHealth) health = maxHealth;
+        isDead = false; // revived: allow a future death notification
     }
 
     public void SetMaxHealth(float maxHealth)

@@ -474,6 +474,14 @@ public class SpawnPoint : MonoBehaviour
 
 `SpawnSystem.cs` — picks affordable archetypes and fills spawn points until the budget runs out.
 
+> **Implementation note (2026-08-16):** the shipped `SpawnSystem` (see `docs/ENEMY_SPAWN_INTEGRATION.md`)
+> differs from this design sketch on the enemy seam: it tracks `GameObject` (not `EnemyController`),
+> applies scaling through **`ISpawnStatConfig`** (`ConfigureForSpawn`), there is no `baseStats`
+> ScriptableObject (base stats live on `TestEnemy` / `EnemyEntity`), and death is surfaced via
+> **`IEnemySpawned.OnDied`** so the floor-clear report is driven by real enemy deaths (explode path
+> included). ConfigureForSpawn runs BEFORE `EnemyEntity.Initialize()`; `SetMaxHealth`/`SetBaseDamage`
+> are authoritative gates on the stored health/damage.
+
 ```csharp
 using System.Collections.Generic;
 using UnityEngine;

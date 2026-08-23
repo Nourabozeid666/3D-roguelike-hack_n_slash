@@ -12,8 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e26e0c4c32d7bec4a8ae63f68686aad8, type: 3}
   m_Name: SacrificeAttack
   m_EditorClassIdentifier: Assembly-CSharp::SacrificeAttackConfig
+  baseDamage: 10
   lockedInTime: 1
   maxAttackRange: 4
-  fuseDuration: 2.5
+  timeToStartExplosionState: 3
   explosionRadius: 10
   explosionDamage: 40
+  timeBeforeExplosion: 1.56
+  explosionDuration: 0.6

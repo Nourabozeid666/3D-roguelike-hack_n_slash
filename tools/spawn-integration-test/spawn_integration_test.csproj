@@ -13,10 +13,13 @@
   <!--
     Compile the REAL game sources straight from Assets/Scripts/... so CI tests the actual spawner /
     run code (same files the local harness copies in), never stale duplicates. Only the files the
-    harness references are included. WeaponData.cs, WeaponType.cs, PauseController.cs and
-    SettingsController.cs are NOT part of the harness and are deliberately excluded.
+    harness references are included. WeaponData.cs, WeaponType.cs and SettingsController.cs are NOT
+    part of the harness and are deliberately excluded. The real PlayerController / PauseController /
+    PlayerUiBootstrap scene scripts are excluded too; GameOverFlow/RunBootstrap compile against the
+    minimal doubles in GameStubs.cs instead.
   -->
   <ItemGroup>
+    <Compile Include="../../Assets/Scripts/Roguelike/GameOverFlow.cs" Link="Repo/GameOverFlow.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunBootstrap.cs" Link="Repo/RunBootstrap.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunController.cs" Link="Repo/RunController.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunData.cs" Link="Repo/RunData.cs" />
@@ -29,6 +32,7 @@
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/EnemyComposition.cs" Link="Repo/EnemyComposition.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/EnemyCompositionSelector.cs" Link="Repo/EnemyCompositionSelector.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/IEnemySpawned.cs" Link="Repo/IEnemySpawned.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Spawning/ISpawnStatConfig.cs" Link="Repo/ISpawnStatConfig.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPacingConfig.cs" Link="Repo/SpawnPacingConfig.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPlacementValidator.cs" Link="Repo/SpawnPlacementValidator.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/SpawnPoint.cs" Link="Repo/SpawnPoint.cs" />

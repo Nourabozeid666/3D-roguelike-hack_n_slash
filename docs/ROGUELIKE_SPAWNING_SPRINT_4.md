@@ -6,6 +6,16 @@
 > Prior investigation: `docs/ROGUELIKE_RUN_SYSTEM_SPRINT_4.md` (verdict: BLOCKED on ownership + Enemy dev).
 > Prior sprints: 1 (`a473850`), 2 (`2e1d63e`), 3 (`cc11a51`, `RunController`).
 
+> ## ⚠️ SUPERSEDED (2026-08-16) — Enemy ↔ SpawnSystem integration landed
+> The enemy-facing contract rows below are superseded by the integration branch
+> `fix/enemy-spawn-integration`. `IEnemySpawned` is now a **death-only** contract
+> (`event Action OnDied`) surfaced by `EnemyController` from `EnemyEntity.OnDied` (explode path
+> included); health is applied via the existing `EnemyEntity.SetMaxHealth`; floor scaling moved to
+> the separate **`ISpawnStatConfig`** seam (`BaseMaxHealth` / `BaseDamage` / `ConfigureForSpawn`),
+> owned by `SpawnSystem`. The current contract is documented in **`docs/ENEMY_SPAWN_INTEGRATION.md`**.
+> Everything below that still says `IEnemySpawned.ApplyFloorScaling`, `IEnemySpawned.Died`, or
+> `[WAITING FOR ENEMY SYSTEM]` for the death hook / setters is stale.
+
 ---
 
 ## Goal
@@ -98,9 +108,9 @@ SpawnSystem.AliveCount() / IsFloorCleared   → floor-clear reporting (Sprint 5 
 | Alive count | Spawn → Run | `AliveCount() : int` | 4 | **READY NOW** |
 | Floor cleared report | Spawn → Run | `IsFloorCleared : bool` (`AliveCount() == 0`) | 4 | **READY NOW** |
 | Floor-ready transition | Runner → Run | `RunController.BeginFloor()` | 4 | **READY NOW** (`[EXISTS]` `RunController.cs:12`) |
-| Floor scaling (test) | Spawn → TestEnemy | `IEnemySpawned.ApplyFloorScaling(healthScale, damageScale)` | 4 | **READY NOW** (test double) |
-| Floor scaling (real) | Spawn → EnemyEntity | `SetMaxHealth / SetBaseDamage / SetBaseDefense / SetMaxPoise` | 4 | `[WAITING FOR ENEMY SYSTEM]` |
-| Death hook (real) | Enemy → Spawn | `EnemyEntity.OnDied` surfaced via `IEnemySpawned.Died` | 4/5 | `[WAITING FOR ENEMY SYSTEM]` |
+| Floor scaling (test) | Spawn → TestEnemy | `ISpawnStatConfig.ConfigureForSpawn(maxHealth, baseDamage)` | 4+ | **READY NOW** (test double; superseded signature, see banner) |
+| Floor scaling (real) | Spawn → EnemyEntity | health `SetMaxHealth`; damage deferred (attack SO configs are the runtime source — see `docs/ENEMY_SPAWN_INTEGRATION.md §7`) | 4/5 | **IMPLEMENTED (health)** (integration branch; no new EnemyEntity setter) |
+| Death hook (real) | Enemy → Spawn | `EnemyEntity.OnDied` surfaced via `IEnemySpawned.OnDied` | 4/5 | **IMPLEMENTED** (integration branch; `EnemyController : IEnemySpawned`) |
 | Floor clear transition | Spawn → Run | `AliveCount() == 0` → `FloorCleared` | 5 | **NOT Sprint 4** |
 
 Contract stability rule (from `ROGUELIKE_SPRINT_PLAN.md §10`): signature changes require a team heads-up before merge.
@@ -114,14 +124,14 @@ Contract stability rule (from `ROGUELIKE_SPRINT_PLAN.md §10`): signature change
 **What `TestEnemy` is:** a tiny test double — a RED CAPSULE (built at runtime if no visual child exists). It implements `IEnemySpawned` and has ONLY:
 
 - `baseHealth` / `baseDamage` serialized fields (its own base stats — the real enemy keeps stats on `EnemyEntity`).
-- `ApplyFloorScaling(healthScale, damageScale)` — sets effective health/damage from base × scale.
-- `Die()` — fires `Died`, then destroys itself (simulates enemy removal/death).
+- `ISpawnStatConfig` (`BaseMaxHealth` / `BaseDamage` / `ConfigureForSpawn`) — stores the floor-scaled absolute stats from SpawnSystem (replaces the old `ApplyFloorScaling`, see banner).
+- `Die()` — fires `OnDied`, then destroys itself (simulates enemy removal/death).
 - `Health` / `Damage` read-outs for assertions.
 - A red wireframe gizmo.
 
 **What `TestEnemy` does NOT do:** enemy AI, states, combat, navigation, damage systems, player targeting, real `EnemyEntity`, `EnemyController`.
 
-**Distinction:** this is a **test double, not a replacement for the real Enemy System**. When the real enemy lands, `SpawnSystem` needs zero changes: swap the archetype `prefab` to a real enemy prefab and provide the real `IEnemySpawned` surface (`[WAITING FOR ENEMY SYSTEM]`).
+**Distinction:** this is a **test double, not a replacement for the real Enemy System**. When the real enemy lands, `SpawnSystem` needs zero changes: swap the archetype `prefab` to a real enemy prefab — the real `IEnemySpawned` / `ISpawnStatConfig` surface now exists on `EnemyController` (integration branch; only the production prefab swap remains, see `docs/ENEMY_SPAWN_INTEGRATION.md`).
 
 ---
 
@@ -156,7 +166,7 @@ public int  AliveCount()                         // currently tracked alive enem
 public bool IsFloorCleared                       // AliveCount() == 0
 ```
 
-Internal flow: `ClearAlive()` → cheap-cost check → loop `PickAffordable` + `PickRandomPoint` + `InstantiateEnemy` → `ApplyFloorScaling` (test) → subscribe `Died`.
+Internal flow: `ClearAlive()` → cheap-cost check → loop `PickAffordable` + `PickRandomPoint` + `InstantiateEnemy` → `ApplyFloorScaling` (via `ISpawnStatConfig`; superseded signature, see banner) → subscribe `OnDied`.
 
 Constraints honored: **no singleton, no global static manager, no EventBus, no `GameManager` change, no `RunController` change.** `SpawnSystem` never references `RunController` (thin orchestration rule, `ROGUELIKE_RUN_SYSTEM_SPRINT_3.md §8`). The `SpawnSystemTestDriver` is the temporary glue that drives the real `RunController`.
 
@@ -282,7 +292,7 @@ New TEST-ONLY component under `Assets/Scripts/Roguelike/Spawning/Testing/` (scri
 
 - **HUD:** `SPAWN TEST / Scene: TestingScene / Run state: X / Floor: N / Spawned: N / Alive: N /
   Dead: N / Floor Cleared: YES|NO`. `Spawned`/`Dead` are derived from real `TestEnemy` instances +
-  their `Died` events; `Alive`/`Floor Cleared` read `SpawnSystem.AliveCount()` / `IsFloorCleared`;
+  their `OnDied` events; `Alive`/`Floor Cleared` read `SpawnSystem.AliveCount()` / `IsFloorCleared`;
   `Run state`/`Floor` read the **real `RunController`** that `SpawnSystemTestDriver` drives
   (`driver.Run.CurrentState` / `driver.Run.Data.floor`). **Run number is NOT displayed**: no
   run-number field exists in the codebase (`RunData` has `floor`/`clearedRooms`/`enemyBudget` only),
@@ -379,8 +389,8 @@ I cannot run Play Mode myself (no Unity Editor); all my verification is code-lev
 | Risk / Block | Mitigation |
 |---|---|
 | Real Enemy System not ready | Sprint 4 uses isolated `TestEnemy`; no `Enemy/` files touched |
-| `EnemyEntity` setters missing | `[WAITING FOR ENEMY SYSTEM]` — real scaling deferred; test path works |
-| Real death notification missing | `[WAITING FOR ENEMY SYSTEM]` — `EnemyEntity.OnDied` must surface via `IEnemySpawned` |
+| `EnemyEntity` setters missing | **RESOLVED (2026-08-16)** — health uses the existing `SetMaxHealth`; no new EnemyEntity setter was needed (damage deferred to combat side, see `docs/ENEMY_SPAWN_INTEGRATION.md §7`) |
+| Real death notification missing | **RESOLVED (2026-08-16)** — `EnemyEntity.OnDied` surfaced via `IEnemySpawned.OnDied` on `EnemyController` (integration branch) |
 | Spawn-ready real prefab missing (`TreeEntAsh.prefab` has 2 missing scripts + null refs) | `[WAITING FOR ENEMY SYSTEM]` — documented; archetype `prefab` swap is the only change |
 | `DieState` crash (`DieState.cs:11-18`) | `[WAITING FOR ENEMY SYSTEM]` — only affects real-enemy killability |
 | `DealDamage` damage commented out | `[WAITING FOR ENEMY SYSTEM]` — combat inert; out of scope |
@@ -391,6 +401,6 @@ I cannot run Play Mode myself (no Unity Editor); all my verification is code-lev
 
 ## Future / Deferred
 
-- Real-enemy wiring (archetype prefab swap + `IEnemySpawned` on the real enemy) — Sprint 5/6, `[WAITING FOR ENEMY SYSTEM]`.
+- Real-enemy wiring: archetype prefab swap (production prefab still blocked, see `docs/ENEMY_SPAWN_INTEGRATION.md`) — `IEnemySpawned`/`ISpawnStatConfig` on the real enemy is DONE (integration branch); the prefab swap remains.
 - `FloorGenerator` / procedural floors — Sprint 11+.
 - Drops / economy / upgrades — later sprints.
