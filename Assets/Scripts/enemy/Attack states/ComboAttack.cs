@@ -24,7 +24,6 @@ internal class ComboAttack : CombatActionState
     {
         var hit = activeSequence.Hits[hitIndex];
         elapsedInHit = 0;
-        hitbox.SetDamage(hit.Damage);
         animator.Play(hit.AnimationHash,0,0f);
     }
     public override void Enter()

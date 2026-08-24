@@ -284,7 +284,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
                     : "None"
             ) +
             "\ncurrect poise: " + (enemyEntity.CurrentPoise) +
-            "\ncurrect Health: " + (enemyEntity.CurrentHealth);
+            "\ncurrect Health: " + (enemyEntity.Health);
     }
 
     void AddState(EnemyState state)
