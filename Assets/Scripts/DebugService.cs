@@ -49,7 +49,7 @@ public class DebugService : MonoBehaviour
             },
             actionOnDestroy: (sphere) =>
             {
-                Destroy(sphere);
+                DestroyImmediate(sphere);
             },
             collectionCheck: false,
             defaultCapacity: poolSize,
