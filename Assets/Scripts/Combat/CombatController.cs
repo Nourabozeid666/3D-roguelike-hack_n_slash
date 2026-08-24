@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Drakkar.GameUtils;
 using UnityEngine;
+using static StaggerSeverity;
 
 
 public class CombatController : MonoBehaviour
@@ -14,6 +15,7 @@ public class CombatController : MonoBehaviour
     private StateMachine<CombatController> _stateMachine;
     internal DamageHitboxHelper damageHitboxHelper;
     internal PlayerController _playerController;
+    internal PlayerEntity _playerEntity;
     
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
@@ -23,6 +25,7 @@ public class CombatController : MonoBehaviour
     {
         SetTrailReferenceTEMPORARY();
         _playerController = GetComponent<PlayerController>();
+        _playerEntity = _playerController.Entity as PlayerEntity;
         damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
         comboSystem = new ComboSystem(this);
         equipmentSystem._owner = this;
@@ -37,6 +40,7 @@ public class CombatController : MonoBehaviour
         _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatRecoveryState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatStaggerState(referencesContext.animator));
         _stateMachine.SetState<CombatIdleState>();
     }
 
@@ -52,6 +56,11 @@ public class CombatController : MonoBehaviour
         {
             equipmentSystem.EquipWeapon(equipmentSystem.CurrentWeapon);
         }
+
+        if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
+        {
+            damageHitboxHelper.OnHitboxTriggered += HandleHitboxTriggered;
+        }
     }
 
     void OnEnable()
@@ -60,6 +69,7 @@ public class CombatController : MonoBehaviour
         InputController.OnLightAttackEnd += HandleLightAttackEnd;
         InputController.OnHeavyAttackStart += HandleHeavyAttackStart;
         InputController.OnHeavyAttackEnd += HandleHeavyAttackEnd;
+        _playerEntity.OnDamageTaken += HandleDamageTaken;
     }
 
     void OnDisable()
@@ -68,6 +78,7 @@ public class CombatController : MonoBehaviour
         InputController.OnLightAttackEnd -= HandleLightAttackEnd;
         InputController.OnHeavyAttackStart -= HandleHeavyAttackStart;
         InputController.OnHeavyAttackEnd -= HandleHeavyAttackEnd;
+        _playerEntity.OnDamageTaken -= HandleDamageTaken;
     }
 
     private void HandleLightAttackStart()
@@ -154,5 +165,28 @@ public class CombatController : MonoBehaviour
                 return typeof(CombatHeavyHoldState);
         }
         return null;
+    }
+
+    void HandleHitboxTriggered(GameObject other, IEntity entity)
+    {
+        if (entity != null)
+        {
+            PlayerEntity playerEntity = _playerController.Entity as PlayerEntity;
+            float damage = playerEntity.CalculateAttackDamage();
+            entity.TakeDamage(damage);
+        }
+    }
+
+    void HandleDamageTaken(float damage, AttackEffectData effectData)
+    {
+        PoiseTier poiseTier = combatContext.currentAttack != null ? combatContext.currentAttack.EffectData.selfPoise : PoiseTier.Normal; // Fallback to Normal
+        StaggerTier staggerTier = effectData != null ? effectData.appliedStagger : StaggerTier.Normal; // Fallback to None
+        Severity staggerSeverity = GetStaggerSeverity(poiseTier, staggerTier);
+        Debug.Log($"Damage Taken: {damage}, Poise Tier: {poiseTier}, Stagger Tier: {staggerTier}, Stagger Severity: {staggerSeverity}");
+        if (staggerSeverity != Severity.None)
+        {
+            combatContext.currentStaggerSeverity = staggerSeverity;
+            _stateMachine.SetState<CombatStaggerState>();
+        }
     }
 }

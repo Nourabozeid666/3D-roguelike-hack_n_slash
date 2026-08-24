@@ -12,16 +12,30 @@ public class InputController : MonoBehaviour
     public static event Action OnHeavyAttackStart;
     public static event Action OnHeavyAttackEnd;
 
+    // Debug Inputs
+    public bool enableDebugInputs = true;
+    public static event Action OnDebugInput1;
+    public static event Action OnDebugInput2;
+    public static event Action OnDebugInput3;
+
     void OnEnable()
     {
         controls.PlayerMovement.Enable();
         controls.Combat.Enable();
+        if (enableDebugInputs)
+        {
+           controls.Debug.Enable();
+        }
     }
 
     void OnDisable()
     {
         controls.PlayerMovement.Disable();
         controls.Combat.Disable();
+        if (enableDebugInputs)
+        {
+            controls.Debug.Disable();
+        }
     }
 
     void Awake()
@@ -38,5 +52,9 @@ public class InputController : MonoBehaviour
         controls.Combat.LightAttack.canceled += ctx => OnLightAttackEnd?.Invoke();
         controls.Combat.HeavyAttack.performed += ctx => OnHeavyAttackStart?.Invoke();
         controls.Combat.HeavyAttack.canceled += ctx => OnHeavyAttackEnd?.Invoke();
+        // Debug
+        controls.Debug.Debug1.performed += ctx => OnDebugInput1?.Invoke();
+        controls.Debug.Debug2.performed += ctx => OnDebugInput2?.Invoke();
+        controls.Debug.Debug3.performed += ctx => OnDebugInput3?.Invoke();
     }
 }
