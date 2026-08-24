@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Cysharp.Threading.Tasks;
 using static StaggerSeverity;
 
 /*
@@ -85,6 +86,8 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     [Header("-------------Attack components-------------")]
     [SerializeField] private EnemyAttackConfig enemyAttackConfig;
     [SerializeField] private DamageHitboxHelper attackHit;  // drag Hurt Box here in the Inspector
+    [SerializeField] private float attackCooldown = 1f;
+    [SerializeField] private bool canAttack = true;
 
     [Header("------------Death----------")]
     [SerializeField] float deathDuration;
@@ -155,7 +158,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        attackHit = GetComponent<DamageHitboxHelper>();
+        attackHit = GetComponentInChildren<DamageHitboxHelper>();
         PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (player != null)
             targetTransform = player.transform;
@@ -196,7 +199,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
         // (e.g. SacrificeAttack) read RuntimeDamage to scale their configured damage.
         AddState(new SpownState(this));
         AddState(new ChaseState(this));
-        AddState(new AttackState(this));
+        AddState(new AttackState(this, attackHit));
         AddState(new PatrolState(this));
         AddState(new StaggerState(this));
         AddState(new DieState(this));
@@ -249,36 +252,12 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
         Debug.Log($"HandleStaggered - state:{EStateMachine.CurrentState?.GetType().Name} " +
             $"canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted}");
     }
-    AttackEffectData SmallPoiseDamageEffectData()
-    {
-        return new AttackEffectData
-        {
-            multiplier = 1f,
-            appliedStagger = StaggerTier.Normal,
-        };
-    }
-    AttackEffectData GuaranteedPoiseBreakEffectData()
-    {
-        return new AttackEffectData
-        {
-            multiplier = 1f,
-            appliedStagger = StaggerTier.Power,
-        };
-    }
     // update state here
     void Update()
     {
         EStateMachine.Tick();
 
         SeeThePlayer();
-
-        // enemyEntity.TickPoiseRegen(Time.deltaTime);
-
-        if (Keyboard.current.hKey.wasPressedThisFrame)
-            enemyEntity.TakeDamage(10, SmallPoiseDamageEffectData()); // small poise damage
-
-        if (Keyboard.current.jKey.wasPressedThisFrame)
-            enemyEntity.TakeDamage(10, GuaranteedPoiseBreakEffectData()); // guaranteed poise break
 
         // GetState<AttackState>() always hands back a plain EnemyState label (that's fixed in the method's return type).
         // "as AttackState" relabels it as AttackState specifically, so we can reach AttackState-only stuff like CurrentCombatAction.
@@ -310,6 +289,12 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
         EStateMachine.AddState(state);
     }
 
+    UniTask WaitForSecondsAsync(float seconds)
+    {
+        canAttack = false;
+        return UniTask.Delay(TimeSpan.FromSeconds(seconds)).ContinueWith(() => canAttack = true);
+    }
+
     void SeeThePlayer()
     {
         if (targetTransform == null || agent == null)
@@ -334,9 +319,10 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
             hasTarget = true;
         }
 
-        if (distance <= attackRange)
+        if (distance <= attackRange && canAttack)
         {
             SetState<AttackState>();
+            WaitForSecondsAsync(attackCooldown).Forget();
             return;
         }
 

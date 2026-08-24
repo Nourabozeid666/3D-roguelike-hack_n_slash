@@ -13,9 +13,9 @@ GameObject:
   - component: {fileID: 8699261259086721280}
   - component: {fileID: 6925623282187485742}
   - component: {fileID: 5303929994404857464}
-  m_Layer: 7
+  m_Layer: 3
   m_Name: PlayerObj
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -154,7 +154,7 @@ GameObject:
   - component: {fileID: 7821813300796262384}
   - component: {fileID: 7267008072539473272}
   - component: {fileID: 9104018863096216662}
-  m_Layer: 7
+  m_Layer: 3
   m_Name: ModularPlayer
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -250,9 +250,10 @@ MonoBehaviour:
     baseDamage: 10
     baseDefense: 5
     attackSpeed: 1
-    critChance: 0.1
     weaponLength: 1
     weaponSize: 1
+    critChance: 0.1
+    critMultiplier: 1.25
     isDead: 0
   referencesContext:
     groundLayer:
@@ -303,6 +304,11 @@ MonoBehaviour:
     currentInputType: 0
     queuedInputType: 0
     currentTargetPos: {fileID: 0}
+    timeSinceDamageTaken: Infinity
+    staggerImmunityTimer: Infinity
+    staggerImmunityDuration: 1
+    currentStaggerSeverity: 0
+    isStaggered: 0
     inputString: 
     canAttack: 1
     isAttacking: 0
@@ -313,6 +319,7 @@ MonoBehaviour:
     lastInputTime: 0
     bufferExpiryTime: 0
   equipmentSystem:
+    _owner: {fileID: 0}
     currentWeaponModelData: {fileID: 0}
     availableSockets:
       keys: 000000000100000002000000
@@ -323,6 +330,7 @@ MonoBehaviour:
     enableEquipmentSystem: 1
     currentWeapon: {fileID: 11400000, guid: d1fda456c8554624eb17f54a0831d3fd, type: 2}
     currentWeaponModel: {fileID: 0}
+    accessoryModels: []
 --- !u!1 &4763080310330837779
 GameObject:
   m_ObjectHideFlags: 0
@@ -334,9 +342,9 @@ GameObject:
   - component: {fileID: 7848847955703343818}
   - component: {fileID: 8919647205346413158}
   - component: {fileID: 8480957553571886195}
-  m_Layer: 7
+  m_Layer: 3
   m_Name: RightHandSocket
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -424,9 +432,9 @@ GameObject:
   - component: {fileID: 946209702107616142}
   - component: {fileID: 7148438743918026548}
   - component: {fileID: 6672773404029921136}
-  m_Layer: 7
+  m_Layer: 3
   m_Name: LeftHandSocket
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -514,7 +522,7 @@ GameObject:
   - component: {fileID: 8252409243909745687}
   - component: {fileID: 7445736443680655356}
   - component: {fileID: 7606770213815117636}
-  m_Layer: 7
+  m_Layer: 3
   m_Name: Hitbox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -550,6 +558,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DamageHitboxHelper
   tagsToHandle:
   - Enemy
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
   hitboxCollider: {fileID: 7606770213815117636}
 --- !u!136 &7606770213815117636
 CapsuleCollider:
@@ -583,9 +594,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8250147941310630863}
-  m_Layer: 7
+  m_Layer: 3
   m_Name: HipSocket
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -616,9 +627,9 @@ GameObject:
   - component: {fileID: 4278621468955500508}
   - component: {fileID: 50107278429885530}
   - component: {fileID: 6709118232069483068}
-  m_Layer: 7
+  m_Layer: 3
   m_Name: Orientation
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

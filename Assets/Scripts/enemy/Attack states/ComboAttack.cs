@@ -38,6 +38,7 @@ internal class ComboAttack : CombatActionState
 
     void OnHitboxTriggered(GameObject gameObject, IEntity entity)
     {
+        Debug.Log($"Enemy hit {entity} for {activeSequence.Hits[hitIndex].Damage} damage!");
         var hit = activeSequence.Hits[hitIndex];
         entity.TakeDamage(hit.Damage);
     }
@@ -50,11 +51,14 @@ internal class ComboAttack : CombatActionState
         if (elapsedInHit < activeSequence.Hits[hitIndex].Duration)
             return;
 
-        hitIndex++;
-        if (hitIndex >= activeSequence.Hits.Count)
+        
+        if (hitIndex >= activeSequence.Hits.Count - 1)
             IsFinished = true;
         else
+        {
+            hitIndex++;
             PlayCurrentHit();
+        }
     }
 
     public override void Exit()

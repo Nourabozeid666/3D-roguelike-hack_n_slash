@@ -26,10 +26,10 @@ public class AttackState : EnemyState
     EnemyStateMachine<CombatActionState> combatActions = new();
     public CombatActionState CurrentCombatAction => combatActions.CurrentState;
     DamageHitboxHelper hitboxHelper;
-    public AttackState(EnemyController enemyController) : base(enemyController)
+    public AttackState(EnemyController enemyController, DamageHitboxHelper hitboxHelper) : base(enemyController)
     {
         agent = enemyController.Agent;
-        hitboxHelper = enemyController.GetComponent<DamageHitboxHelper>();
+        this.hitboxHelper = hitboxHelper;
 
         //add states to all the attacks you need in the game
         // -------------------------------------------------need adds for each attack state--------------------------------------------------------------
@@ -68,11 +68,21 @@ public class AttackState : EnemyState
         combatActions.Exit();
     }
 
+    bool CheckTargetDistance()
+    {
+        float distanceToTarget = Vector3.Distance(enemyController.transform.position, enemyController.TargetTransform.position); 
+        return distanceToTarget > enemyController.AttackRange;
+    }
+
     public override void Tick()
     {
         Vector3 lookAtVector = new Vector3( enemyController.TargetTransform.position.x, enemyController.transform.position.y, enemyController.TargetTransform.position.z);
         enemyController.transform.LookAt(lookAtVector);
         combatActions.Tick();
+        if (combatActions.CurrentState != null && combatActions.CurrentState.IsFinished || CheckTargetDistance())
+        {
+            enemyController.SetState<ChaseState>();
+        }
     }
 
      void AddState(CombatActionState combatAction)
