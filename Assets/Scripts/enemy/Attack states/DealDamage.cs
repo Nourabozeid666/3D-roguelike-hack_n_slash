@@ -2,13 +2,15 @@ using UnityEngine;
 
 public class DealDamage : MonoBehaviour
 {
-    private float damage = 0f;
-
-    public void SetDamage(float amount) => damage = amount;
+    [SerializeField] EnemyController enemyController;
     private void OnTriggerEnter(Collider other)
     {
-        PlayerController player = other.GetComponentInParent<PlayerController>();
-        if (player == null) return;
-        player.Entity.TakeDamage(damage);
+        PlayerController playerController = other.GetComponentInParent<PlayerController>();
+        if (playerController == null)
+            return;
+        if (playerController.Entity.Health <= 0f)
+            return;
+        playerController.Entity.TakeDamage(enemyController.RuntimeDamage);
+        Debug.Log($"Player took {enemyController.RuntimeDamage} damage. Remaining health: {playerController.Entity.Health}", this);
     }
 }

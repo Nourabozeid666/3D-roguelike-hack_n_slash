@@ -3,25 +3,37 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using static StaggerSeverity;
 
 [Serializable]
 public class CombatContext
 {
     [Header("Current Weapon Data")]
     [SerializeField] internal AnimatorOverrideController overrideController;
-    [SerializeField] internal WeaponObject currentWeapon;
     [SerializeField] internal AttackData currentAttack;
     [SerializeField] internal AttackData queuedAttack;
     [SerializeField] internal AttackData previousAttack;
     [SerializeField] internal InputType currentInputType;
     [SerializeField] internal InputType queuedInputType;
+
+    [Header("Enemy Interaction Data")]
+    [SerializeField] internal Transform currentTargetPos;
+    [SerializeField] internal float timeSinceDamageTaken = Mathf.Infinity;
+
+    [Header("Poise & Stagger Data")]
+    [SerializeField] internal float staggerImmunityTimer = Mathf.Infinity;
+    [SerializeField] internal float staggerImmunityDuration = 1f; // Time in seconds of stagger immunity after being staggered
+    [SerializeField] internal Severity currentStaggerSeverity = Severity.None;
+    [SerializeField] internal bool isStaggered = false;
     
     [Header("Input Data")]
     [SerializeField] internal string inputString = "";
     [SerializeField] internal InputState inputState;
 
     [Header("Running Values")]
-    [SerializeField] internal bool isAttacking = false; // True when in middle of an attack animation
+    [SerializeField] internal bool canAttack = true; // True when not in middle of an attack animation or recovery frames
+    [SerializeField] internal bool isAttacking = false; // True when in middle of active hit frames of an attack animation
+    [SerializeField] internal bool isRecovering = false; // True during recovery frames of an attack animation
     [SerializeField] internal bool isCharging = false; // True when in middle of a charge animation
     [SerializeField] internal float lightHoldTime = 0f; // Increase after .performed and reset after .canceled
     [SerializeField] internal float heavyHoldTime = 0f; // Increase after .performed and reset after .canceled

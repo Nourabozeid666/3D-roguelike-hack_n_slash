@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
@@ -6,9 +7,9 @@ using UnityEngine.UI;
 
 /*
     basic states for a grunt enemy:
-        attackState  
+        attackState
         RetreatState
-        { 
+        {
             SacrificeAttack
             RangedShootAttack
             MeleeAttack
@@ -21,10 +22,10 @@ using UnityEngine.UI;
         // get it sepatated
             standard and grunt :
              only take damage and get back for getting hurt
-            boss : 
+            boss :
              does not feel any thing unless the stager bar is full and then empty it and make him hurt for some seconds
         }
-        
+
     basic attackState for Melee archetypes
     {
     #Standard
@@ -34,21 +35,25 @@ using UnityEngine.UI;
 
     spownEnemySystem:
        *ScriptableObject to store the spown points
-       *system to spown a certain amout of enemies with spown times  
-       *controls what eneies are we spownning, Enemies will be with high cost. And actually it's going to be prevented from being in the first 
+       *system to spown a certain amout of enemies with spown times
+       *controls what eneies are we spownning, Enemies will be with high cost. And actually it's going to be prevented from being in the first
         levels, so they are going to be open after a certain amount of levels.
        *It has a specific cost for how many levels the player have get through. And the enemies, each of them is going to have a certain amount
-        of this cost. So we're going to combine the cost of all enemies to get to the number that we need to. And if it's larger, we're going to 
+        of this cost. So we're going to combine the cost of all enemies to get to the number that we need to. And if it's larger, we're going to
         get to minus it by a bit.
  */
 
-/* 
- * EnemyEntity owns the numbers and decides what happened, EnemyController is the only one holding both the 
+/*
+ * EnemyEntity owns the numbers and decides what happened, EnemyController is the only one holding both the
  * entity and the state machine so it's the one that translates "what happened" into "which state, doing what"
  * and StagerState just plays a clip and holds a timer.
  */
-public class EnemyController : MonoBehaviour
+public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
 {
+    // IEnemySpawned death contract: raised whenever the EnemyEntity dies (forwards its
+    // authoritative OnDied), so SpawnSystem can decrement alive tracking / raise FloorCleared.
+    public event Action OnDied;
+
     private EnemyStateMachine<EnemyState> EStateMachine;
 
     private NavMeshAgent agent;
@@ -73,7 +78,7 @@ public class EnemyController : MonoBehaviour
     [SerializeField] Text _debugText;
     [SerializeField] private EnemyEntity enemyEntity;
     [SerializeField] private EnemyArchetypeConfig archetypeConfig;
-    // can get into the stagger state 
+    // can get into the stagger state
     [SerializeField] private bool flinchesOnHit = true; // grunts: true, bosses: false
 
     [Header("-------------Attack components-------------")]
@@ -108,6 +113,43 @@ public class EnemyController : MonoBehaviour
     public Transform TargetTransform => targetTransform;
     public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
 
+    // ISpawnStatConfig: SpawnSystem reads the enemy's base stats and pushes the floor-scaled
+    // absolute values in before Initialize() runs.
+    //
+    // HEALTH is applied through the authoritative EnemyEntity initialization: the floor-scaled
+    // max overrides the authored archetype max (see Initialize(config, scaledMaxHealthOverride))
+    // and the enemy spawns at full scaled health.
+    //
+    // DAMAGE: the authoritative runtime damage source is the per-attack ScriptableObject config
+    // (EnemyAttackConfig.baseDamage / SacrificeAttackConfig.explosionDamage), read-only and shared -
+    // NOT EnemyEntity.baseDamage (unused by combat). The base damage is READ from that config here;
+    // the floor-scaled damage is stored in `runtimeDamage` so attacks (DealDamage, SacrificeAttack)
+    // can read the per-instance value instead of mutating the shared ScriptableObject.
+    public float BaseMaxHealth => enemyEntity != null ? enemyEntity.MaxHealth : 0f;
+    public float BaseDamage => enemyAttackConfig != null ? enemyAttackConfig.BaseDamage : 0f;
+
+    /// <summary>Per-instance runtime damage written by SpawnSystem via ConfigureForSpawn.
+    /// Attacks read this instead of the shared ScriptableObject to respect floor scaling.</summary>
+    float runtimeDamage;
+    public float RuntimeDamage => runtimeDamage;
+
+    // Pending spawn stats: ConfigureForSpawn runs between Instantiate/Awake and the Unity Start()
+    // pass, while authored stats come from Initialize(archetypeConfig) inside Start(). The
+    // floor-scaled values are stored here and applied AFTER authored initialization so
+    // per-instance scaling wins over the authored base.
+    float pendingSpawnMaxHealth;
+    float pendingSpawnBaseDamage;
+    bool hasPendingSpawnStats;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        if (enemyEntity == null)
+            enemyEntity = GetComponent<EnemyEntity>();
+        pendingSpawnMaxHealth = maxHealth;
+        pendingSpawnBaseDamage = baseDamage;
+        hasPendingSpawnStats = true;
+    }
+
     void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -124,15 +166,32 @@ public class EnemyController : MonoBehaviour
 
         EStateMachine = new EnemyStateMachine<EnemyState>();
 
-        enemyEntity.Initialize(archetypeConfig);
+        // Null-safe init: never rely on the inspector slot being filled.
+        if (enemyEntity == null)
+            enemyEntity = GetComponent<EnemyEntity>();
+
+        // ONE authoritative initialization sequence:
+        //   authored archetype stats first...
+        float? scaledMaxHealth = hasPendingSpawnStats ? pendingSpawnMaxHealth : (float?)null;
+        enemyEntity.Initialize(archetypeConfig, scaledMaxHealth);
+
+        //   ...then the SpawnSystem floor-scaled override decides damage. Unspawned scene enemies
+        //   fall back to their attack config's authored base damage instead of dealing zero.
+        runtimeDamage = hasPendingSpawnStats
+            ? pendingSpawnBaseDamage
+            : (enemyAttackConfig != null ? enemyAttackConfig.BaseDamage : 0f);
+
         enemyEntity.OnStaggered += HandleStaggered;
         enemyEntity.OnDied += HandleDied;
+        enemyEntity.OnDied += () => OnDied?.Invoke();
         enemyEntity.OnDamageTaken += HandleDamageTaken;
 
         // for each state i need to initialise them all first
         // apply changes to the constractor after finishing with each state
         // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+        // States are constructed AFTER runtimeDamage is final: attack action constructors
+        // (e.g. SacrificeAttack) read RuntimeDamage to scale their configured damage.
         AddState(new SpownState(this));
         AddState(new ChaseState(this));
         AddState(new AttackState(this));
@@ -156,16 +215,16 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        if (!flinchesOnHit) 
+        if (!flinchesOnHit)
             return;
 
-        if (!EStateMachine.CurrentState.CanBeInterrupted) 
+        if (!EStateMachine.CurrentState.CanBeInterrupted)
             return;
 
         staggerState?.SetReaction(StaggerState.ReactionType.Hit);
         SetState<StaggerState>();
 
-        Debug.Log($"HandleDamageTaken — state:{EStateMachine.CurrentState?.GetType().Name}" +
+        Debug.Log($"HandleDamageTaken - state:{EStateMachine.CurrentState?.GetType().Name}" +
             $" canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted} flinches:{flinchesOnHit}");
     }
 
@@ -184,7 +243,7 @@ public class EnemyController : MonoBehaviour
         staggerState?.SetReaction(StaggerState.ReactionType.Stun);
         SetState<StaggerState>();
 
-        Debug.Log($"HandleStaggered — state:{EStateMachine.CurrentState?.GetType().Name} " +
+        Debug.Log($"HandleStaggered - state:{EStateMachine.CurrentState?.GetType().Name} " +
             $"canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted}");
     }
 
@@ -243,7 +302,7 @@ public class EnemyController : MonoBehaviour
 
         // an active attack manages its own positioning and knows when it's done
         if (EStateMachine.CurrentState is AttackState)
-            return; 
+            return;
 
         Vector3 direction = targetTransform.position - transform.position;
         float distance = direction.magnitude;

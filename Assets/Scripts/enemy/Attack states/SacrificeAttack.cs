@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.AI;
 
 internal class SacrificeAttack : CombatActionState
@@ -20,7 +20,7 @@ internal class SacrificeAttack : CombatActionState
 
     private readonly SacrificeAttackConfig config;
 
-    public SacrificeAttack(EnemyController enemyController, SacrificeAttackConfig config, GameObject explosionParticles) 
+    public SacrificeAttack(EnemyController enemyController, SacrificeAttackConfig config, GameObject explosionParticles)
         : base(enemyController)
     {
         this.config = config;
@@ -33,7 +33,12 @@ internal class SacrificeAttack : CombatActionState
         maxAttackRange = config.MaxAttackRange;
         timeToStartExplosionState = config.TimeToStartExplosionState;
         explosionRadius = config.ExplosionRadius;
-        explosionDamage = config.ExplosionDamage;
+
+        // Scale explosion damage proportionally to the runtime melee damage so floor-scaled
+        // enemies deal floor-scaled explosion damage. Uses RuntimeDamage (written by SpawnSystem
+        // through ConfigureForSpawn) relative to the shared SO base; shared assets are never mutated.
+        float ratio = config.BaseDamage > 0f ? enemyController.RuntimeDamage / config.BaseDamage : 1f;
+        explosionDamage = config.ExplosionDamage * ratio;
 
         explosionDuration = config.ExplosionDuration;
         timeBeforeExplosion = config.TimeBeforeExplosion;

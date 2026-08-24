@@ -22,6 +22,11 @@ public class CombatLightAttackState : State<CombatController>
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
     }
 
+    public override bool CanEnter()
+    {
+        return _owner._playerController.CharacterState != null ? _owner._playerController.CharacterState.CanAttack : true;
+    }
+
     public override void Enter()
     {
         AttackData attack = _owner.CombatContext.currentAttack;
@@ -30,11 +35,6 @@ public class CombatLightAttackState : State<CombatController>
 
         _OverrideController["LightAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
-        // Cancel dash if attack started during dash (Rule 4)
-        if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsDashing)
-        {
-            _owner._playerController.StateMachine.SetState<PlayerIdleState>();
-        }
 
         // Damp horizontal momentum if grounded (Rule 5)
         if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsGrounded)
@@ -42,10 +42,11 @@ public class CombatLightAttackState : State<CombatController>
             _owner._playerController.ResetHorizontalVelocity();
         }
 
+        AdjustRotationDuringLunge(_owner._playerController.MoveDirectionToWorldSpace()).Forget();
         ExecuteLunge().Forget();
-        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)
         {
-            _owner.CombatContext.currentWeapon.Trail.Begin();
+            _owner.equipmentSystem.CurrentWeapon.Trail.Begin();
         }
         _owner._playerController.SetCanMove(false);
     }
@@ -58,6 +59,21 @@ public class CombatLightAttackState : State<CombatController>
             UseLunge(_currentAttack.LungeDirection, _currentAttack.LungeDistance);
             lungeDuration -= Time.deltaTime;
             return lungeDuration > 0f;
+        });
+    }
+
+    private UniTask AdjustRotationDuringLunge(Vector3 moveDirection)
+    {
+        const float angleThreshold = 0.05f; // degrees
+        float alpha = 0.1f; // Slerp factor for smooth rotation
+        return UniTask.WaitUntil(() =>
+        {
+            if (moveDirection == Vector3.zero) return true;
+            _owner._playerController.CustomRotate(moveDirection, alpha);
+            float angle = Vector3.Angle(_owner.transform.forward, moveDirection);
+            alpha += 0.1f;
+            alpha = Mathf.Clamp01(alpha); // Ensure alpha stays within [0, 1]
+            return angle <= angleThreshold || !_owner._playerController.CharacterState.IsAttacking;
         });
     }
 
@@ -79,12 +95,8 @@ public class CombatLightAttackState : State<CombatController>
         && _owner.CombatContext.isAttacking)
         {
             _owner.CombatContext.isAttacking = false;
-        }
-        if (stateInfo.IsName("LightAttack")
-        && stateInfo.normalizedTime >= _currentAttack.ComboWindow + _currentAttack.RecoveryStartTime
-        && !_owner.CombatContext.isAttacking)
-        {
-            _stateMachine.SetState<CombatIdleState>();
+            _owner.CombatContext.isRecovering = true;
+            _stateMachine.SetState<CombatRecoveryState>();
         }
         if (!stateInfo.IsName("LightAttack"))
         {
@@ -94,12 +106,12 @@ public class CombatLightAttackState : State<CombatController>
 
     public override void Exit()
     {
-        _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
-        _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
-        if (_owner.CombatContext.currentWeapon?.Trail != null)
+        // _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
+        // _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)
         {
-            _owner.CombatContext.currentWeapon.Trail.End();
+            _owner.equipmentSystem.CurrentWeapon.Trail.End();
         }
-        _owner._playerController.SetCanMove(true);
+        // _owner._playerController.SetCanMove(true);
     }
 }

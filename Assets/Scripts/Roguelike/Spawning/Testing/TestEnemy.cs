@@ -8,12 +8,12 @@ using UnityEngine;
 /// Lives under Spawning/Testing/ (outside Assets/Scripts/Enemy/) to stay isolated from the real
 /// Enemy System. When the real enemy lands, the archetype prefab is swapped and this is deleted.
 /// </summary>
-public class TestEnemy : MonoBehaviour, IEnemySpawned
+public class TestEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
 {
     [SerializeField] float baseHealth = 10f;
     [SerializeField] float baseDamage = 1f;
 
-    public event Action Died;
+    public event Action OnDied;
 
     public float Health { get; private set; }
     public float Damage { get; private set; }
@@ -27,10 +27,17 @@ public class TestEnemy : MonoBehaviour, IEnemySpawned
         Damage = baseDamage;
     }
 
-    public void ApplyFloorScaling(float healthScale, float damageScale)
+    // ISpawnStatConfig: SpawnSystem owns the floor-scaled absolute values; this test double just
+    // stores them as its working stats. Awake (fired during Instantiate) re-reads the raw serialized
+    // values into Health/Damage, then ConfigureForSpawn runs right after and the scaled values win;
+    // when configured after Awake in any other order, the configured values still win.
+    public float BaseMaxHealth => baseHealth;
+    public float BaseDamage => baseDamage;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
     {
-        Health = baseHealth * healthScale;
-        Damage = baseDamage * damageScale;
+        Health = maxHealth;
+        Damage = baseDamage;
     }
 
     /// <summary>Simulate death/removal: notify the SpawnSystem, then destroy this object.</summary>
@@ -38,7 +45,7 @@ public class TestEnemy : MonoBehaviour, IEnemySpawned
     {
         if (dead) return;
         dead = true;
-        Died?.Invoke();
+        OnDied?.Invoke();
         Destroy(gameObject);
     }
 

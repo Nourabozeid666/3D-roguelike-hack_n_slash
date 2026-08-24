@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -8,7 +9,6 @@ public class ComboSystem
 
     private float queueCooldown = 0.1f;
     private bool canQueue = true;
-
     public ComboSystem(CombatController owner)
     {
         this.owner = owner;
@@ -28,7 +28,7 @@ public class ComboSystem
         }
         else if (owner.CombatContext.queuedInputType != inputType)
         {
-            owner.CombatContext.queuedAttack = owner.CombatContext.currentWeapon.EntryAttacks.Dict.GetValueOrDefault(inputType);
+            owner.CombatContext.queuedAttack = owner.equipmentSystem.CurrentWeapon.EntryAttacks.Dict.GetValueOrDefault(inputType);
             owner.CombatContext.queuedInputType = inputType;
             Debug.Log("Queued attack: " + owner.CombatContext.queuedAttack.name + " (from weapon entry attack) and InputType: " + inputType);
         }
@@ -37,7 +37,7 @@ public class ComboSystem
             Debug.Log("No valid attack found for InputType: " + inputType);
         }
         Debug.Log("Current attack: " + (owner.CombatContext.currentAttack != null ? owner.CombatContext.currentAttack.name : "None"));
-        Debug.Log("Weapon entry attacks: " + string.Join(", ", owner.CombatContext.currentWeapon.EntryAttacks.Dict.Keys));
+        Debug.Log("Weapon entry attacks: " + string.Join(", ", owner.equipmentSystem.CurrentWeapon.EntryAttacks.Dict.Keys));
 
         float bufferDuration = 0.2f;
         owner.CombatContext.bufferExpiryTime = Time.time + bufferDuration;
@@ -67,7 +67,7 @@ public class ComboSystem
         }
         if (targetAttack == null)
         {
-            targetAttack = owner.CombatContext.currentWeapon.EntryAttacks.Dict.GetValueOrDefault(inputType);
+            targetAttack = owner.equipmentSystem.CurrentWeapon.EntryAttacks.Dict.GetValueOrDefault(inputType);
         }
 
         if (targetAttack != null && targetAttack.IsHoldAttack)
@@ -88,6 +88,13 @@ public class ComboSystem
     public void CheckInput()
     {
         var input = owner.CombatContext.inputState;
+        if (owner._playerController.CharacterState != null && !owner._playerController.CharacterState.CanAttack)
+        {
+            input.lightAttackReleased = false;
+            input.heavyAttackReleased = false;
+            return;
+        }
+
         if (input.lightAttackReleased)
         {
             owner.CombatContext.inputState.lightAttackReleased = false;

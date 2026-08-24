@@ -30,22 +30,42 @@ public class EnemyEntity : IEnemyEntity
     public event Action OnStaggered;
     //public event Action Died;
 
+    public void Initialize()
+        => Initialize(null, null);
+
     public void Initialize(EnemyArchetypeConfig config)
+        => Initialize(config, null);
+
+    /// <summary>
+    /// Single authoritative initialization. Authored stats come from the shared archetype config
+    /// (read-only, never mutated). scaledMaxHealthOverride - provided by the SpawnSystem stat seam
+    /// (ISpawnStatConfig.ConfigureForSpawn) - is applied LAST so the per-instance floor-scaled value
+    /// wins over the authored base, and the enemy spawns at full scaled health.
+    /// </summary>
+    public void Initialize(EnemyArchetypeConfig config, float? scaledMaxHealthOverride)
     {
-        if (config == null)
+        if (config == null && !scaledMaxHealthOverride.HasValue)
         {
-            Debug.LogWarning($"EnemyEntity.Initialize called with no archetype config — using default field values.", null);
+            Debug.LogWarning($"EnemyEntity.Initialize called with no archetype config - using default field values.", null);
             currentHealth = maxHealth;
             currentPoise = maxPoise;
             return;
         }
 
-        maxHealth = config.maxHealth;
+        if (config != null)
+        {
+            maxPoise = config.maxPoise;
+            baseDamage = config.baseDamage;
+            baseDefence = config.baseDefense;
+            if (!scaledMaxHealthOverride.HasValue)
+                maxHealth = config.maxHealth;
+        }
+
+        if (scaledMaxHealthOverride.HasValue)
+            maxHealth = scaledMaxHealthOverride.Value;
+
         currentHealth = maxHealth;
-        maxPoise = config.maxPoise;
         currentPoise = maxPoise;
-        baseDamage = config.baseDamage;
-        baseDefence = config.baseDefense;
     }
 
     public void TickPoiseRegen(float deltaTime)
@@ -64,13 +84,19 @@ public class EnemyEntity : IEnemyEntity
     public void SetMaxHealth(float newMaxHealth)
     {
         this.maxHealth = newMaxHealth;
-        if (this.currentHealth > maxHealth) 
+        if (this.currentHealth > maxHealth)
             this.currentHealth = maxHealth;
     }
 
     public void TakeDamage( float damage, float poiseDamage = 0f)
     {
-        if (damage <= 0f) 
+        if (damage <= 0f)
+            return;
+
+        // One authoritative death transition: a dead enemy is dead. This guards against repeated
+        // lethal hits (or a Kill() after death) re-firing OnDied and double-notifying listeners
+        // such as SpawnSystem (which would double-decrement AliveCount / double-raise FloorCleared).
+        if (currentHealth <= 0f)
             return;
 
         this.currentHealth -= damage;
@@ -96,11 +122,11 @@ public class EnemyEntity : IEnemyEntity
         }
 
         OnDamageTaken?.Invoke(damage);
-        Debug.Log($"TakeDamage — dmg:{damage} poise:{poiseDamage} | HP:{currentHealth} | Poise:{currentPoise}");
+        Debug.Log($"TakeDamage - dmg:{damage} poise:{poiseDamage} | HP:{currentHealth} | Poise:{currentPoise}");
     }
     public void Kill()
     {
-        if (currentHealth <= 0) 
+        if (currentHealth <= 0)
             return;
         currentHealth = 0;
         OnDied?.Invoke();

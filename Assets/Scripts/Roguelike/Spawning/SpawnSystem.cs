@@ -19,6 +19,12 @@ using UnityEngine.AI;
 /// REPORT-ONLY seam: this class raises the FloorCleared event and exposes IsFloorCleared; it never
 /// touches RunState — the Run owner (RunBootstrap / test driver) decides what happens next. No
 /// singleton, no static state, no EventBus.
+///
+/// ENEMY CONTRACT: every spawned enemy that implements IEnemySpawned is tracked via its OnDied
+/// event (the Enemy system's authoritative death notification, bridged by EnemyController). Floor
+/// scaling is owned here: SpawnSystem reads each enemy's base stats through ISpawnStatConfig,
+/// computes the floor-scaled absolute values, and applies them through ConfigureForSpawn before
+/// the enemy initializes. The Enemy side never sees floors, growth rates or multipliers.
 /// </summary>
 public class SpawnSystem : MonoBehaviour
 {
@@ -63,6 +69,24 @@ public class SpawnSystem : MonoBehaviour
     public event System.Action FloorCleared;
 
     /// <summary>
+    /// Run-end suspension switch (game over): when false, deaths stay tracked/counted but no wave
+    /// is released and FloorCleared never fires. Populate() re-enables it for a fresh floor.
+    /// </summary>
+    public bool WaveReleaseEnabled { get; private set; } = true;
+
+    /// <summary>Total enemies defeated across the whole run: every unique death increments this,
+    /// accumulating across Populate floors. Never reset here — a new run reloads the scene and with
+    /// it this component. Game-over summary data.</summary>
+    public int TotalDefeated { get; private set; }
+
+    /// <summary>Stop releasing waves and reporting clears (run ended / game over). Deaths remain
+    /// tracked and counted. Idempotent; reversed by the next Populate().</summary>
+    public void DisableWaveRelease()
+    {
+        WaveReleaseEnabled = false;
+    }
+
+    /// <summary>
     /// Read-only summary of the last Populate: floor, available (unlocked) types, target count,
     /// chosen composition, total cost and budget. Debug/test info only.
     /// </summary>
@@ -92,6 +116,7 @@ public class SpawnSystem : MonoBehaviour
     public void Populate(float budget, int floor)
     {
         floorVersion++;
+        WaveReleaseEnabled = true; // a fresh floor re-arms release; suspension is per-run
         ClearAlive();
         pacing = null;
         occupiedPositions.Clear();
@@ -245,21 +270,30 @@ public class SpawnSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Blocking-geometry overlap using the zone's configured footprint radius (a real volume, not a
-    /// center-only point test). Layer numbers are never hardcoded — the mask comes from
-    /// SpawnZone.BlockingLayers.
+    /// Blocking-geometry overlap using the zone's configured footprint radius + safety margin
+    /// (a real volume, not a center-only point test). The effective clearance is the enemy's
+    /// physical footprint plus a configurable buffer around obstacles. Layer numbers are never
+    /// hardcoded — the mask comes from SpawnZone.BlockingLayers.
     /// </summary>
     bool IsBlocked(Vector3 candidate)
     {
         if (zone == null || zone.BlockingLayers.value == 0) return false;
-        float radius = zone.FootprintRadius;
+        float radius = zone.FootprintRadius + zone.SafetyMargin;
         if (radius <= 0f) return false;
         return Physics.CheckSphere(candidate, radius, zone.BlockingLayers.value);
     }
 
     void OnEnemyDied(GameObject enemy)
     {
-        alive.Remove(enemy);
+        // Idempotent death handling: a dead enemy must never decrement alive (or clear a floor)
+        // twice. Remove returns false if the enemy was already removed (double OnDied, or the
+        // floor was replaced by ClearAlive while a stale event was in flight), so we stop there.
+        if (!alive.Remove(enemy)) return;
+
+        TotalDefeated++;
+
+        if (!WaveReleaseEnabled) return;
+
         if (alive.Count > 0) return;
 
         if (HasUnspawnedRemaining())
@@ -327,20 +361,31 @@ public class SpawnSystem : MonoBehaviour
     GameObject InstantiateEnemy(EnemyArchetype archetype, Vector3 position, Quaternion rotation)
     {
         GameObject enemy = Instantiate(archetype.Prefab, position, rotation);
+
+        // Death contract: surface the enemy's authoritative death notification so alive tracking
+        // and FloorCleared work. Enemies that do not implement IEnemySpawned are not tracked.
         IEnemySpawned spawned = enemy.GetComponent<IEnemySpawned>();
         if (spawned != null)
-        {
-            ApplyFloorScaling(spawned, archetype, currentFloor);
-            spawned.Died += () => OnEnemyDied(enemy);
-        }
+            spawned.OnDied += () => OnEnemyDied(enemy);
+
+        // Floor scaling (owned by SpawnSystem): read base stats, compute the scaled absolute
+        // values, apply them through the enemy's config seam BEFORE its own initialization runs.
+        ApplyFloorScaling(enemy, archetype, currentFloor);
+
         return enemy;
     }
 
-    static void ApplyFloorScaling(IEnemySpawned spawned, EnemyArchetype archetype, int floor)
+    static void ApplyFloorScaling(GameObject enemy, EnemyArchetype archetype, int floor)
     {
+        ISpawnStatConfig configurable = enemy.GetComponent<ISpawnStatConfig>();
+        if (configurable == null) return;
+
         float healthScale = Mathf.Pow(archetype.HealthGrowthPerFloor + 1f, floor - 1);
         float damageScale = Mathf.Pow(archetype.DamageGrowthPerFloor + 1f, floor - 1);
-        spawned.ApplyFloorScaling(healthScale, damageScale);
+
+        configurable.ConfigureForSpawn(
+            configurable.BaseMaxHealth * healthScale,
+            configurable.BaseDamage * damageScale);
     }
 
     void ClearAlive()
