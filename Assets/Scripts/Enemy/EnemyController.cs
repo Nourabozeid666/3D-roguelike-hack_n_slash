@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using static StaggerSeverity;
 
 /*
     basic states for a grunt enemy:
@@ -83,7 +84,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
 
     [Header("-------------Attack components-------------")]
     [SerializeField] private EnemyAttackConfig enemyAttackConfig;
-    [SerializeField] private DealDamage attackHit;  // drag Hurt Box here in the Inspector
+    [SerializeField] private DamageHitboxHelper attackHit;  // drag Hurt Box here in the Inspector
 
     [Header("------------Death----------")]
     [SerializeField] float deathDuration;
@@ -154,6 +155,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        attackHit = GetComponent<DamageHitboxHelper>();
         PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (player != null)
             targetTransform = player.transform;
@@ -205,11 +207,12 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
         agent.stoppingDistance = waypointStoppingDistance;
     }
 
-    private void HandleDamageTaken(float damage)
+    private void HandleDamageTaken(float damage, AttackEffectData effectData)
     {
+        Severity severity = effectData != null ? GetStaggerSeverity(EnemyEntity.CurrentPoise, effectData.appliedStagger) : Severity.Light;
         StaggerState staggerState = GetState<StaggerState>() as StaggerState;
 
-        if (EStateMachine.CurrentState is StaggerState activeStagger)
+        if (EStateMachine.CurrentState is StaggerState activeStagger && severity > 0)
         {
             activeStagger.ReceiveHit(StaggerState.ReactionType.Hit);
             return;
@@ -228,7 +231,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
             $" canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted} flinches:{flinchesOnHit}");
     }
 
-    private void HandleStaggered()
+    private void HandleStaggered(Severity severity)
     {
         if(EStateMachine.CurrentState is StaggerState activeStagger)
         {
@@ -246,7 +249,22 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
         Debug.Log($"HandleStaggered - state:{EStateMachine.CurrentState?.GetType().Name} " +
             $"canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted}");
     }
-
+    AttackEffectData SmallPoiseDamageEffectData()
+    {
+        return new AttackEffectData
+        {
+            multiplier = 1f,
+            appliedStagger = StaggerTier.Normal,
+        };
+    }
+    AttackEffectData GuaranteedPoiseBreakEffectData()
+    {
+        return new AttackEffectData
+        {
+            multiplier = 1f,
+            appliedStagger = StaggerTier.Power,
+        };
+    }
     // update state here
     void Update()
     {
@@ -254,13 +272,13 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
 
         SeeThePlayer();
 
-        enemyEntity.TickPoiseRegen(Time.deltaTime);
+        // enemyEntity.TickPoiseRegen(Time.deltaTime);
 
         if (Keyboard.current.hKey.wasPressedThisFrame)
-            enemyEntity.TakeDamage(10, 5); // small poise damage
+            enemyEntity.TakeDamage(10, SmallPoiseDamageEffectData()); // small poise damage
 
         if (Keyboard.current.jKey.wasPressedThisFrame)
-            enemyEntity.TakeDamage(10, 999); // guaranteed poise break
+            enemyEntity.TakeDamage(10, GuaranteedPoiseBreakEffectData()); // guaranteed poise break
 
         // GetState<AttackState>() always hands back a plain EnemyState label (that's fixed in the method's return type).
         // "as AttackState" relabels it as AttackState specifically, so we can reach AttackState-only stuff like CurrentCombatAction.
@@ -284,7 +302,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
                     : "None"
             ) +
             "\ncurrect poise: " + (enemyEntity.CurrentPoise) +
-            "\ncurrect Health: " + (enemyEntity.CurrentHealth);
+            "\ncurrect Health: " + (enemyEntity.Health);
     }
 
     void AddState(EnemyState state)

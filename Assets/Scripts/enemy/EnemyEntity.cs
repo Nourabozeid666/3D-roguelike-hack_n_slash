@@ -1,7 +1,9 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
+using static StaggerSeverity;
 [Serializable]
-public class EnemyEntity : IEnemyEntity
+public class EnemyEntity : IEntity
 {
     [SerializeField] float currentHealth = 100;
     [SerializeField] float maxHealth = 100;
@@ -9,25 +11,29 @@ public class EnemyEntity : IEnemyEntity
     [SerializeField] float baseDefence = 0;
 
     [Header("-------------Poise-------------")]
-    [SerializeField] float maxPoise = 100f;   // grunt: set this LOW (even 1). boss: set HIGH.
-    [SerializeField] float currentPoise;
-    [SerializeField] float poiseRegenDelay = 1.5f; // seconds without poise damage before it starts climbing back
-    [SerializeField] float poiseRegenRate = 20f;
-
+    [SerializeField] PoiseTier currentPoise = PoiseTier.Normal;
+    [SerializeField] Severity staggerSeverity = Severity.None;
+    [SerializeField] bool isDead = false;
+    [SerializeField] List<IStatModifier> modifiers = new List<IStatModifier>();
+    
 
     private float timeSinceLastPoiseDamage;
 
-    public float CurrentHealth => currentHealth;
+    public float Health => currentHealth;
     public float MaxHealth => maxHealth;
     public float BaseDamage => baseDamage;
     public float BaseDefense => baseDefence;
-    public float CurrentPoise => currentPoise;
-    public float MaxPoise => maxPoise;
-
-    public event Action<float> OnDamageTaken;
+    // public float CurrentPoise => currentPoise;
+    // public float MaxPoise => maxPoise;
+    public PoiseTier CurrentPoise => currentPoise;
+    public Severity StaggerSeverity => staggerSeverity;
+    public bool IsDead => isDead;
+    public List<IStatModifier> Modifiers => modifiers;
+    public event Action<float, AttackEffectData> OnDamageTaken;
     public event Action<float> OnHealed;
+    public event Action<float> OnMaxHealthChanged;
     public event Action OnDied;
-    public event Action OnStaggered;
+    public event Action<Severity> OnStaggered;
     //public event Action Died;
 
     public void Initialize()
@@ -48,13 +54,13 @@ public class EnemyEntity : IEnemyEntity
         {
             Debug.LogWarning($"EnemyEntity.Initialize called with no archetype config - using default field values.", null);
             currentHealth = maxHealth;
-            currentPoise = maxPoise;
+            // currentPoise = maxPoise;
             return;
         }
 
         if (config != null)
         {
-            maxPoise = config.maxPoise;
+            // maxPoise = config.maxPoise;
             baseDamage = config.baseDamage;
             baseDefence = config.baseDefense;
             if (!scaledMaxHealthOverride.HasValue)
@@ -65,30 +71,36 @@ public class EnemyEntity : IEnemyEntity
             maxHealth = scaledMaxHealthOverride.Value;
 
         currentHealth = maxHealth;
-        currentPoise = maxPoise;
+        // currentPoise = maxPoise;
     }
 
-    public void TickPoiseRegen(float deltaTime)
-    {
-        if (currentPoise >= maxPoise)
-            return;
+    // public void TickPoiseRegen(float deltaTime)
+    // {
+    //     if (currentPoise >= maxPoise)
+    //         return;
 
-        timeSinceLastPoiseDamage += deltaTime;
+    //     timeSinceLastPoiseDamage += deltaTime;
 
-        if (timeSinceLastPoiseDamage < poiseRegenDelay)
-            return;
+    //     if (timeSinceLastPoiseDamage < poiseRegenDelay)
+    //         return;
 
-        currentPoise = Mathf.Min(maxPoise, currentPoise + poiseRegenRate * deltaTime);
-    }
+    //     currentPoise = Mathf.Min(maxPoise, currentPoise + poiseRegenRate * deltaTime);
+    // }
 
     public void SetMaxHealth(float newMaxHealth)
     {
         this.maxHealth = newMaxHealth;
         if (this.currentHealth > maxHealth)
             this.currentHealth = maxHealth;
+        OnMaxHealthChanged?.Invoke(newMaxHealth);
+    }
+    
+    public void Heal(float healAmount)
+    {
+        return; // TODO: implement healing for enemies if needed
     }
 
-    public void TakeDamage( float damage, float poiseDamage = 0f)
+    public void TakeDamage(float damage, AttackEffectData effectData = null)
     {
         if (damage <= 0f)
             return;
@@ -107,22 +119,16 @@ public class EnemyEntity : IEnemyEntity
             OnDied?.Invoke();
             return; // dead things don't also stagger
         }
-
-        if (this.currentPoise <= 0)
+        Severity staggerSeverity = GetStaggerSeverity(currentPoise, effectData.appliedStagger != null ? effectData.appliedStagger : StaggerTier.Normal);
+        if (staggerSeverity != Severity.None)
         {
-            currentPoise = maxPoise;
-            OnStaggered?.Invoke();
+            // currentPoise = maxPoise;
+            OnStaggered?.Invoke(staggerSeverity);
             return;
         }
 
-        if (poiseDamage > 0f)
-        {
-            timeSinceLastPoiseDamage = 0f;
-            this.currentPoise -= poiseDamage;
-        }
-
-        OnDamageTaken?.Invoke(damage);
-        Debug.Log($"TakeDamage - dmg:{damage} poise:{poiseDamage} | HP:{currentHealth} | Poise:{currentPoise}");
+        OnDamageTaken?.Invoke(damage, effectData);
+        Debug.Log($"TakeDamage - dmg:{damage} poise:{effectData?.appliedStagger ?? 0f} | HP:{currentHealth} | Poise:{currentPoise}");
     }
     public void Kill()
     {
