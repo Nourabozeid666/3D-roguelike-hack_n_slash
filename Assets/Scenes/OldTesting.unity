@@ -4175,7 +4175,6 @@ MonoBehaviour:
   archetypeConfig: {fileID: 11400000, guid: f1c046e0603c1fa4e97aac976f921906, type: 2}
   flinchesOnHit: 1
   enemyAttackConfig: {fileID: 11400000, guid: 0ac8dd8e135802f47a49731336091e46, type: 2}
-  attackHit: {fileID: 1146639602}
   deathDuration: 3
   hitDuration: 1
   stunDuration: 5
@@ -5255,6 +5254,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnSystem: {fileID: 1047896537}
+  playerUi: {fileID: 0}
+  pauseController: {fileID: 0}
   floorClearPauseSeconds: 1
 --- !u!114 &1047896536
 MonoBehaviour:
@@ -5763,6 +5764,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DamageHitboxHelper
   tagsToHandle:
   - Enemy
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
   hitboxCollider: {fileID: 1142732248}
 --- !u!1 &1146639601
 GameObject:
@@ -5794,6 +5798,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac10486bb5fc697448458e32c3e8ea3a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  enemyController: {fileID: 859132399}
 --- !u!135 &1146639603
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -9646,6 +9651,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac10486bb5fc697448458e32c3e8ea3a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DealDamage
+  enemyController: {fileID: 0}
 --- !u!65 &1943367589
 BoxCollider:
   m_ObjectHideFlags: 0
