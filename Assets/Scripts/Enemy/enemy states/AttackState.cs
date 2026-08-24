@@ -37,8 +37,8 @@ public class AttackState : EnemyState
         //AddState(new StrongAttack(enemyController));
 
         var comboParts = enemyController.GetComponent<ComboAttackComponents>();
-        if( comboParts != null )
-            AddState(new ComboAttack(enemyController));
+        if (comboParts != null)
+            AddState(new ComboAttack(enemyController, comboParts.Config, comboParts.Hitbox));
         var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
         if (sacrificeParts != null)
             AddState(new SacrificeAttack(enemyController, sacrificeParts.Config, sacrificeParts.ExplosionParticles));

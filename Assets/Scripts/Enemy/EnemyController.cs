@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Data;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
@@ -79,7 +78,7 @@ public class EnemyController : MonoBehaviour
 
     [Header("-------------Attack components-------------")]
     [SerializeField] private EnemyAttackConfig enemyAttackConfig;
-
+    [SerializeField] private DealDamage attackHit;  // drag Hurt Box here in the Inspector
 
     [Header("------------Death----------")]
     [SerializeField] float deathDuration;
@@ -113,7 +112,7 @@ public class EnemyController : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        PlayerController player = Object.FindFirstObjectByType<PlayerController>();
+        PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (player != null)
             targetTransform = player.transform;
         else

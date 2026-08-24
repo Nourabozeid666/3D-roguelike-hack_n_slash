@@ -2,18 +2,13 @@ using UnityEngine;
 
 public class DealDamage : MonoBehaviour
 {
-    [SerializeField, Min(0f)] private float damage = 0f;
-    [SerializeField] EnemyController enemyController;
+    private float damage = 0f;
+
+    public void SetDamage(float amount) => damage = amount;
     private void OnTriggerEnter(Collider other)
     {
-        //PlayerController playerController = other.GetComponentInParent<PlayerController>();
-        //if (playerController == null || alreadyHit.Contains(playerController))
-            //return;
-
-        //if ()
-        //{
-            //playerController.Entity.TakeDamage(damage);
-            //Debug.Log($"Player took {damage} damage. Remaining health: {playerController.Entity.Health}", this);
-        //}
+        PlayerController player = other.GetComponentInParent<PlayerController>();
+        if (player == null) return;
+        player.Entity.TakeDamage(damage);
     }
 }
