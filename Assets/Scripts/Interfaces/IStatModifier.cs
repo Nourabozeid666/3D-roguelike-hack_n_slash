@@ -23,6 +23,7 @@ public enum StatType
     CritChance,
     WeaponLength,
     WeaponSize,
+    CritMultiplier,
 }
 
 public interface IStatModifier

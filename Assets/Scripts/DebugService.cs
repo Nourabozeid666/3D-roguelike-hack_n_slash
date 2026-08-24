@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Pool;
 using System.Collections;
 using System.Collections.Generic;
+using static StaggerSeverity;
 
 public class DebugService : MonoBehaviour
 {
@@ -23,6 +24,7 @@ public class DebugService : MonoBehaviour
         }
         Instance = this;
         InitializePool();
+        InputController.OnDebugInput1 += DebugEvent1SimulateTakeDamage;
     }
 
     private void InitializePool()
@@ -93,5 +95,23 @@ public class DebugService : MonoBehaviour
     public void SetVisualizationEnabled(bool enabled)
     {
         visualizationEnabled = enabled;
+    }
+
+    void DebugEvent1SimulateTakeDamage()
+    {
+        Debug.Log("Debug Input 1 Triggered: Simulating TakeDamage on PlayerEntity");
+        var playerController = FindFirstObjectByType<PlayerController>();
+        if (playerController != null)
+        {
+            AttackEffectData effectData = new AttackEffectData
+            {
+                appliedStagger = StaggerTier.Normal,
+                selfPoise = PoiseTier.Normal,
+                multiplier = 1f,
+                hitstopDuration = 0.1f,
+                knockbackForce = new Vector3(0, 0, 5f)
+            };
+            playerController.Entity.TakeDamage(10f, effectData);
+        }
     }
 }

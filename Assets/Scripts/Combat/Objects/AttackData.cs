@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using static StaggerSeverity;
 
 public enum InputType { None, LightAttack, HeavyAttack, LightHold, HeavyHold }
 
@@ -18,7 +19,7 @@ public class AttackData : ScriptableObject
     #nullable enable
 
     [SerializeField] private string attackName = "New Attack";
-    [SerializeField] private float damageMultiplier = 1f; // default
+    [SerializeField] private AttackEffectData effectData = new AttackEffectData();
     [SerializeField] private AnimationClip animation;
     [SerializeField] private AnimationClip? chargeAnimationOverride;
     [SerializeField] private float comboWindow = 0.5f; // default
@@ -27,11 +28,12 @@ public class AttackData : ScriptableObject
     [SerializeField] private Vector3 lungeDirection = Vector3.forward; // default
     [SerializeField] private float lungeDistance = 1f; // default
     [SerializeField] private float lungeDuration = 0.5f; // default
+    [SerializeField] private InputType inputType = InputType.LightAttack; // default
     [SerializeField] private bool isHoldAttack = false;
 
     [SerializeField] private AttackTransition[] transitions;
     public string AttackName { get { return attackName; } }
-    public float DamageMultiplier { get { return damageMultiplier; } }
+    public AttackEffectData EffectData { get { return effectData; } }
     public AnimationClip Animation { get { return animation; } }
     public AnimationClip? ChargeAnimationOverride { get { return chargeAnimationOverride; } }
     public float ComboWindow { get { return comboWindow; } }
@@ -40,6 +42,7 @@ public class AttackData : ScriptableObject
     public Vector3 LungeDirection { get { return lungeDirection; } }
     public float LungeDistance { get { return lungeDistance; } }
     public float LungeDuration { get { return lungeDuration; } }
+    public InputType InputType { get { return inputType; } }
     public bool IsHoldAttack { get { return isHoldAttack; } }
 
     public AttackData? GetNext(InputType input)
@@ -97,4 +100,20 @@ private void PrintAllCombos(string comboString = "", HashSet<AttackData>? visite
         Debug.Log(currentCombo); // all transitions were empty, treat as endpoint
 }
     [ContextMenu("Print All Combos")] private void PrintAllCombosMenuEntry() => PrintAllCombos();
+}
+
+[Serializable]
+public class AttackEffectData
+{
+    [Header("Damage & Scaling")]
+    [Range(0.25f, 5f)] public float multiplier = 1f;
+
+    [Header("Poise & Stagger Resolution")]
+    public StaggerTier appliedStagger = StaggerTier.Normal;
+    public PoiseTier selfPoise = PoiseTier.Normal;
+
+    [Header("Combat Feel")]
+    public float hitstopDuration = 0.03f;
+    public Vector3 knockbackForce = new Vector3(0, 0, 5f);
+    public bool canDeflect = false;
 }

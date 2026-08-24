@@ -154,7 +154,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        PlayerController player = Object.FindFirstObjectByType<PlayerController>();
+        PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (player != null)
             targetTransform = player.transform;
         else

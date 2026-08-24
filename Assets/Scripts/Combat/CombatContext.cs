@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using static StaggerSeverity;
 
 [Serializable]
 public class CombatContext
@@ -17,6 +18,13 @@ public class CombatContext
 
     [Header("Enemy Interaction Data")]
     [SerializeField] internal Transform currentTargetPos;
+    [SerializeField] internal float timeSinceDamageTaken = Mathf.Infinity;
+
+    [Header("Poise & Stagger Data")]
+    [SerializeField] internal float staggerImmunityTimer = Mathf.Infinity;
+    [SerializeField] internal float staggerImmunityDuration = 1f; // Time in seconds of stagger immunity after being staggered
+    [SerializeField] internal Severity currentStaggerSeverity = Severity.None;
+    [SerializeField] internal bool isStaggered = false;
     
     [Header("Input Data")]
     [SerializeField] internal string inputString = "";
