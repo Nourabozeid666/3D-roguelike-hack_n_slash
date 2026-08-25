@@ -12,22 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 237c8056d261e373a8d11237252af082, type: 3}
   m_Name: HeavyAttack1H
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
-  attackName: New Attack
+  attackName: SuperAttack
   effectData:
-    multiplier: 1
-    appliedStagger: 0
-    selfPoise: 0
+    multiplier: 5
+    appliedStagger: 2
+    selfPoise: 3
     hitstopDuration: 0.03
-    knockbackForce: {x: 0, y: 0, z: 5}
+    knockbackForce: {x: 0, y: 0, z: 200}
     canDeflect: 0
-  animation: {fileID: 0}
+  animation: {fileID: 7400000, guid: f5041876bd94099c79503079d87041a4, type: 2}
   chargeAnimationOverride: {fileID: 0}
   comboWindow: 0.5
-  recoveryStartTime: 0.75
+  recoveryStartTime: 1
   holdTime: 0.5
-  lungeDirection: {x: 0, y: 0, z: 1}
-  lungeDistance: 1
-  lungeDuration: 0.5
-  inputType: 1
+  lungeDirection: {x: 0, y: 0, z: -1}
+  lungeDistance: 350
+  lungeDuration: 0.3
+  inputType: 2
   isHoldAttack: 0
   transitions: []
