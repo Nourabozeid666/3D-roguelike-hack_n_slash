@@ -5,6 +5,8 @@ using UnityEngine;
 public class DamageHitboxHelper : MonoBehaviour
 {
     public event Action<GameObject, IEntity> OnHitboxTriggered;
+    public event Action OnEnableHitBox;
+    public event Action OnDisableHitBox;
     [SerializeField] private string[] tagsToHandle;
     [SerializeField] private LayerMask targetLayers;
     [SerializeField] private Collider hitboxCollider;
@@ -22,37 +24,35 @@ public class DamageHitboxHelper : MonoBehaviour
         else
         {
             hitboxCollider.enabled = false;
+
         }
     }
 
     void OnEnable()
     {
         if (!isActive) return;
-        EnableHitbox();
+        OnEnableHitBox += EnableHitbox;
+        OnDisableHitBox += DisableHitbox;
     }
 
     void OnDisable()
     {
         if (!isActive) return;
-        DisableHitbox();
+        OnEnableHitBox -= EnableHitbox;
+        OnDisableHitBox -= DisableHitbox;
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (!isActive) return;
-        Debug.Log($"Hitbox triggered by {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}", this);
+
         // 1. Instant bitwise layer check
-        if (targetLayers.value != 0 && ((1 << other.gameObject.layer) & targetLayers.value) == 0) {
-            Debug.Log($"Hitbox triggered by {other.gameObject.name} but its layer is not in the target layers. Ignoring.", this);
-            return;}
+        if (targetLayers.value != 0 && ((1 << other.gameObject.layer) & targetLayers.value) == 0)
+            return;
 
         // 2. Optional tag check (if tags are specified)
         if (tagsToHandle != null && tagsToHandle.Length > 0 && !HasMatchingTag(other))
-
-        {
-            Debug.Log($"Hitbox triggered by {other.gameObject.name} but its tag is not in the target tags. Ignoring.", this);
             return;
-        }
 
         // 3. Resolve target root to prevent hitting multiple child colliders on the same entity
         Transform targetRoot = other.transform.root != null ? other.transform.root : other.transform;
@@ -60,10 +60,7 @@ public class DamageHitboxHelper : MonoBehaviour
 
         // 4. O(1) deduplication check
         if (!hitTargetIDs.Add(targetId))
-           {
-            Debug.Log($"Hitbox triggered by {other.gameObject.name} but this target has already been hit. Ignoring.", this);
             return;
-           }
 
         // 5. Direct generic entity resolution (zero reflection)
         if (other.TryGetComponent<IEntityProvider>(out var provider) ||

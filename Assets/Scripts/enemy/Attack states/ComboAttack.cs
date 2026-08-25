@@ -4,7 +4,7 @@ internal class ComboAttack : CombatActionState
 {
     private readonly Animator animator;
     private readonly ComboAttackConfig config; // all the combos that we are gonna use
-    private readonly DamageHitboxHelper hitbox; //deal damage through the attack
+    private readonly DealDamage hitbox; //deal damage through the attack
 
     ComboSequence activeSequence;  // Which combo recipe did I pick for this attack?
     int hitIndex;  // Which swing in the combo am I currently on? (0, 1, 2...)
@@ -12,7 +12,7 @@ internal class ComboAttack : CombatActionState
 
     public override bool CanBeInterrupted => true;
 
-    public ComboAttack( EnemyController enemyController, ComboAttackConfig config, DamageHitboxHelper hitbox) : base(enemyController)
+    public ComboAttack( EnemyController enemyController, ComboAttackConfig config, DealDamage hitbox) : base(enemyController)
     {
         animator = enemyController.Animator;
         this.config = config;
@@ -24,7 +24,6 @@ internal class ComboAttack : CombatActionState
     {
         var hit = activeSequence.Hits[hitIndex];
         elapsedInHit = 0;
-        // hitbox.SetDamage(hit.Damage);
         animator.Play(hit.AnimationHash,0,0f);
     }
     public override void Enter()
@@ -33,14 +32,6 @@ internal class ComboAttack : CombatActionState
         hitIndex = 0;
         IsFinished = false;
         PlayCurrentHit();
-        hitbox.OnHitboxTriggered += OnHitboxTriggered;
-    }
-
-    void OnHitboxTriggered(GameObject gameObject, IEntity entity)
-    {
-        Debug.Log($"Enemy hit {entity} for {activeSequence.Hits[hitIndex].Damage} damage!");
-        var hit = activeSequence.Hits[hitIndex];
-        entity.TakeDamage(hit.Damage);
     }
 
     public override void Tick()
@@ -51,14 +42,11 @@ internal class ComboAttack : CombatActionState
         if (elapsedInHit < activeSequence.Hits[hitIndex].Duration)
             return;
 
-        
-        if (hitIndex >= activeSequence.Hits.Count - 1)
+        hitIndex++;
+        if (hitIndex >= activeSequence.Hits.Count)
             IsFinished = true;
         else
-        {
-            hitIndex++;
             PlayCurrentHit();
-        }
     }
 
     public override void Exit()

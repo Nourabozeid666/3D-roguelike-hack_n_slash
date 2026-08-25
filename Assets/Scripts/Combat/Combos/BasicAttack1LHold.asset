@@ -13,13 +13,7 @@ MonoBehaviour:
   m_Name: BasicAttack1LHold
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   attackName: Basic Attack 1L Hold
-  effectData:
-    multiplier: 1
-    appliedStagger: 1
-    selfPoise: 1
-    hitstopDuration: 0.03
-    knockbackForce: {x: 0, y: 0, z: 5}
-    canDeflect: 0
+  damageMultiplier: 1
   animation: {fileID: 7400000, guid: 01dd176e8012576b3a6b9ef2d0104daf, type: 2}
   chargeAnimationOverride: {fileID: 0}
   comboWindow: 0.5
@@ -28,6 +22,5 @@ MonoBehaviour:
   lungeDirection: {x: 0, y: 0, z: 1}
   lungeDistance: 25
   lungeDuration: 0.35
-  inputType: 3
   isHoldAttack: 1
   transitions: []
