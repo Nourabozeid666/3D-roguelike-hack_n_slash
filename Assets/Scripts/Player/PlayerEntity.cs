@@ -60,7 +60,7 @@ public class PlayerEntity : IEntity
         return Mathf.Max(0f, damage - modifiedDefense * Constants.ALPHA);
     }
 
-    public float CalculateAttackDamage()
+    public float CalculateAttackDamage(float multiplier = 1f)
     {
         float modifiedDamage = baseDamage;
         for (int i = 0; i < modifiers.Count; i++)
@@ -70,7 +70,7 @@ public class PlayerEntity : IEntity
                 modifiedDamage = modifiers[i].GetValue(modifiedDamage, this);
             }
         }
-        return modifiedDamage;
+        return modifiedDamage * multiplier;
     }
 
     public void TakeDamage(float damage, AttackEffectData effectData = null)

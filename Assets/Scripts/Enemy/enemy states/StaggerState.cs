@@ -134,7 +134,7 @@ public class StaggerState : EnemyState
     {
         yield return new WaitForSeconds(duration);
 
-        Debug.Log($"StaggerState timer done — health:{enemyController.EnemyEntity.Health}");
+        Debug.Log($"StaggerState timer done ï¿½ health:{enemyController.EnemyEntity.Health}");
 
         // any state that can be interrupted
         enemyController.SetState<PatrolState>();

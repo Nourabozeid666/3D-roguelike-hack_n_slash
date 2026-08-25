@@ -10,24 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 237c8056d261e373a8d11237252af082, type: 3}
-  m_Name: BasicAttack1LHold
+  m_Name: HeavyAttack1H
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
-  attackName: Basic Attack 1L Hold
+  attackName: New Attack
   effectData:
     multiplier: 1
-    appliedStagger: 1
-    selfPoise: 1
+    appliedStagger: 0
+    selfPoise: 0
     hitstopDuration: 0.03
     knockbackForce: {x: 0, y: 0, z: 5}
     canDeflect: 0
-  animation: {fileID: 7400000, guid: 01dd176e8012576b3a6b9ef2d0104daf, type: 2}
+  animation: {fileID: 0}
   chargeAnimationOverride: {fileID: 0}
   comboWindow: 0.5
-  recoveryStartTime: 1
-  holdTime: 0.35
+  recoveryStartTime: 0.75
+  holdTime: 0.5
   lungeDirection: {x: 0, y: 0, z: 1}
-  lungeDistance: 25
-  lungeDuration: 0.35
-  inputType: 3
-  isHoldAttack: 1
+  lungeDistance: 1
+  lungeDuration: 0.5
+  inputType: 1
+  isHoldAttack: 0
   transitions: []

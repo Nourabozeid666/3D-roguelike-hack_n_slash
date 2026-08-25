@@ -171,9 +171,16 @@ public class CombatController : MonoBehaviour
     {
         if (entity != null)
         {
+            AttackData currentAttack = combatContext.currentAttack;
+            if (currentAttack == null)
+            {
+                Debug.LogWarning("Current attack is null. Cannot apply damage.");
+                return;
+            }
             PlayerEntity playerEntity = _playerController.Entity as PlayerEntity;
-            float damage = playerEntity.CalculateAttackDamage();
-            entity.TakeDamage(damage);
+            float damage = playerEntity.CalculateAttackDamage(currentAttack.EffectData.multiplier);
+
+            entity.TakeDamage(damage, currentAttack.EffectData);
         }
     }
 
