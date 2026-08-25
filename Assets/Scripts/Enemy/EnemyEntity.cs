@@ -119,7 +119,7 @@ public class EnemyEntity : IEntity
             OnDied?.Invoke();
             return; // dead things don't also stagger
         }
-        Severity staggerSeverity = GetStaggerSeverity(currentPoise, effectData.appliedStagger != null ? effectData.appliedStagger : StaggerTier.Normal);
+        Severity staggerSeverity = GetStaggerSeverity(currentPoise, effectData.appliedStagger);
         if (staggerSeverity != Severity.None)
         {
             // currentPoise = maxPoise;

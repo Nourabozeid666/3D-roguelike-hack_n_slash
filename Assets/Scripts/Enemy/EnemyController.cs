@@ -50,7 +50,7 @@ using static StaggerSeverity;
  * entity and the state machine so it's the one that translates "what happened" into "which state, doing what"
  * and StagerState just plays a clip and holds a timer.
  */
-public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
+public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, IEntityProvider
 {
     // IEnemySpawned death contract: raised whenever the EnemyEntity dies (forwards its
     // authoritative OnDied), so SpawnSystem can decrement alive tracking / raise FloorCleared.
@@ -136,6 +136,8 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     /// Attacks read this instead of the shared ScriptableObject to respect floor scaling.</summary>
     float runtimeDamage;
     public float RuntimeDamage => runtimeDamage;
+
+    public IEntity Entity => enemyEntity;
 
     // Pending spawn stats: ConfigureForSpawn runs between Instantiate/Awake and the Unity Start()
     // pass, while authored stats come from Initialize(archetypeConfig) inside Start(). The

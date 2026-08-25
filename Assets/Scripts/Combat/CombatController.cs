@@ -180,7 +180,7 @@ public class CombatController : MonoBehaviour
             PlayerEntity playerEntity = _playerController.Entity as PlayerEntity;
             float damage = playerEntity.CalculateAttackDamage(currentAttack.EffectData.multiplier);
 
-            entity.TakeDamage(damage);
+            entity.TakeDamage(damage, currentAttack.EffectData);
         }
     }
 
