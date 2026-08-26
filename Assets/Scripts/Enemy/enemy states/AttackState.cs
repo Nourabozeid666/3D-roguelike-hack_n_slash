@@ -32,16 +32,17 @@ public class AttackState : EnemyState
         //add states to all the attacks you need in the game
         // -------------------------------------------------need adds for each attack state--------------------------------------------------------------
 
-        //AddState(new RangedShootAttack(enemyController));
-        //var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
-        //AddState(new StrongAttack(enemyController));
-
         var comboParts = enemyController.GetComponent<ComboAttackComponents>();
         if (comboParts != null)
             AddState(new ComboAttack(enemyController, comboParts.Config, comboParts.Hitbox));
+
         var sacrificeParts = enemyController.GetComponent<SacrificeAttackComponents>();
         if (sacrificeParts != null)
             AddState(new SacrificeAttack(enemyController, sacrificeParts.Config, sacrificeParts.ExplosionParticles));
+
+        var rangedParts = enemyController.GetComponent<RangedShootAttack>();
+        if (rangedParts != null)
+            AddState(new RangedShootAttack(enemyController));
     }
 
     public override bool CanBeInterrupted{
@@ -57,8 +58,12 @@ public class AttackState : EnemyState
     {
         if (combatActions.EnemyStates.ContainsKey(typeof(SacrificeAttack)))
             combatActions.SetState<SacrificeAttack>();
+
         else if(combatActions.EnemyStates.ContainsKey(typeof(ComboAttack)))
             combatActions.SetState<ComboAttack>();
+
+        else if(combatActions.EnemyStates.ContainsKey(typeof(RangedShootAttack)))
+            combatActions.SetState<RangedShootAttack>();
     }
 
     public override void Exit()
