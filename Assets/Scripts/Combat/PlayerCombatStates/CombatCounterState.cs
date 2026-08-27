@@ -7,7 +7,7 @@ public class CombatCounterState : State<CombatController>
     private int hashAnimationState;
     private int counterAttackHash;
     private float attackWindowDuration = 0.5f; // Window to execute a counter-attack
-    private float currentTime = 0f;
+    private float windowEndTime = 0f;
     private bool hasCountered = false;
 
     public CombatCounterState(Animator animator)
@@ -21,6 +21,7 @@ public class CombatCounterState : State<CombatController>
     {
         return UniTask.WaitWhile(() =>
         {
+            if (!_stateMachine.CheckState<CombatCounterState>()) return false;
             UseLunge(lungeDirection, lungeDistance);
             lungeDuration -= Time.deltaTime;
             return lungeDuration > 0f;
@@ -49,55 +50,81 @@ public class CombatCounterState : State<CombatController>
 
     public override void Enter()
     {
+        hasCountered = false;
         _owner._playerController.SetCanMove(false);
-        _animator.Play(hashAnimationState, 0);
-        currentTime = Time.time + attackWindowDuration;
+        _animator.Play(hashAnimationState, 0, 0f);
+        windowEndTime = Time.time + attackWindowDuration;
+
+        Vector3 targetDirection = GetTargetDirection();
+        if (targetDirection != Vector3.zero)
+        {
+            AdjustRotationDuringLunge(targetDirection).Forget();
+        }
+    }
+
+    private Vector3 GetTargetDirection()
+    {
+        Vector3 dir;
         if (_owner.CombatContext.currentTargetPos != null)
         {
-            AdjustRotationDuringLunge(_owner.CombatContext.currentTargetPos.position - _owner.transform.position).Forget();
+            dir = _owner.CombatContext.currentTargetPos.position - _owner.transform.position;
         }
         else
         {
-            Debug.LogWarning("No target position set for counter-attack.");
+            dir = Vector3.forward;
         }
+        dir.y = 0f;
+        return dir.sqrMagnitude > 0.001f ? dir.normalized : _owner.ReferencesContext.playerModel.transform.forward;
+    }
+
+    private void TriggerCounterAttack()
+    {
+        hasCountered = true;
+        _animator.Play(counterAttackHash, 0, 0f);
+
+        if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)
+        {
+            _owner.equipmentSystem.CurrentWeapon.Trail.Begin();
+        }
+
+        Vector3 lungeDirection = GetTargetDirection();
+        AdjustRotationDuringLunge(lungeDirection).Forget();
+        ExecuteLunge(0.15f, lungeDirection, 500f).Forget();
     }
 
     public override void Update()
     {
         if (hasCountered)
         {
+            if (_animator.IsInTransition(0)) return;
+
             var stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
-            if (!stateInfo.IsName("CombatCounter"))
+            if (stateInfo.IsName("CounterAttack"))
             {
-                _stateMachine.SetState<CombatIdleState>();
-                return;
-            }
-            ;
-            if (stateInfo.normalizedTime >= 1f)
-            {
-                _stateMachine.SetState<CombatIdleState>();
-                return;
-            }
-            ;
-        }
-        if (!hasCountered) return;
-        if (currentTime >= _owner.CombatContext.lastInputTime)
-        {
-            _animator.Play(counterAttackHash, 0);
-            hasCountered = true;
-            if (_owner.CombatContext.currentTargetPos != null)
-            {
-                Vector3 lungeDirection = (_owner.CombatContext.currentTargetPos.position - _owner.transform.position).normalized;
-                float lungeDistance = 5f; // Adjust as needed
-                float lungeDuration = 0.2f; // Adjust as needed
-                ExecuteLunge(lungeDuration, lungeDirection, lungeDistance).Forget();
+                if (stateInfo.normalizedTime >= 1f)
+                {
+                    _stateMachine.SetState<CombatIdleState>();
+                }
             }
             else
             {
-                ExecuteLunge(0.3f, _owner.ReferencesContext.playerModel.transform.forward, 300f).Forget();
+                _stateMachine.SetState<CombatIdleState>();
             }
+            return;
         }
-        if (currentTime < Time.time)
+
+        // Check if an attack input was registered during the counter window
+        var inputState = _owner.CombatContext.inputState;
+        if (inputState.lightAttackPressed || inputState.heavyAttackPressed || inputState.lightAttackReleased || inputState.heavyAttackReleased)
+        {
+            _owner.CombatContext.inputState.lightAttackReleased = false;
+            _owner.CombatContext.inputState.heavyAttackReleased = false;
+            TriggerCounterAttack();
+            return;
+        }
+
+        // Reaction window timed out without attack input
+        if (Time.time >= windowEndTime)
         {
             _stateMachine.SetState<CombatIdleState>();
         }
@@ -105,8 +132,13 @@ public class CombatCounterState : State<CombatController>
 
     public override void Exit()
     {
+        if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)
+        {
+            _owner.equipmentSystem.CurrentWeapon.Trail.End();
+        }
         hasCountered = false;
-        currentTime = 0f;
+        windowEndTime = 0f;
         _owner._playerController.SetCanMove(true);
+        _owner.ComboSystem.ResetQueuedAttack();
     }
 }
