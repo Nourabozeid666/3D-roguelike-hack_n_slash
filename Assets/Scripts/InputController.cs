@@ -11,6 +11,8 @@ public class InputController : MonoBehaviour
     public static event Action OnLightAttackEnd;
     public static event Action OnHeavyAttackStart;
     public static event Action OnHeavyAttackEnd;
+    public static event Action OnBlockStart;
+    public static event Action OnBlockEnd;
 
     // Debug Inputs
     public bool enableDebugInputs = true;
@@ -52,6 +54,8 @@ public class InputController : MonoBehaviour
         controls.Combat.LightAttack.canceled += ctx => OnLightAttackEnd?.Invoke();
         controls.Combat.HeavyAttack.performed += ctx => OnHeavyAttackStart?.Invoke();
         controls.Combat.HeavyAttack.canceled += ctx => OnHeavyAttackEnd?.Invoke();
+        controls.Combat.Block.performed += ctx => OnBlockStart?.Invoke();
+        controls.Combat.Block.canceled += ctx => OnBlockEnd?.Invoke();
         // Debug
         controls.Debug.Debug1.performed += ctx => OnDebugInput1?.Invoke();
         controls.Debug.Debug2.performed += ctx => OnDebugInput2?.Invoke();
