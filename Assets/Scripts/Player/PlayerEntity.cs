@@ -1,10 +1,19 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 [Serializable]
 public class PlayerEntity : IEntity
 {
+    PlayerController playerController;
+    CombatController combatController;
+    public PlayerEntity(PlayerController playerController, CombatController combatController)
+    {
+        this.playerController = playerController;
+        this.combatController = combatController;
+    }
+
     [SerializeField] private float health = 100f;
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private float baseDamage = 10f;
@@ -46,6 +55,12 @@ public class PlayerEntity : IEntity
 
     }
 
+    public void Initialize(PlayerController playerController, CombatController combatController)
+    {
+        this.playerController = playerController;
+        this.combatController = combatController;
+    }
+
     private float CalculateDamageReduction(float damage)
     {
         float modifiedDefense = baseDefense;
@@ -75,8 +90,22 @@ public class PlayerEntity : IEntity
 
     public void TakeDamage(float damage, AttackEffectData effectData = null)
     {
-        health -= CalculateDamageReduction(damage);
-        OnDamageTaken?.Invoke(damage, effectData);
+        bool isParry = combatController.CheckParry(out float multiplier, out bool isBlock);
+        if (combatController != null && isParry)
+        {
+            combatController.CounterParry();
+            return; // Exit early: parry handled, no further damage processing needed.
+        }
+        health -= CalculateDamageReduction(damage * multiplier);
+        if (isBlock)
+        {
+            // Add some knockback ? 
+            combatController.ExecuteKnockback(0.1f, -playerController.ReferencesContext.playerModel.forward, 200f).Forget();
+        }
+        else
+        {
+            OnDamageTaken?.Invoke(damage, effectData);
+        }
         if (health < 0) {
             health = 0;
             // Fire exactly once per life: repeated post-death hits must not re-raise OnDied.
@@ -102,12 +131,13 @@ public class PlayerEntity : IEntity
         health = healthPercentage * maxHealth;
     }
 
-    private void HandleModifierAdded(IStatModifier modifier)
+    private void AddModifier(IStatModifier modifier)
     {
         modifiers.Add(modifier);
         if (modifier.TargetStat == StatType.MaxHealth)
         {
             SetMaxHealth(modifier.GetValue(maxHealth, this));
         }
+        OnModifierAdded?.Invoke(modifier);
     }
 }
