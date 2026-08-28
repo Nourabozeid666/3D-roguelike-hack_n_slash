@@ -11,7 +11,7 @@ public abstract class CombatActionState : IEstate
 
     public virtual bool CanBeInterrupted => true;
     public virtual bool IsFinished { get; protected set; }
-    public virtual bool IsEligible => true; // “Can this attack start right now?”, eligible only when its cooldown is finished.
+    public virtual bool IsEligible => true; // ï¿½Can this attack start right now?ï¿½, eligible only when its cooldown is finished.
 
     protected CombatActionState(EnemyController enemyController) => this.enemyController = enemyController;
     public abstract void Enter();
