@@ -40,9 +40,9 @@ public class AttackState : EnemyState
         if (sacrificeParts != null)
             AddState(new SacrificeAttack(enemyController, sacrificeParts.Config, sacrificeParts.ExplosionParticles));
 
-        var rangedParts = enemyController.GetComponent<RangedShootAttack>();
+        var rangedParts = enemyController.GetComponent<RangedAttackComponents>();
         if (rangedParts != null)
-            AddState(new RangedShootAttack(enemyController));
+            AddState(new RangedShootAttack(enemyController, rangedParts.Config, rangedParts.FirePoint));
     }
 
     public override bool CanBeInterrupted{
