@@ -11,6 +11,8 @@ public class CombatController : MonoBehaviour
     [SerializeField] private ReferencesContext referencesContext;
     [SerializeField] private CombatContext combatContext;
     [SerializeField] internal EquipmentSystem equipmentSystem = new EquipmentSystem(null);
+    [Header("Debug")]
+    [SerializeField] private ScriptableObject[] testModifiers;
     private ComboSystem comboSystem;
     private StateMachine<CombatController> _stateMachine;
     internal DamageHitboxHelper damageHitboxHelper;
@@ -20,6 +22,9 @@ public class CombatController : MonoBehaviour
     public CombatContext CombatContext { get { return combatContext; } set { combatContext = value; } }
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
     public ComboSystem ComboSystem { get { return comboSystem; } }
+    public ReferencesContext ReferencesContext { get { return referencesContext; } }
+
+
 
     void Awake()
     {
@@ -41,6 +46,8 @@ public class CombatController : MonoBehaviour
         _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
         _stateMachine.AddState(new CombatRecoveryState(referencesContext.animator, combatContext.overrideController));
         _stateMachine.AddState(new CombatStaggerState(referencesContext.animator));
+        _stateMachine.AddState(new CombatBlockState(referencesContext.animator));
+        _stateMachine.AddState(new CombatCounterState(referencesContext.animator));
         _stateMachine.SetState<CombatIdleState>();
     }
 
@@ -69,7 +76,20 @@ public class CombatController : MonoBehaviour
         InputController.OnLightAttackEnd += HandleLightAttackEnd;
         InputController.OnHeavyAttackStart += HandleHeavyAttackStart;
         InputController.OnHeavyAttackEnd += HandleHeavyAttackEnd;
+        InputController.OnBlockStart += HandleBlockStart;
+        InputController.OnBlockEnd += HandleBlockEnd;
+        InputController.OnDebugInput2 += () =>
+        {
+            if (testModifiers.Length > 0)
+            {
+                foreach (var modifier in testModifiers)
+                {
+                    _playerEntity.AddModifier(modifier as IStatModifier);
+                }
+            }
+        };
         _playerEntity.OnDamageTaken += HandleDamageTaken;
+        _playerEntity.OnScaleChanged += HandleScaleChanged;
     }
 
     void OnDisable()
@@ -78,7 +98,20 @@ public class CombatController : MonoBehaviour
         InputController.OnLightAttackEnd -= HandleLightAttackEnd;
         InputController.OnHeavyAttackStart -= HandleHeavyAttackStart;
         InputController.OnHeavyAttackEnd -= HandleHeavyAttackEnd;
+        InputController.OnBlockStart -= HandleBlockStart;
+        InputController.OnBlockEnd -= HandleBlockEnd;
+        InputController.OnDebugInput2 -= () =>
+        {
+            if (testModifiers.Length > 0)
+            {
+                foreach (var modifier in testModifiers)
+                {
+                    _playerEntity.AddModifier(modifier as IStatModifier);
+                }
+            }
+        };
         _playerEntity.OnDamageTaken -= HandleDamageTaken;
+        _playerEntity.OnScaleChanged -= HandleScaleChanged;
     }
 
     private void HandleLightAttackStart()
@@ -187,6 +220,57 @@ public class CombatController : MonoBehaviour
         {
             combatContext.currentStaggerSeverity = staggerSeverity;
             _stateMachine.SetState<CombatStaggerState>();
+        }
+    }
+
+    void HandleBlockStart()
+    {
+        _stateMachine.SetState<CombatBlockState>();
+    }
+
+    void HandleBlockEnd()
+    {
+        if (_stateMachine.CurrentState is CombatBlockState)
+        {
+            _stateMachine.SetState<CombatIdleState>();
+        }
+    }
+
+    public bool CheckParry(out float multiplier, out bool isBlock)
+    {
+        bool isParry = combatContext.isBlocking && combatContext.isParrying;
+        isBlock = combatContext.isBlocking && !combatContext.isParrying;
+        multiplier = isBlock ? combatContext.blockMultiplier : 1f;
+        return isParry;
+    }
+
+    public UniTask ExecuteKnockback(float lungeDuration, Vector3 lungeDirection, float lungeDistance)
+    {
+        return UniTask.WaitWhile(() =>
+        {
+            UseLunge(lungeDirection, lungeDistance);
+            lungeDuration -= Time.deltaTime;
+            return lungeDuration > 0f;
+        });
+    }
+
+    private void UseLunge(Vector3 lungeDirection, float lungeDistance)
+    {
+        _playerController.AddDirectionalForce(lungeDirection * lungeDistance, ForceMode.Force);
+    }
+
+    public void CounterParry()
+    {
+        // Implement counter parry logic here
+        // switch to counter state and play counter animation
+        _stateMachine.SetState<CombatCounterState>();
+    }
+
+    void HandleScaleChanged(ScaleType scaleType, float scaleMultiplier)
+    {
+        if (equipmentSystem.CurrentWeaponModelData != null)
+        {
+            equipmentSystem.ScaleWeaponModel(scaleType, scaleMultiplier);
         }
     }
 }

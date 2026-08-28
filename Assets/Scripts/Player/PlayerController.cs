@@ -36,6 +36,7 @@ public class PlayerController : MonoBehaviour, IEntityProvider
         combatController = GetComponent<CombatController>();
         CharacterState = new CharacterState(this, combatController);
         // context.animator = referencesContext.playerModel.GetComponent<Animator>();
+        playerEntity.Initialize(this, combatController);
         _stateMachine = new StateMachine<PlayerController>(this, referencesContext.debugText);
         _stateMachine.AddState(new PlayerIdleState(referencesContext.animator));
         _stateMachine.AddState(new PlayerMoveState(referencesContext.animator));

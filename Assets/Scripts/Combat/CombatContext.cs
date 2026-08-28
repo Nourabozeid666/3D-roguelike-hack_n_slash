@@ -25,7 +25,15 @@ public class CombatContext
     [SerializeField] internal float staggerImmunityDuration = 1f; // Time in seconds of stagger immunity after being staggered
     [SerializeField] internal Severity currentStaggerSeverity = Severity.None;
     [SerializeField] internal bool isStaggered = false;
-    
+    [Header("Defense Data")]
+    [SerializeField] internal float blockMultiplier = 0.25f; // Multiplier for damage
+    [SerializeField] internal float parryMultiplier = 0f; // Multiplier for damage
+    [SerializeField, Range(0f, 1f)] internal float parryEndTime = 0.5f; // How long will parry last in animation
+    // Clash is when 2 entities attack at the same time
+    [SerializeField, Range(0f, 1f)] internal float clashParryEndTime = 0.25f; // How long will clash parry last in animation
+    [SerializeField] internal bool isBlocking = false;
+    [SerializeField] internal bool isParrying = false;
+
     [Header("Input Data")]
     [SerializeField] internal string inputString = "";
     [SerializeField] internal InputState inputState;

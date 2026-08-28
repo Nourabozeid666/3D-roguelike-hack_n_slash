@@ -27,6 +27,7 @@ public class CharacterState
     public bool IsAttacking => _combat.CombatContext.isAttacking;
     public bool IsRecovering => _combat.CombatContext.isRecovering;
     public bool IsCharging => _combat.CombatContext.isCharging;
+    public bool IsCountering => _combat.StateMachine.CurrentState is CombatCounterState;
     public AttackData CurrentAttack => _combat.CombatContext.currentAttack;
     public AttackData QueuedAttack => _combat.CombatContext.queuedAttack;
 
@@ -35,5 +36,5 @@ public class CharacterState
     public bool CanTransitionToMove => _player.context.canMove && !IsAttacking && !IsCharging;
     public bool CanJump => IsGrounded && _player.context.canMove && !IsAttacking && !IsCharging && !IsDashing;
     public bool CanDash => IsGrounded && !IsAttacking && !IsCharging && !IsDashing && !IsStaggered; // Allowed during recovery frames (when isAttacking == false)
-    public bool CanAttack => !IsDashing && !IsStaggered; // Attacks cannot cancel dashes!
+    public bool CanAttack => !IsDashing && !IsStaggered && !IsCountering; // Attacks cannot cancel dashes!
 }

@@ -20,10 +20,11 @@ MonoBehaviour:
   weaponPrefab: {fileID: 8911134569810046108, guid: 66b721e88aa2a83b2956c54ec2f7e321, type: 3}
   accessoriesPrefabs:
   - {fileID: 5532393997357567188, guid: dd5471cf62caabddabd05c1d288e44fd, type: 3}
-  trail: {fileID: 1695694017040185308, guid: 66b721e88aa2a83b2956c54ec2f7e321, type: 3}
+  trail: {fileID: 0}
   chargeAnimation: {fileID: 7400000, guid: 767effc5e3d4b8ceea6307470187b2d5, type: 2}
   entryAttacks:
-    keys: 0100000003000000
+    keys: 010000000300000002000000
     values:
     - {fileID: 11400000, guid: 3eb394515e73b96b293c27cf9942fac4, type: 2}
     - {fileID: 11400000, guid: 23a9687802fa3d977b086f38d4895292, type: 2}
+    - {fileID: 11400000, guid: 5bb9bd70820eb544eaa2f59b00accb77, type: 2}

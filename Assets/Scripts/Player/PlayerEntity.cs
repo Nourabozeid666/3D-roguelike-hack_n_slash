@@ -1,10 +1,20 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using static EquipmentSystem;
 
 [Serializable]
 public class PlayerEntity : IEntity
 {
+    PlayerController playerController;
+    CombatController combatController;
+    public PlayerEntity(PlayerController playerController, CombatController combatController)
+    {
+        this.playerController = playerController;
+        this.combatController = combatController;
+    }
+
     [SerializeField] private float health = 100f;
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private float baseDamage = 10f;
@@ -23,6 +33,7 @@ public class PlayerEntity : IEntity
     public event Action<float> OnMaxHealthChanged;
     public event Action OnDied;
     public event Action<IStatModifier> OnModifierAdded;
+    public event Action<ScaleType, float> OnScaleChanged;
 
     public float Health => health;
     public float MaxHealth => maxHealth;
@@ -44,6 +55,12 @@ public class PlayerEntity : IEntity
     public PlayerEntity()
     {
 
+    }
+
+    public void Initialize(PlayerController playerController, CombatController combatController)
+    {
+        this.playerController = playerController;
+        this.combatController = combatController;
     }
 
     private float CalculateDamageReduction(float damage)
@@ -75,8 +92,22 @@ public class PlayerEntity : IEntity
 
     public void TakeDamage(float damage, AttackEffectData effectData = null)
     {
-        health -= CalculateDamageReduction(damage);
-        OnDamageTaken?.Invoke(damage, effectData);
+        bool isParry = combatController.CheckParry(out float multiplier, out bool isBlock);
+        if (combatController != null && isParry)
+        {
+            combatController.CounterParry();
+            return; // Exit early: parry handled, no further damage processing needed.
+        }
+        health -= CalculateDamageReduction(damage * multiplier);
+        if (isBlock)
+        {
+            // Add some knockback ? 
+            combatController.ExecuteKnockback(0.1f, -playerController.ReferencesContext.playerModel.forward, 200f).Forget();
+        }
+        else
+        {
+            OnDamageTaken?.Invoke(damage, effectData);
+        }
         if (health < 0) {
             health = 0;
             // Fire exactly once per life: repeated post-death hits must not re-raise OnDied.
@@ -102,12 +133,46 @@ public class PlayerEntity : IEntity
         health = healthPercentage * maxHealth;
     }
 
-    private void HandleModifierAdded(IStatModifier modifier)
+    public void AddModifier(IStatModifier modifier)
     {
         modifiers.Add(modifier);
-        if (modifier.TargetStat == StatType.MaxHealth)
+        HandleModifierType(modifier);
+        OnModifierAdded?.Invoke(modifier);
+    }
+
+    private void HandleModifierType(IStatModifier modifier)
+    {
+        switch (modifier.TargetStat)
         {
-            SetMaxHealth(modifier.GetValue(maxHealth, this));
+            case StatType.MaxHealth:
+                SetMaxHealth(modifier.GetValue(maxHealth, this));
+                break;
+            case StatType.AttackDamage:
+                baseDamage = modifier.GetValue(baseDamage, this);
+                break;
+            case StatType.Defense:
+                baseDefense = modifier.GetValue(baseDefense, this);
+                break;
+            case StatType.AttackSpeed:
+                attackSpeed = modifier.GetValue(attackSpeed, this);
+                break;
+            case StatType.CritChance:
+                critChance = modifier.GetValue(critChance, this);
+                break;
+            case StatType.CritMultiplier:
+                critMultiplier = modifier.GetValue(critMultiplier, this);
+                break;
+            case StatType.WeaponLength:
+                weaponLength = modifier.GetValue(weaponLength, this);
+                OnScaleChanged?.Invoke(ScaleType.Blade, weaponLength);
+                break;
+            case StatType.WeaponSize:
+                weaponSize = modifier.GetValue(weaponSize, this);
+                OnScaleChanged?.Invoke(ScaleType.Parts, weaponSize);
+                break;
+            default:
+                Debug.LogWarning($"Unhandled stat type: {modifier.TargetStat}");
+                break;
         }
     }
 }
