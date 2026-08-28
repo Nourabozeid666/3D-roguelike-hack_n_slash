@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Projectile : MonoBehaviour
@@ -50,13 +51,6 @@ public class Projectile : MonoBehaviour
 
     private void ReturnToPool()
     {
-        if(ProjectilePoolManager.Instance != null && SourcePrefab != null)
-        {
-            ProjectilePoolManager.Instance.Release(gameObject,SourcePrefab);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+    
     }
 }

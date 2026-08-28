@@ -265,26 +265,26 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
         // GetState<AttackState>() always hands back a plain EnemyState label (that's fixed in the method's return type).
         // "as AttackState" relabels it as AttackState specifically, so we can reach AttackState-only stuff like CurrentCombatAction.
         AttackState attackState = GetState<AttackState>() as AttackState;
-        //_debugText.text =
-            //"Current State: " +
-            //(
-                //EStateMachine.CurrentState != null
-                    //? EStateMachine.CurrentState.GetType().ToString()
-                    //: "None"
-            //) +
-            //"\nPrevious State: " +
-            //(
-                //EStateMachine.PreviousState != null
-                    //? EStateMachine.PreviousState.GetType().ToString()
-                    //: "None"
-            //) + "\nAttack State: " +
-            //(
-                //attackState?.CurrentCombatAction != null
-                    //? attackState?.CurrentCombatAction.GetType().ToString()
-                    //: "None"
-            //) +
-            //"\ncurrect poise: " + (enemyEntity.CurrentPoise) +
-            //"\ncurrect Health: " + (enemyEntity.Health);
+        _debugText.text =
+            "Current State: " +
+            (
+                EStateMachine.CurrentState != null
+                    ? EStateMachine.CurrentState.GetType().ToString()
+                    : "None"
+            ) +
+            "\nPrevious State: " +
+            (
+                EStateMachine.PreviousState != null
+                    ? EStateMachine.PreviousState.GetType().ToString()
+                    : "None"
+            ) + "\nAttack State: " +
+            (
+                attackState?.CurrentCombatAction != null
+                    ? attackState?.CurrentCombatAction.GetType().ToString()
+                    : "None"
+            ) +
+            "\ncurrect poise: " + (enemyEntity.CurrentPoise) +
+            "\ncurrect Health: " + (enemyEntity.Health);
     }
 
     void AddState(EnemyState state)
