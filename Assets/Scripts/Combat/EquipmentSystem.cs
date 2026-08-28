@@ -3,6 +3,12 @@ using System;
 using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
 
+public enum ScaleType
+{
+    Blade,
+    Parts,
+}
+
 [Serializable]
 public class EquipmentSystem
 {
@@ -23,7 +29,7 @@ public class EquipmentSystem
     public WeaponObject CurrentWeapon { get { return currentWeapon; } }
     public GameObject CurrentWeaponModel { get { return currentWeaponModel; } }
     public List<GameObject> AccessoryModels { get { return accessoryModels; } }
-    
+
     public EquipmentSystem(CombatController owner)
     {
         _owner = owner;
@@ -96,5 +102,46 @@ public class EquipmentSystem
         EquipAcessories(weapon);
         _owner.CombatContext.canAttack = true;
     }
-
+    public void ScaleWeaponModel(ScaleType scaleType, float scaleMultiplier)
+    {
+        if (currentWeaponModel == null)
+        {
+            Debug.LogError("No weapon model to scale.");
+            return;
+        }
+        WeaponModelData modelData = currentWeaponModel.GetComponent<WeaponModelData>();
+        if (modelData == null)
+        {
+            Debug.LogError("Current weapon model does not have a WeaponModelData component.");
+            return;
+        }
+        switch (scaleType)
+        {
+            case ScaleType.Blade:
+                if (modelData.BladePivot != null)
+                {
+                    Vector3 finalScale = Vector3.one + (modelData.BladeScaleDirection * scaleMultiplier * modelData.ScaleMultiplier);
+                    modelData.BladePivot.localScale = finalScale;
+                }
+                else
+                {
+                    Debug.LogError("Blade pivot is not assigned in WeaponModelData.");
+                }
+                break;
+            case ScaleType.Parts:
+                if (modelData.BladeSizeParts != null)
+                {
+                    Vector3 finalScale = Vector3.one + (modelData.BladeSizePartsScaleDirection * scaleMultiplier * modelData.ScaleMultiplier);
+                    modelData.BladeSizeParts.localScale = finalScale;
+                }
+                else
+                {
+                    Debug.LogError("Blade size parts are not assigned in WeaponModelData.");
+                }
+                break;
+            default:
+                Debug.LogError("Unknown ScaleType: " + scaleType);
+                break;
+        }
+    }
 }
