@@ -33,7 +33,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2458604554603279}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.00007385763, y: 0.001097918, z: 0.003380013, w: 0.99999374}
+  m_LocalRotation: {x: 0.00007355853, y: 0.0010993102, z: 0.0033771258, w: 0.9999937}
   m_LocalPosition: {x: 3.82, y: 0.53, z: 20.97}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
@@ -66,19 +66,19 @@ MonoBehaviour:
   viewHalfAngle: 290
   _debugText: {fileID: 0}
   enemyEntity:
-    health: 100
+    currentHealth: 100
     maxHealth: 100
     baseDamage: 20
     baseDefence: 20
-    maxPoise: 100
     currentPoise: 0
-    poiseRegenDelay: 1.5
-    poiseRegenRate: 20
+    staggerSeverity: 0
     isDead: 0
   archetypeConfig: {fileID: 11400000, guid: f1c046e0603c1fa4e97aac976f921906, type: 2}
   flinchesOnHit: 1
   enemyAttackConfig: {fileID: 11400000, guid: 0ac8dd8e135802f47a49731336091e46, type: 2}
   attackHit: {fileID: 0}
+  attackCooldown: 1
+  canAttack: 1
   deathDuration: 3
   hitDuration: 1
   stunDuration: 5
@@ -95,7 +95,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ComboAttackComponents
   config: {fileID: 11400000, guid: 0ac8dd8e135802f47a49731336091e46, type: 2}
-  hitbox: {fileID: 4002259136519043896}
 --- !u!195 &2644316707966038010
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1428,7 +1427,7 @@ GameObject:
   m_Component:
   - component: {fileID: 638108961731876246}
   - component: {fileID: 8078039176402225122}
-  - component: {fileID: 4002259136519043896}
+  - component: {fileID: 5779827014852982570}
   m_Layer: 0
   m_Name: Hurt Box
   m_TagString: Untagged
@@ -1472,7 +1471,7 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.769413
   m_Center: {x: 6.27276e-11, y: 1.9602375e-12, z: 0.269413}
---- !u!114 &4002259136519043896
+--- !u!114 &5779827014852982570
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1481,10 +1480,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 2725714116126737712}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ac10486bb5fc697448458e32c3e8ea3a, type: 3}
+  m_Script: {fileID: 11500000, guid: 257c75dd83642b27985605c5614cf8cc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: '::'
-  enemyController: {fileID: 1704686951315252361}
+  m_EditorClassIdentifier: Assembly-CSharp::DamageHitboxHelper
+  tagsToHandle:
+  - Player
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  hitboxCollider: {fileID: 8078039176402225122}
 --- !u!1 &2821857742673629092
 GameObject:
   m_ObjectHideFlags: 0
@@ -3024,7 +3028,6 @@ GameObject:
   m_Component:
   - component: {fileID: 8609927384038844558}
   - component: {fileID: 3955180661446648898}
-  - component: {fileID: 4589217222454787231}
   m_Layer: 0
   m_Name: foot_l
   m_TagString: Untagged
@@ -3069,19 +3072,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.46940166, y: 0.6007664, z: 0.39470372}
   m_Center: {x: -0.08687823, y: 0.0368817, z: -0.006255219}
---- !u!114 &4589217222454787231
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7029712725658886532}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ac10486bb5fc697448458e32c3e8ea3a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DealDamage
-  enemyController: {fileID: 0}
 --- !u!1 &7136784931941893223
 GameObject:
   m_ObjectHideFlags: 0

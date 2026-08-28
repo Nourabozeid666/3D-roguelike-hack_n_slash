@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using static EquipmentSystem;
 
 [Serializable]
 public class PlayerEntity : IEntity
@@ -32,6 +33,7 @@ public class PlayerEntity : IEntity
     public event Action<float> OnMaxHealthChanged;
     public event Action OnDied;
     public event Action<IStatModifier> OnModifierAdded;
+    public event Action<ScaleType, float> OnScaleChanged;
 
     public float Health => health;
     public float MaxHealth => maxHealth;
@@ -131,13 +133,46 @@ public class PlayerEntity : IEntity
         health = healthPercentage * maxHealth;
     }
 
-    private void AddModifier(IStatModifier modifier)
+    public void AddModifier(IStatModifier modifier)
     {
         modifiers.Add(modifier);
-        if (modifier.TargetStat == StatType.MaxHealth)
-        {
-            SetMaxHealth(modifier.GetValue(maxHealth, this));
-        }
+        HandleModifierType(modifier);
         OnModifierAdded?.Invoke(modifier);
+    }
+
+    private void HandleModifierType(IStatModifier modifier)
+    {
+        switch (modifier.TargetStat)
+        {
+            case StatType.MaxHealth:
+                SetMaxHealth(modifier.GetValue(maxHealth, this));
+                break;
+            case StatType.AttackDamage:
+                baseDamage = modifier.GetValue(baseDamage, this);
+                break;
+            case StatType.Defense:
+                baseDefense = modifier.GetValue(baseDefense, this);
+                break;
+            case StatType.AttackSpeed:
+                attackSpeed = modifier.GetValue(attackSpeed, this);
+                break;
+            case StatType.CritChance:
+                critChance = modifier.GetValue(critChance, this);
+                break;
+            case StatType.CritMultiplier:
+                critMultiplier = modifier.GetValue(critMultiplier, this);
+                break;
+            case StatType.WeaponLength:
+                weaponLength = modifier.GetValue(weaponLength, this);
+                OnScaleChanged?.Invoke(ScaleType.Blade, weaponLength);
+                break;
+            case StatType.WeaponSize:
+                weaponSize = modifier.GetValue(weaponSize, this);
+                OnScaleChanged?.Invoke(ScaleType.Parts, weaponSize);
+                break;
+            default:
+                Debug.LogWarning($"Unhandled stat type: {modifier.TargetStat}");
+                break;
+        }
     }
 }

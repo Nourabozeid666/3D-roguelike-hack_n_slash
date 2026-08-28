@@ -11,6 +11,8 @@ public class CombatController : MonoBehaviour
     [SerializeField] private ReferencesContext referencesContext;
     [SerializeField] private CombatContext combatContext;
     [SerializeField] internal EquipmentSystem equipmentSystem = new EquipmentSystem(null);
+    [Header("Debug")]
+    [SerializeField] private ScriptableObject[] testModifiers;
     private ComboSystem comboSystem;
     private StateMachine<CombatController> _stateMachine;
     internal DamageHitboxHelper damageHitboxHelper;
@@ -21,6 +23,8 @@ public class CombatController : MonoBehaviour
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
     public ComboSystem ComboSystem { get { return comboSystem; } }
     public ReferencesContext ReferencesContext { get { return referencesContext; } }
+
+
 
     void Awake()
     {
@@ -74,7 +78,18 @@ public class CombatController : MonoBehaviour
         InputController.OnHeavyAttackEnd += HandleHeavyAttackEnd;
         InputController.OnBlockStart += HandleBlockStart;
         InputController.OnBlockEnd += HandleBlockEnd;
+        InputController.OnDebugInput2 += () =>
+        {
+            if (testModifiers.Length > 0)
+            {
+                foreach (var modifier in testModifiers)
+                {
+                    _playerEntity.AddModifier(modifier as IStatModifier);
+                }
+            }
+        };
         _playerEntity.OnDamageTaken += HandleDamageTaken;
+        _playerEntity.OnScaleChanged += HandleScaleChanged;
     }
 
     void OnDisable()
@@ -85,7 +100,18 @@ public class CombatController : MonoBehaviour
         InputController.OnHeavyAttackEnd -= HandleHeavyAttackEnd;
         InputController.OnBlockStart -= HandleBlockStart;
         InputController.OnBlockEnd -= HandleBlockEnd;
+        InputController.OnDebugInput2 -= () =>
+        {
+            if (testModifiers.Length > 0)
+            {
+                foreach (var modifier in testModifiers)
+                {
+                    _playerEntity.AddModifier(modifier as IStatModifier);
+                }
+            }
+        };
         _playerEntity.OnDamageTaken -= HandleDamageTaken;
+        _playerEntity.OnScaleChanged -= HandleScaleChanged;
     }
 
     private void HandleLightAttackStart()
@@ -245,5 +271,13 @@ public class CombatController : MonoBehaviour
         // Implement counter parry logic here
         // switch to counter state and play counter animation
         _stateMachine.SetState<CombatCounterState>();
+    }
+
+    void HandleScaleChanged(ScaleType scaleType, float scaleMultiplier)
+    {
+        if (equipmentSystem.CurrentWeaponModelData != null)
+        {
+            equipmentSystem.ScaleWeaponModel(scaleType, scaleMultiplier);
+        }
     }
 }
