@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 public interface IEntity
 {
@@ -6,17 +7,16 @@ public interface IEntity
     float MaxHealth { get; }
     float BaseDamage { get; }
     float BaseDefense { get; }
+    bool IsDead { get; }
 
-    // Temporarily float, will have its own class later
-    IStatModifier[] AddedDamage { get; }
-    IStatModifier[] AddedDefense { get; }
-    IStatModifier[] DamageMultipliers { get; }
-    IStatModifier[] DefenseMultipliers { get; }
+    List<IStatModifier> Modifiers { get; }
 
-    public event Action<float> OnDamageTaken;
+    public event Action<float, AttackEffectData> OnDamageTaken;
     public event Action<float> OnHealed;
+    public event Action<float> OnMaxHealthChanged;
+    public event Action OnDied;
 
-    void TakeDamage(float damage);
+    void TakeDamage(float damage, AttackEffectData effectData = null);
     void Heal(float healAmount);
     void SetMaxHealth(float maxHealth);
 }

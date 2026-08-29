@@ -16,19 +16,23 @@ public enum StatModifierPolarity
 public enum StatType
 {
     MaxHealth,
+    Health,
     Defense,
     AttackDamage,
     AttackSpeed,
     CritChance,
     WeaponLength,
     WeaponSize,
+    CritMultiplier,
 }
 
 public interface IStatModifier
 {
     StatType TargetStat { get; }
-    StatModifierType _modifierType { get; }
-    StatModifierPolarity _modifierPolarity { get; }
+    StatModifierType ModifierType { get; }
+    StatModifierPolarity ModifierPolarity { get; }
+
+    float Chance { get; }
 
     float GetValue(float baseValue, IEntity entity);
 }

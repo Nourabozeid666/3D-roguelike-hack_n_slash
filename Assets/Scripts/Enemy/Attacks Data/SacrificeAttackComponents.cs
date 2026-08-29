@@ -7,8 +7,3 @@ public class SacrificeAttackComponents : MonoBehaviour
     public SacrificeAttackConfig Config => config;
     public GameObject ExplosionParticles => explosionParticles;
 }
-
-public class ComboAttackComponents: MonoBehaviour
-{
-
-}

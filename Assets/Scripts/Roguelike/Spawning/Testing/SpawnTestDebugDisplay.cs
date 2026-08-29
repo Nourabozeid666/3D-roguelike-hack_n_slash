@@ -59,7 +59,7 @@ public class SpawnTestDebugDisplay : MonoBehaviour
             {
                 spawned++;
                 LogSpawn(enemy);
-                enemy.Died += () => LogDeath(enemy);
+                enemy.OnDied += () => LogDeath(enemy);
             }
         }
 

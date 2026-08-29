@@ -35,11 +35,13 @@ public class PlayerDashState : State<PlayerController>
             _dashDirection = _owner.referencesContext.playerModel.forward;
         }
 
-        if (!_owner.CombatController.CombatContext.isAttacking)
+        // If dashing cancels an attack during recovery, put CombatController back to idle
+        if (_owner.CombatController != null)
         {
-            _animator.CrossFade(_dashAnimationHash, 0.1f);
+            _owner.CombatController.StateMachine.SetState<CombatIdleState>();
         }
-        
+
+        _animator.CrossFade(_dashAnimationHash, 0.1f);
         DashCoroutine().Forget();
     }
 

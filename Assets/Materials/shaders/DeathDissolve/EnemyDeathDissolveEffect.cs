@@ -135,7 +135,7 @@ public sealed class EnemyDeathDissolveEffect : MonoBehaviour
             return;
         }
 
-        if (enemyController.EnemyEntity.CurrentHealth <= 0f)
+        if (enemyController.EnemyEntity.Health <= 0f)
         {
             PlayDeathEffect();
         }

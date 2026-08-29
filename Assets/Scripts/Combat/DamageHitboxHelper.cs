@@ -1,15 +1,17 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class DamageHitboxHelper : MonoBehaviour
 {
     public event Action<GameObject, IEntity> OnHitboxTriggered;
-    public event Action OnEnableHitBox;
-    public event Action OnDisableHitBox;
     [SerializeField] private string[] tagsToHandle;
-    [SerializeField] private Type[] componentsToHandle = { typeof(IEntity), typeof(IEntityProvider), typeof(IEnemyEntity) };
+    [SerializeField] private LayerMask targetLayers;
     [SerializeField] private Collider hitboxCollider;
+    private readonly HashSet<int> hitTargetIDs = new HashSet<int>();
+
     private bool isActive = true;
+    public bool IsActive { get { return isActive; } }
     void Start()
     {
         if (hitboxCollider == null)
@@ -20,55 +22,78 @@ public class DamageHitboxHelper : MonoBehaviour
         else
         {
             hitboxCollider.enabled = false;
-
         }
     }
 
     void OnEnable()
     {
         if (!isActive) return;
-        OnEnableHitBox += EnableHitbox;
-        OnDisableHitBox += DisableHitbox;
+        EnableHitbox();
     }
 
     void OnDisable()
     {
         if (!isActive) return;
-        OnEnableHitBox -= EnableHitbox;
-        OnDisableHitBox -= DisableHitbox;
+        DisableHitbox();
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
         if (!isActive) return;
+        Debug.Log($"Hitbox triggered by {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}", this);
+        // 1. Instant bitwise layer check
+        if (targetLayers.value != 0 && ((1 << other.gameObject.layer) & targetLayers.value) == 0) {
+            Debug.Log($"Hitbox triggered by {other.gameObject.name} but its layer is not in the target layers. Ignoring.", this);
+            return;}
 
-        foreach (var tag in tagsToHandle)
+        // 2. Optional tag check (if tags are specified)
+        if (tagsToHandle != null && tagsToHandle.Length > 0 && !HasMatchingTag(other))
+
         {
-            if (other.CompareTag(tag))
-            {
-                var entity = other.TryGetComponent<IEntity>(out var componentInstance);
-                if (componentInstance != null)
-                {
-                    OnHitboxTriggered?.Invoke(other.gameObject, componentInstance);
-                    return;
-                }
-            }
+            Debug.Log($"Hitbox triggered by {other.gameObject.name} but its tag is not in the target tags. Ignoring.", this);
+            return;
         }
 
-        foreach (var componentType in componentsToHandle)
+        // 3. Resolve target root to prevent hitting multiple child colliders on the same entity
+        Transform targetRoot = other.transform.root != null ? other.transform.root : other.transform;
+        int targetId = targetRoot.GetInstanceID();
+
+        // 4. O(1) deduplication check
+        if (!hitTargetIDs.Add(targetId))
+           {
+            Debug.Log($"Hitbox triggered by {other.gameObject.name} but this target has already been hit. Ignoring.", this);
+            return;
+           }
+
+        // 5. Direct generic entity resolution (zero reflection)
+        if (other.TryGetComponent<IEntityProvider>(out var provider) ||
+            targetRoot.TryGetComponent(out provider))
         {
-            var component = other.TryGetComponent(componentType, out var componentInstance);
-            if (componentInstance != null && componentInstance is IEntity entity)
-            {
-                OnHitboxTriggered?.Invoke(other.gameObject, entity);
-                return;
-            }
+            OnHitboxTriggered?.Invoke(targetRoot.gameObject, provider.Entity);
+            return;
         }
+
+        if (other.TryGetComponent<IEntity>(out var entity) ||
+            targetRoot.TryGetComponent(out entity))
+        {
+            OnHitboxTriggered?.Invoke(targetRoot.gameObject, entity);
+            return;
+        }
+    }
+
+    private bool HasMatchingTag(Collider col)
+    {
+        for (int i = 0; i < tagsToHandle.Length; i++)
+        {
+            if (col.CompareTag(tagsToHandle[i])) return true;
+        }
+        return false;
     }
 
     void EnableHitbox()
     {
         if (!isActive) return;
+        hitTargetIDs.Clear();
         hitboxCollider.enabled = true;
     }
 
@@ -76,5 +101,6 @@ public class DamageHitboxHelper : MonoBehaviour
     {
         if (!isActive) return;
         hitboxCollider.enabled = false;
+        hitTargetIDs.Clear();
     }
 }

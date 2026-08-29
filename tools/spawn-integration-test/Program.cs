@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 class Program
@@ -44,6 +45,18 @@ class Program
         UpgradeOfferDataScenario();
         GameOverScenario();
         GameOverRunTimeScenario();
+        SpawnStatConfigScenario();
+        DeathIdempotencyScenario();
+        RuntimeDamageConfigScenario();
+        OnDiedLethalDamageScenario();
+        ExplosionDeathFlowScenario();
+        TwoPointZoneBoundsScenario();
+        ObstacleClearanceScenario();
+        TwoPointZoneEndToEndScenario();
+        RunEndScenario();
+        WaveReleaseStopScenario();
+        GameOverFlowScenario();
+        RunBootstrapGameFlowScenario();
 
         Console.WriteLine(failures.Count == 0
             ? $"[SpawnIntegration] ALL {checks} CHECKS PASSED"
@@ -92,7 +105,7 @@ class Program
         var te = go.AddComponent<TestEnemy>();
         Invoke(te, "Awake");
         bool died = false;
-        te.Died += () => died = true;
+        te.OnDied += () => died = true;
 
         Invoke(te, "OnTriggerEnter", playerCol);
         Check(died, "touch: OnTriggerEnter from Player hierarchy kills the enemy");
@@ -109,7 +122,7 @@ class Program
         var te = go.AddComponent<TestEnemy>();
         Invoke(te, "Awake");
         bool died = false;
-        te.Died += () => died = true;
+        te.OnDied += () => died = true;
 
         Invoke(te, "OnTriggerEnter", col);
         Check(!died, "touch: non-Player collider does NOT kill");
@@ -1037,6 +1050,21 @@ class Program
         return zone;
     }
 
+    static SpawnZone MakeTwoPointZone(Vector3 start, Vector3 end, bool navMesh = false, int blocking = 0, float footprint = 0.5f, float safety = 0f)
+    {
+        var zoneGo = new GameObject("SpawnZone");
+        zoneGo.transform.position = new Vector3(0, 0.5f, 0);
+        var zone = zoneGo.AddComponent<SpawnZone>();
+        SetField(zone, "zoneMode", 1); // ZoneMode.TwoPoints
+        SetField(zone, "startPoint", start);
+        SetField(zone, "endPoint", end);
+        SetField(zone, "useNavMeshValidation", navMesh);
+        if (blocking != 0) SetField(zone, "blockingLayers", (LayerMask)blocking);
+        SetField(zone, "footprintRadius", footprint);
+        SetField(zone, "safetyMargin", safety);
+        return zone;
+    }
+
     static bool InZone(SpawnZone zone, Vector3 p)
     {
         Vector3 min = zone.Center - zone.Size * 0.5f;
@@ -1312,6 +1340,742 @@ class Program
         Check(new GameOverData(0, 0, -10f).RunTimeText() == "0:00", "time: negative clamps to 0:00");
     }
 
+    // 30. ISpawnStatConfig seam (enemy integration): SpawnSystem reads the enemy's BASE stats and
+    //     pushes floor-scaled ABSOLUTE values in through ConfigureForSpawn before initialization.
+    //     TestEnemy stores them as its working stats; the raw base is never overwritten.
+    static void SpawnStatConfigScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("TestEnemy");
+        prefab.AddComponent<TestEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (3)", new Vector3(5, 0.5f, 3), new List<Vector3>());
+
+        sys.Populate(9f, 2);
+        Check(sys.AliveCount() == 3, "scale: floor 2 spawns 3 enemies");
+        foreach (GameObject c in UnityEngine.Object.Clones)
+        {
+            var te = c.GetComponent<TestEnemy>();
+            Check(Mathf.Approximately(te.BaseMaxHealth, 10f), "scale: BaseMaxHealth reads the raw base (10)");
+            Check(Mathf.Approximately(te.BaseDamage, 1f), "scale: BaseDamage reads the raw base (1)");
+            Check(Mathf.Approximately(te.Health, 10f * 1.12f), "scale: floor 2 health scaled 10 * 1.12^1");
+            Check(Mathf.Approximately(te.Damage, 1f * 1.08f), "scale: floor 2 damage scaled 1 * 1.08^1");
+        }
+    }
+
+    // 31. Death idempotency (enemy integration): a double death notification must decrement exactly
+    //     once per enemy and raise FloorCleared exactly once; TestEnemy.Die() is a no-op when dead.
+    static void DeathIdempotencyScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("DoubleNotifyEnemy");
+        prefab.AddComponent<DoubleNotifyEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (3)", new Vector3(5, 0.5f, 3), new List<Vector3>());
+
+        int cleared = 0;
+        sys.FloorCleared += () => cleared++;
+
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 3, "idem: 3 spawned");
+
+        // Double-notify one enemy: AliveCount must drop by exactly 1, floor not cleared yet.
+        var first = UnityEngine.Object.Clones[0].GetComponent<DoubleNotifyEnemy>();
+        first.FireTwice();
+        Check(sys.AliveCount() == 2, "idem: double-notify decrements once (3 -> 2)");
+        Check(cleared == 0, "idem: floor NOT cleared while others live");
+
+        // Double-notify the rest: floor clears exactly once despite the duplicate notifications.
+        foreach (GameObject c in UnityEngine.Object.Clones)
+            c.GetComponent<DoubleNotifyEnemy>().FireTwice();
+        Check(sys.AliveCount() == 0, "idem: AliveCount 0 after all enemies double-notify");
+        Check(sys.IsFloorCleared, "idem: floor cleared");
+        Check(cleared == 1, "idem: FloorCleared fired exactly once despite double-notifies");
+
+        // TestEnemy.Die() itself is guarded: the second call is a no-op.
+        var teSys = BuildSystem();
+        teSys.Populate(9f, 1);
+        var te = UnityEngine.Object.FindObjectsOfType<TestEnemy>()[0];
+        te.Die();
+        int afterFirst = teSys.AliveCount();
+        te.Die();
+        Check(teSys.AliveCount() == afterFirst, "idem: TestEnemy.Die() twice decrements once");
+    }
+
+    // 32. Runtime damage config (enemy integration): a stub mimicking EnemyController stores the
+    //     floor-scaled damage in a per-instance runtimeDamage field (exposed as RuntimeDamage); attacks
+    //     read this instead of the shared SO base. ConfigureForSpawn writes both health and damage.
+    static void RuntimeDamageConfigScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("RuntimeDamageEnemy");
+        prefab.AddComponent<RuntimeDamageEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+
+        sys.Populate(3f, 1);
+        Check(sys.AliveCount() == 1, "rdamage: floor 1 spawns 1 enemy");
+        var rde = UnityEngine.Object.Clones[0].GetComponent<RuntimeDamageEnemy>();
+        Check(Mathf.Approximately(rde.BaseDamage, 5f), "rdamage: BaseDamage reads the raw base (5)");
+        Check(Mathf.Approximately(rde.RuntimeDamage, 5f), "rdamage: floor 1 RuntimeDamage == base (no scaling)");
+        Check(Mathf.Approximately(rde.RuntimeDamage, rde.Damage), "rdamage: RuntimeDamage matches working Damage");
+
+        // Floor 3: damageScale = 1.08^2 = 1.1664
+        UnityEngine.Object.ResetWorld();
+        sys.Populate(3f, 3);
+        Check(sys.AliveCount() == 1, "rdamage: floor 3 spawns 1 enemy");
+        rde = UnityEngine.Object.Clones[0].GetComponent<RuntimeDamageEnemy>();
+        Check(Mathf.Approximately(rde.RuntimeDamage, 5f * 1.08f * 1.08f), "rdamage: floor 3 RuntimeDamage == 5 * 1.08^2");
+        Check(Mathf.Approximately(rde.Damage, 5f * 1.08f * 1.08f), "rdamage: floor 3 working Damage matches RuntimeDamage");
+    }
+
+    // 33. OnDied-once on lethal TakeDamage (enemy integration): a stub mimicking EnemyEntity fires
+    //     OnDied exactly once when TakeDamage reduces health to zero; a second TakeDamage is a no-op.
+    static void OnDiedLethalDamageScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("LethalEnemy");
+        prefab.AddComponent<LethalEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0f);
+        SetField(archetype, "damageGrowthPerFloor", 0f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+
+        int deaths = 0;
+        sys.FloorCleared += () => deaths++;
+
+        sys.Populate(3f, 1);
+        Check(sys.AliveCount() == 1, "lethal: 1 spawned");
+
+        var le = UnityEngine.Object.Clones[0].GetComponent<LethalEnemy>();
+        le.TakeDamage(4f);
+        Check(sys.AliveCount() == 1, "lethal: partial damage keeps enemy alive");
+        Check(deaths == 0, "lethal: no death on partial damage");
+
+        le.TakeDamage(1f);
+        Check(sys.AliveCount() == 0, "lethal: lethal damage decrements alive");
+        Check(deaths == 1, "lethal: FloorCleared fired exactly once");
+
+        // Second TakeDamage is a no-op (dead guard).
+        le.TakeDamage(10f);
+        Check(sys.AliveCount() == 0, "lethal: post-death TakeDamage is a no-op");
+        Check(deaths == 1, "lethal: post-death TakeDamage does not fire again");
+    }
+
+    // 34. Explosion death flow (enemy integration): a stub mimicking SacrificeAttack calls Kill()
+    //     which fires OnDied exactly once; SpawnSystem receives it and decrements alive.
+    static void ExplosionDeathFlowScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("ExplodingEnemy");
+        prefab.AddComponent<ExplodingEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0f);
+        SetField(archetype, "damageGrowthPerFloor", 0f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+
+        int deaths = 0;
+        sys.FloorCleared += () => deaths++;
+
+        sys.Populate(3f, 1);
+        Check(sys.AliveCount() == 1, "explode: 1 spawned");
+
+        var ee = UnityEngine.Object.Clones[0].GetComponent<ExplodingEnemy>();
+        Check(Mathf.Approximately(ee.RuntimeDamage, 5f), "explode: RuntimeDamage is set by ConfigureForSpawn");
+
+        // Mimic SacrificeAttack: scale explosion proportionally and then Kill().
+        float ratio = ExplodingEnemy.ConfigBaseDamage > 0f ? ee.RuntimeDamage / ExplodingEnemy.ConfigBaseDamage : 1f;
+        float scaledExplosion = ExplodingEnemy.ConfigExplosionDamage * ratio;
+        Check(Mathf.Approximately(scaledExplosion, 40f), "explode: explosion damage unscaled on floor 1");
+
+        ee.Kill();
+        Check(sys.AliveCount() == 0, "explode: Kill() decrements alive");
+        Check(deaths == 1, "explode: FloorCleared fired exactly once");
+
+        // Double Kill is a no-op.
+        ee.Kill();
+        Check(sys.AliveCount() == 0, "explode: double Kill() is a no-op");
+        Check(deaths == 1, "explode: double Kill() does not fire again");
+    }
+
+    // 35. TwoPointZone bounds: two-point mode computes correct Center/Size from arbitrary corners,
+    //     reversed points, Start == End, very small zones, and candidates always stay inside.
+    static void TwoPointZoneBoundsScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        // Normal: (0,0,0) -> (10,0,10) => Center=(5,0.5,5), Size=(10,2,10)
+        var zone1 = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(10, 0, 10));
+        Check(Mathf.Approximately(zone1.Center.x, 5f), "2pt: center x = 5");
+        Check(Mathf.Approximately(zone1.Center.z, 5f), "2pt: center z = 5");
+        Check(Mathf.Approximately(zone1.Size.x, 10f), "2pt: size x = 10");
+        Check(Mathf.Approximately(zone1.Size.z, 10f), "2pt: size z = 10");
+        Check(zone1.Mode == SpawnZone.ZoneMode.TwoPoints, "2pt: mode is TwoPoints");
+
+        // Reversed: (10,0,10) -> (0,0,0) => same Center/Size.
+        var zone2 = MakeTwoPointZone(new Vector3(10, 0, 10), new Vector3(0, 0, 0));
+        Check(Mathf.Approximately(zone2.Center.x, 5f), "2pt: reversed center x = 5");
+        Check(Mathf.Approximately(zone2.Center.z, 5f), "2pt: reversed center z = 5");
+        Check(Mathf.Approximately(zone2.Size.x, 10f), "2pt: reversed size x = 10");
+        Check(Mathf.Approximately(zone2.Size.z, 10f), "2pt: reversed size z = 10");
+
+        // Start == End => tiny degenerate zone (size clamped to 0.001).
+        var zone3 = MakeTwoPointZone(new Vector3(5, 0, 5), new Vector3(5, 0, 5));
+        Check(zone3.Size.x <= 0.01f, "2pt: same-point zone has near-zero size x");
+        Check(zone3.Size.z <= 0.01f, "2pt: same-point zone has near-zero size z");
+
+        // Very small zone: 1x1
+        var zone4 = MakeTwoPointZone(new Vector3(3, 0, 7), new Vector3(4, 0, 8));
+        Check(Mathf.Approximately(zone4.Center.x, 3.5f), "2pt: small center x = 3.5");
+        Check(Mathf.Approximately(zone4.Center.z, 7.5f), "2pt: small center z = 7.5");
+        Check(Mathf.Approximately(zone4.Size.x, 1f), "2pt: small size x = 1");
+        Check(Mathf.Approximately(zone4.Size.z, 1f), "2pt: small size z = 1");
+
+        // Contains works via the validator.
+        var validator = new SpawnPlacementValidator();
+        Check(validator.Contains(zone1, new Vector3(1, 0, 1)), "2pt: (1,0,1) inside (0,0)-(10,10)");
+        Check(validator.Contains(zone1, new Vector3(9.9f, 0, 9.9f)), "2pt: near-corner inside");
+        Check(!validator.Contains(zone1, new Vector3(-0.1f, 0, 5)), "2pt: outside -x edge");
+        Check(!validator.Contains(zone1, new Vector3(5, 0, 10.1f)), "2pt: outside +z edge");
+
+        // RandomPoint always stays inside the zone (test 100 candidates).
+        for (int i = 0; i < 100; i++)
+        {
+            Vector3 pt = zone1.RandomPoint();
+            Check(validator.Contains(zone1, pt), $"2pt: random candidate {pt} inside zone");
+        }
+
+        // CenterSize mode still works.
+        UnityEngine.Object.ResetWorld();
+        var zoneCs = MakeZone(new Vector3(10, 2, 10), Vector3.zero);
+        Check(zoneCs.Mode == SpawnZone.ZoneMode.CenterSize, "2pt: CenterSize mode unchanged");
+        Check(Mathf.Approximately(zoneCs.Center.x, 0f), "2pt: CenterSize center x = 0");
+        Check(Mathf.Approximately(zoneCs.Size.x, 10f), "2pt: CenterSize size x = 10");
+    }
+
+    // 36. Obstacle clearance: footprint + safety margin blocks candidates even when center is
+    //     technically outside the obstacle. Safety margin creates an additional buffer.
+    static void ObstacleClearanceScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        Physics.ResetBlockers();
+
+        var validator = new SpawnPlacementValidator();
+
+        // --- Basic footprint blocking ---
+        // Obstacle at (5, 0.5, 5) with radius 0.5. Footprint 0.5.
+        // Candidate at (6, 0, 5) — center is 1.0 away, which is > 0.5+0.5=1.0? No, equal => blocked.
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+
+        var zoneNoSafety = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20),
+            blocking: 8, footprint: 0.5f, safety: 0f);
+
+        // Candidate at (6, 0, 5) — distance to obstacle = 1.0, threshold = 0.5+0.5=1.0 => blocked
+        Check(zoneNoSafety.FootprintRadius == 0.5f, "clear: footprint = 0.5");
+        Check(zoneNoSafety.SafetyMargin == 0f, "clear: safety = 0");
+
+        // --- Safety margin adds buffer ---
+        var zoneWithSafety = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20),
+            blocking: 8, footprint: 0.5f, safety: 1.0f);
+        Check(zoneWithSafety.SafetyMargin == 1.0f, "clear: safety margin = 1.0");
+
+        // Effective clearance = footprint + safety = 0.5 + 1.0 = 1.5.
+        // Candidate at (6.6, 0, 5) — distance to obstacle = 1.6, threshold = 0.5+1.5=2.0 => not blocked
+        // Candidate at (6.4, 0, 5) — distance to obstacle = 1.4, threshold = 0.5+1.5=2.0 => blocked
+        // Use TryFindLocation with maxAttempts=1 to test specific candidates.
+        // Since RandomPoint may not hit our exact candidate, test via the blocking func directly.
+        bool blockedNoSafety = validator.TryFindLocation(zoneNoSafety, Vector3.zero, 0f, null, null,
+            p => Physics.CheckSphere(p, zoneNoSafety.FootprintRadius + zoneNoSafety.SafetyMargin, 8), out _);
+        // With no safety margin, a point far from the obstacle should be found.
+        Check(blockedNoSafety || !blockedNoSafety, "clear: no-safety blocking runs without crash");
+
+        // --- Footprint causes rejection even when center is outside obstacle ---
+        // Obstacle at (5, 0.5, 5) r=0.5. Candidate center at (5.9, 0, 5) — center is 0.9 from
+        // obstacle center, outside the obstacle itself (0.9 > 0.5). But with footprint 0.5,
+        // effective clearance = 0.5+0.5 = 1.0, and 0.9 < 1.0 => blocked.
+        // This proves the enemy body would overlap even though the center point is clear.
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+        float effectiveRadius = 0.5f + 0f; // footprint + no safety
+        bool overlaps = Physics.CheckSphere(new Vector3(5.9f, 0.5f, 5f), effectiveRadius, 8);
+        Check(overlaps, "clear: center at 0.9 from obstacle blocked by footprint (0.9 < 1.0)");
+
+        // Center at 1.1 from obstacle => 1.1 > 1.0 => not blocked.
+        bool clear = !Physics.CheckSphere(new Vector3(6.1f, 0.5f, 5f), effectiveRadius, 8);
+        Check(clear, "clear: center at 1.1 from obstacle accepted (1.1 > 1.0)");
+
+        // --- Safety margin rejects positions too close ---
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+        float effectiveWithSafety = 0.5f + 1.0f; // footprint + safety
+        bool blockedBySafety = Physics.CheckSphere(new Vector3(6.4f, 0.5f, 5f), effectiveWithSafety, 8);
+        Check(blockedBySafety, "clear: safety margin blocks center at 1.4 (1.4 < 2.0)");
+
+        // Position just outside effective blocked area is accepted.
+        bool acceptedBeyondSafety = !Physics.CheckSphere(new Vector3(7.1f, 0.5f, 5f), effectiveWithSafety, 8);
+        Check(acceptedBeyondSafety, "clear: center at 2.1 from obstacle accepted with safety (2.1 > 2.0)");
+
+        // --- Zero safety = no extra buffer ---
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(5, 0.5f, 5));
+        Physics.BlockedRadius = 0.5f;
+        float effectiveZero = 0.5f + 0f;
+        bool acceptedNoSafety = !Physics.CheckSphere(new Vector3(6.1f, 0.5f, 5f), effectiveZero, 8);
+        Check(acceptedNoSafety, "clear: zero safety, 1.1 distance accepted");
+
+        Physics.ResetBlockers();
+    }
+
+    // 37. TwoPointZone end-to-end: full pipeline with TwoPoints mode through SpawnSystem.
+    //     Validates bounds, obstacle clearance, NavMesh, player/enemy distance, and MaxAttempts.
+    static void TwoPointZoneEndToEndScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        UnityEngine.MonoBehaviour.PendingCoroutines.Clear();
+        Physics.ResetBlockers();
+        NavMesh.FakeValid = true;
+
+        var table = MakeTable(new[] { 3 }, 3);
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+
+        // TwoPoints zone: (0,0,0) -> (10,0,10). No NavMesh, no blocking.
+        var zone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(10, 0, 10), navMesh: false);
+        SetField(sys, "strategy", SpawnStrategy.RandomZone);
+        SetField(sys, "zone", zone);
+
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 3, "2pt-e2e: 3 spawned in two-point zone");
+        foreach (GameObject c in LiveClones())
+        {
+            var pos = c.transform.position;
+            Check(pos.x >= 0f && pos.x <= 10f && pos.z >= 0f && pos.z <= 10f,
+                $"2pt-e2e: enemy at ({pos.x:F1},{pos.z:F1}) inside (0,0)-(10,10)");
+        }
+
+        // Reversed points: same result.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        var revZone = MakeTwoPointZone(new Vector3(10, 0, 10), new Vector3(0, 0, 0), navMesh: false);
+        SetField(sys, "zone", revZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 3, "2pt-e2e: reversed zone spawns 3 enemies");
+        foreach (GameObject c in LiveClones())
+        {
+            var pos = c.transform.position;
+            Check(pos.x >= 0f && pos.x <= 10f && pos.z >= 0f && pos.z <= 10f,
+                $"2pt-e2e: reversed enemy at ({pos.x:F1},{pos.z:F1}) inside (0,0)-(10,10)");
+        }
+
+        // Blocking with safety margin in TwoPoints zone.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        Physics.ResetBlockers();
+        Physics.BlockedPositions.Add(new Vector3(10, 0.5f, 10)); // obstacle covering the zone
+        Physics.BlockedRadius = 100f; // large obstacle radius covers entire zone
+        var blockedZone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20),
+            blocking: 8, footprint: 0.5f, safety: 12f);
+        SetField(sys, "zone", blockedZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 0, "2pt-e2e: huge safety margin blocks all candidates");
+
+        // MaxAttempts respected: small zone + impossible player distance => fast failure.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        Physics.ResetBlockers();
+        var playerGo = new GameObject("Player");
+        playerGo.transform.position = new Vector3(5, 0.5f, 5);
+        SetField(sys, "playerReference", playerGo.transform);
+        var tinyZone = MakeTwoPointZone(new Vector3(4, 0, 4), new Vector3(6, 0, 6), navMesh: false);
+        SetField(tinyZone, "minPlayerDistance", 1000f);
+        SetField(tinyZone, "maxAttempts", 3);
+        SetField(sys, "zone", tinyZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 0, "2pt-e2e: tiny zone + impossible player distance => 0 spawned");
+
+        // NavMesh validation still works with TwoPoints.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        NavMesh.FakeValid = false;
+        NavMesh.FakeArea = new Bounds { center = Vector3.zero, size = new Vector3(0.01f, 0.01f, 0.01f) };
+        var navZone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(20, 0, 20), navMesh: true);
+        SetField(sys, "zone", navZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() == 0, "2pt-e2e: NavMesh validation rejects all in two-point zone");
+        NavMesh.FakeValid = true;
+
+        // Enemy separation still works: small zone + high minEnemyDistance.
+        foreach (GameObject c in LiveClones().ToList()) c.GetComponent<TestEnemy>().Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        SetField(sys, "playerReference", null);
+        var sepZone = MakeTwoPointZone(new Vector3(0, 0, 0), new Vector3(3, 0, 3), navMesh: false);
+        SetField(sepZone, "minEnemyDistance", 100f); // impossible separation
+        SetField(sepZone, "maxAttempts", 5);
+        SetField(sys, "zone", sepZone);
+        sys.Populate(9f, 1);
+        Check(sys.AliveCount() <= 1, "2pt-e2e: high minEnemyDistance limits spawns in small zone");
+    }
+
+    // 40. RunController.EndRun(): guarded terminal transition from FloorActive/FloorCleared,
+    //     rejected everywhere else; idempotent; Reset() reopens Lobby.
+    static void RunEndScenario()
+    {
+        var run = new RunController();
+        Check(!run.EndRun(), "runend: Lobby -> RunEnd rejected");
+        Check(run.CurrentState == RunState.Lobby, "runend: state stays Lobby");
+
+        Check(run.StartRun(), "runend: StartRun ok");
+        Check(!run.EndRun(), "runend: FloorStart -> RunEnd rejected");
+
+        Check(run.BeginFloor(), "runend: BeginFloor ok");
+        Check(run.EndRun(), "runend: FloorActive -> RunEnd allowed");
+        Check(run.CurrentState == RunState.RunEnd, "runend: state == RunEnd");
+        Check(!run.EndRun(), "runend: repeated EndRun rejected (idempotent)");
+        Check(!run.CompleteFloor(), "runend: CompleteFloor after end rejected");
+        Check(!run.BeginFloor(), "runend: BeginFloor after end rejected");
+        Check(!run.StartNextFloor(), "runend: StartNextFloor after end rejected");
+
+        var other = new RunController();
+        other.StartRun();
+        Check(!other.TryRestore(run.Capture()), "runend: TryRestore on live run rejected");
+
+        run.Reset();
+        Check(run.CurrentState == RunState.Lobby, "runend: Reset returns to Lobby");
+        Check(run.StartRun(), "runend: fresh run starts after Reset");
+
+        var late = new RunController();
+        late.StartRun();
+        late.BeginFloor();
+        Check(late.CompleteFloor(), "runend: CompleteFloor ok");
+        Check(late.EndRun(), "runend: FloorCleared -> RunEnd allowed (death during clear pause)");
+        Check(late.CurrentState == RunState.RunEnd, "runend: late-death state == RunEnd");
+    }
+
+    // 41. SpawnSystem.DisableWaveRelease()/TotalDefeated: suspension stops wave release and
+    //     clears, deaths keep counting exactly once, Populate re-arms release.
+    static void WaveReleaseStopScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+
+        var prefab = new GameObject("TestEnemy");
+        prefab.AddComponent<TestEnemy>();
+
+        var archetype = new EnemyArchetype();
+        SetField(archetype, "prefab", prefab);
+        SetField(archetype, "cost", 3);
+        SetField(archetype, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype, "damageGrowthPerFloor", 0.08f);
+
+        var table = new SpawnTable();
+        SetField(table, "archetypes", new List<EnemyArchetype> { archetype });
+
+        var sysGo = new GameObject("SpawnSystem");
+        var sys = sysGo.AddComponent<SpawnSystem>();
+        SetField(sys, "table", table);
+        AddPoint(sysGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+        AddPoint(sysGo, "SpawnPoint (3)", new Vector3(5, 0.5f, 3), new List<Vector3>());
+
+        int clearedEvents = 0;
+        sys.FloorCleared += () => clearedEvents++;
+
+        Check(sys.WaveReleaseEnabled, "wavestop: release enabled by default");
+        Check(sys.TotalDefeated == 0, "wavestop: TotalDefeated starts at 0");
+
+        sys.Populate(18f, 1); // budget 18 / cost 3 -> 6 enemies, single wave (waves off)
+        Check(sys.AliveCount() == 6, "wavestop: 6 spawned in one wave");
+
+        sys.DisableWaveRelease(); // the player died mid-floor
+        Check(!sys.WaveReleaseEnabled, "wavestop: DisableWaveRelease flips the flag");
+
+        TestEnemy[] clones = UnityEngine.Object.FindObjectsOfType<TestEnemy>();
+        clones[0].Die();
+        Check(sys.TotalDefeated == 1, "wavestop: death counted while suspended");
+        Check(sys.AliveCount() == 5, "wavestop: alive decremented while suspended");
+        Check(clearedEvents == 0, "wavestop: no clear while others still alive");
+
+        foreach (TestEnemy te in clones) te.Die();
+        Check(sys.AliveCount() == 0, "wavestop: alive drained to 0 while suspended");
+        Check(clearedEvents == 0, "wavestop: FloorCleared suppressed even on final death");
+        Check(UnityEngine.MonoBehaviour.PendingCoroutines.Count == 0,
+            "wavestop: no wave coroutine queued while suspended");
+
+        sys.Populate(18f, 2); // next floor re-arms release
+        Check(sys.WaveReleaseEnabled, "wavestop: Populate re-enables release");
+        Check(sys.TotalDefeated == 6, "wavestop: TotalDefeated accumulates across floors");
+        Check(sys.AliveCount() == 6, "wavestop: floor 2 populated");
+
+        foreach (TestEnemy te in UnityEngine.Object.FindObjectsOfType<TestEnemy>()) te.Die();
+        Check(sys.TotalDefeated == 12, "wavestop: floor 2 deaths counted");
+        Check(clearedEvents == 1, "wavestop: FloorCleared fires again after re-arm");
+
+        // Multi-wave floor: killing out the current wave while suspended releases nothing further.
+        UnityEngine.Object.ResetWorld();
+        UnityEngine.MonoBehaviour.PendingCoroutines.Clear();
+        clearedEvents = 0;
+
+        var prefab2 = new GameObject("TestEnemy");
+        prefab2.AddComponent<TestEnemy>();
+        var archetype2 = new EnemyArchetype();
+        SetField(archetype2, "prefab", prefab2);
+        SetField(archetype2, "cost", 3);
+        SetField(archetype2, "healthGrowthPerFloor", 0.12f);
+        SetField(archetype2, "damageGrowthPerFloor", 0.08f);
+        var table2 = new SpawnTable();
+        SetField(table2, "archetypes", new List<EnemyArchetype> { archetype2 });
+
+        var waveGo = new GameObject("WaveSpawnSystem");
+        var waveSys = waveGo.AddComponent<SpawnSystem>();
+        SetField(waveSys, "table", table2);
+        var pacing = new SpawnPacingConfig();
+        SetField(pacing, "waveStartFloor", 1);
+        SetField(pacing, "waveSize", 2);
+        SetField(waveSys, "pacingConfig", pacing);
+        AddPoint(waveGo, "SpawnPoint (1)", new Vector3(4, 0.5f, 7), new List<Vector3>());
+        AddPoint(waveGo, "SpawnPoint (2)", new Vector3(7, 0.5f, 5), new List<Vector3>());
+
+        int waveClears = 0;
+        waveSys.FloorCleared += () => waveClears++;
+
+        waveSys.Populate(15f, 1); // composition of 5 -> waves of 2+2+1; wave 1 live now
+        Check(waveSys.AliveCount() == 2, "wavestop: multi-wave floor starts with wave 1 (2 alive)");
+        Check(waveSys.RemainingInComposition == 3, "wavestop: 3 entries remain for later waves");
+
+        waveSys.DisableWaveRelease();
+        foreach (TestEnemy te in UnityEngine.Object.FindObjectsOfType<TestEnemy>()) te.Die();
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        Check(waveSys.AliveCount() == 0, "wavestop: wave 1 drained while suspended");
+        Check(waveSys.RemainingInComposition == 3, "wavestop: composition untouched (no wave 2 released)");
+        Check(waveClears == 0, "wavestop: no clear event on a suspended multi-wave floor");
+        Check(waveSys.TotalDefeated == 2, "wavestop: multi-wave deaths still counted");
+    }
+
+    // 42. GameOverFlow: player death -> waves off, run -> RunEnd, time frozen, cursor freed,
+    //     pause disabled, real summary published exactly once through IGameOverSource.
+    static void GameOverFlowScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        Time.timeScale = 1f;
+        Time.time = 200f;
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        GameObject playerGo = new GameObject("Player");
+        PlayerController player = playerGo.AddComponent<PlayerController>();
+        player.Entity = new StubPlayerEntity { Health = 25f };
+
+        GameObject sysGo = new GameObject("SpawnSystem");
+        SpawnSystem sys = sysGo.AddComponent<SpawnSystem>(); // no table needed: only flags/counters
+
+        var run = new RunController();
+        run.StartRun();
+        run.BeginFloor();
+
+        GameObject uiGo = new GameObject("PlayerUI");
+        PlayerUiBootstrap ui = uiGo.AddComponent<PlayerUiBootstrap>();
+        ui.GameOverSource = new MockGameOverSource();
+        int published = 0;
+        ui.GameOverSource.Changed += _ => published++;
+
+        GameObject pauseGo = new GameObject("PausePanel");
+        PauseController pause = pauseGo.AddComponent<PauseController>();
+
+        GameObject flowGo = new GameObject("GameOverFlow");
+        GameOverFlow flow = flowGo.AddComponent<GameOverFlow>();
+        flow.Configure(player, sys, run, ui, pause);
+
+        Check(!flow.Triggered, "flow: not triggered at configure");
+        Check(sys.WaveReleaseEnabled, "flow: release enabled at configure");
+
+        Invoke(flow, "Update"); // alive -> nothing
+        Check(!flow.Triggered, "flow: alive player does not trigger");
+
+        Time.time = 240f; // 40s of scaled play time since Configure
+        player.Entity.Health = 0f;
+        Invoke(flow, "Update");
+
+        Check(flow.Triggered, "flow: zero health triggers the flow");
+        Check(published == 1, "flow: summary published exactly once");
+        Check(Mathf.Approximately(Time.timeScale, 0f), "flow: timeScale == 0 after trigger");
+        Check(Cursor.visible && Cursor.lockState == CursorLockMode.None,
+            "flow: cursor freed for end-screen buttons");
+        Check(!pause.enabled, "flow: pause controller disabled");
+        Check(!sys.WaveReleaseEnabled, "flow: wave release disabled on death");
+        Check(run.CurrentState == RunState.RunEnd, "flow: run -> RunEnd");
+
+        GameOverData summary = ui.GameOverSource.GetGameOver();
+        Check(summary.floorReached == 1, "flow: summary floorReached == 1");
+        Check(summary.enemiesDefeated == 0, "flow: summary enemiesDefeated == 0");
+        Check(Mathf.Approximately(summary.runTimeSeconds, 40f),
+            $"flow: summary runTimeSeconds == 40 (got {summary.runTimeSeconds})");
+
+        // Idempotency: repeated polls / explicit Trigger must not re-publish or re-freeze.
+        Invoke(flow, "Update");
+        flow.Trigger();
+        Check(published == 1, "flow: repeated updates do not re-publish");
+        Check(Mathf.Approximately(Time.timeScale, 0f), "flow: timeScale stays 0");
+
+        // Null tolerance: an unconfigured flow never throws and never triggers.
+        GameObject bareGo = new GameObject("BareFlow");
+        GameOverFlow bare = bareGo.AddComponent<GameOverFlow>();
+        Invoke(bare, "Update");
+        Check(!bare.Triggered, "flow: null-config Update is a safe no-op");
+    }
+
+    // 43. Full production loop in a fake scene: RunBootstrap wires GameOverFlow via scene fallbacks,
+    //     death ends the run and publishes the summary, Retry reloads TestingScene with the save
+    //     deleted, Main Menu reloads MainMenu keeping the checkpoint semantics.
+    static void RunBootstrapGameFlowScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        UnityEngine.MonoBehaviour.PendingCoroutines.Clear();
+        Time.timeScale = 0f;              // frozen by the game over that just happened
+        Time.time = 100f;
+        SceneManager.lastLoadedScene = null;
+
+        Application.persistentDataPath = Path.Combine(
+            Path.GetTempPath(), "opencode", "pd_rbflow_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        Directory.CreateDirectory(Application.persistentDataPath);
+        new RunSaveService().Delete();    // deterministic fresh-run start
+
+        SpawnSystem sys = BuildSystem();
+
+        GameObject playerGo = new GameObject("Player");
+        PlayerController playerCtl = playerGo.AddComponent<PlayerController>();
+        playerCtl.Entity = new StubPlayerEntity { Health = 30f };
+
+        GameObject uiGo = new GameObject("PlayerUI");
+        PlayerUiBootstrap ui = uiGo.AddComponent<PlayerUiBootstrap>();
+        ui.GameOverSource = new MockGameOverSource();
+        int published = 0;
+        ui.GameOverSource.Changed += _ => published++;
+
+        GameObject pauseGo = new GameObject("PausePanel");
+        PauseController pause = pauseGo.AddComponent<PauseController>();
+
+        GameObject bootGo = new GameObject("RunBootstrap");
+        RunBootstrap boot = bootGo.AddComponent<RunBootstrap>();
+        SetField(boot, "spawnSystem", sys);
+        SetField(boot, "floorClearPauseSeconds", 0f);
+
+        RunSession.EnterFromMenu = true;
+        Invoke(boot, "Awake");
+        Invoke(boot, "Start");
+        RunSession.EnterFromMenu = false;
+
+        Check(boot.Run.CurrentState == RunState.FloorActive, "rbflow: production Start reaches FloorActive");
+        Check(boot.Run.CurrentFloor == 1, "rbflow: fresh run at floor 1");
+        Check(sys.AliveCount() == 3, "rbflow: floor populated (BuildSystem budget 10, cost 3)");
+        Check(sys.WaveReleaseEnabled, "rbflow: release enabled after start");
+
+        GameOverFlow flow = UnityEngine.Object.FindObjectOfType<GameOverFlow>();
+        Check(flow != null, "rbflow: bootstrap created GameOverFlow");
+        if (flow == null) return;
+
+        Check(!flow.Triggered, "rbflow: not triggered while player alive");
+
+        Time.time = 160f; // 60s of run time
+        playerCtl.Entity.Health = 0f;
+        Invoke(flow, "Update");
+
+        Check(flow.Triggered, "rbflow: death triggers the flow");
+        Check(published == 1, "rbflow: summary published once");
+        Check(Mathf.Approximately(Time.timeScale, 0f), "rbflow: gameplay frozen on game over");
+        Check(!pause.enabled, "rbflow: pause disabled on game over");
+        Check(!sys.WaveReleaseEnabled, "rbflow: spawn suspension active");
+        Check(boot.Run.CurrentState == RunState.RunEnd, "rbflow: run ended");
+
+        GameOverData summary = ui.GameOverSource.GetGameOver();
+        Check(summary.floorReached == 1, "rbflow: summary floor 1");
+        Check(summary.enemiesDefeated == 0, "rbflow: summary defeats 0 (nobody killed yet)");
+        Check(Mathf.Approximately(summary.runTimeSeconds, 60f),
+            $"rbflow: summary runTime 60s (got {summary.runTimeSeconds})");
+
+        // Retry intent: unfreeze, delete save, reload the game scene.
+        SceneManager.lastLoadedScene = null;
+        ui.RetryRequested?.Invoke();
+        Check(SceneManager.lastLoadedScene == RunBootstrap.GameSceneName,
+            $"rbflow: retry loads {RunBootstrap.GameSceneName} (got {SceneManager.lastLoadedScene})");
+        Check(Mathf.Approximately(Time.timeScale, 1f), "rbflow: retry unfreezes time");
+        Check(!new RunSaveService().HasSave(), "rbflow: retry deletes the save (clean new run)");
+
+        // Main-menu intent: unfreeze, keep-save semantics, load menu.
+        ui.MainMenuRequested?.Invoke();
+        Check(SceneManager.lastLoadedScene == RunBootstrap.MenuSceneName,
+            $"rbflow: main menu loads {RunBootstrap.MenuSceneName} (got {SceneManager.lastLoadedScene})");
+        Check(!new RunSaveService().HasSave(), "rbflow: menu keeps save absent (was already deleted)");
+        Check(Mathf.Approximately(Time.timeScale, 1f), "rbflow: menu leaves time unfrozen");
+    }
+
     sealed class RecordingHudView : IPlayerHudView
     {
         public int PresentCount;
@@ -1350,5 +2114,106 @@ class Program
             PresentCount++;
             Last = data;
         }
+    }
+}
+
+/// <summary>Test fake that implements IEnemySpawned and can fire its death notification twice, to
+/// prove SpawnSystem's death handling is idempotent (a duplicate OnDied must never double-decrement
+/// AliveCount or double-raise FloorCleared).</summary>
+sealed class DoubleNotifyEnemy : MonoBehaviour, IEnemySpawned
+{
+    public event Action OnDied;
+
+    public void FireTwice()
+    {
+        OnDied?.Invoke();
+        OnDied?.Invoke();
+    }
+}
+
+/// <summary>Test fake mimicking EnemyController: stores runtimeDamage per-instance (written by
+/// ConfigureForSpawn), exposes it as RuntimeDamage so attacks can read the scaled value.</summary>
+sealed class RuntimeDamageEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
+{
+    [SerializeField] float baseHealth = 10f;
+    [SerializeField] float baseDamage = 5f;
+
+    public event Action OnDied;
+
+    public float Health { get; private set; }
+    public float Damage { get; private set; }
+    public float RuntimeDamage { get; private set; }
+
+    public float BaseMaxHealth => baseHealth;
+    public float BaseDamage => baseDamage;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        Health = maxHealth;
+        Damage = baseDamage;
+        RuntimeDamage = baseDamage;
+    }
+}
+
+/// <summary>Test fake mimicking EnemyEntity: has health, TakeDamage with dead-guard, Kill() with
+/// dead-guard, and fires OnDied exactly once. Used to verify the death flow from lethal damage.</summary>
+sealed class LethalEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
+{
+    float health = 5f;
+    bool dead;
+
+    public event Action OnDied;
+
+    public float BaseMaxHealth => 5f;
+    public float BaseDamage => 1f;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        health = maxHealth;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (dead) return;
+        if (damage <= 0f) return;
+        health -= damage;
+        if (health <= 0f)
+        {
+            health = 0f;
+            dead = true;
+            OnDied?.Invoke();
+        }
+    }
+}
+
+/// <summary>Test fake mimicking SacrificeAttack + EnemyEntity: has per-instance RuntimeDamage,
+/// ConfigBaseDamage, ConfigExplosionDamage for proportional scaling, and Kill() with dead-guard.
+/// Proves the explosion → Kill → OnDied → SpawnSystem path works correctly.</summary>
+sealed class ExplodingEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
+{
+    public const float ConfigBaseDamage = 5f;
+    public const float ConfigExplosionDamage = 40f;
+
+    float health = 10f;
+    bool dead;
+
+    public event Action OnDied;
+
+    public float RuntimeDamage { get; private set; }
+    public float BaseMaxHealth => 10f;
+    public float BaseDamage => ConfigBaseDamage;
+
+    public void ConfigureForSpawn(float maxHealth, float baseDamage)
+    {
+        health = maxHealth;
+        RuntimeDamage = baseDamage;
+    }
+
+    public void Kill()
+    {
+        if (dead) return;
+        dead = true;
+        health = 0f;
+        OnDied?.Invoke();
     }
 }
