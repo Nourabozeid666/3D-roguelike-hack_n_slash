@@ -140,6 +140,13 @@ public class PlayerEntity : IEntity
         OnModifierAdded?.Invoke(modifier);
     }
 
+    void ChangeAttackSpeed(float newAttackSpeed)
+    {
+        attackSpeed = newAttackSpeed;
+        if (attackSpeed < 0.65f) attackSpeed = 0.65f; // Cap at 0.65 to avoid animation issues
+        if (attackSpeed > 1.65f) attackSpeed = 1.65f; // Cap at 2.0 to avoid animation issues
+    }
+
     private void HandleModifierType(IStatModifier modifier)
     {
         switch (modifier.TargetStat)
@@ -164,10 +171,16 @@ public class PlayerEntity : IEntity
                 break;
             case StatType.WeaponLength:
                 weaponLength = modifier.GetValue(weaponLength, this);
+                attackSpeed += Constants.LengthToSpeedRatio * weaponLength;
+                baseDamage += Constants.LengthToDamageRatio * weaponLength;
+                ChangeAttackSpeed(attackSpeed);
                 OnScaleChanged?.Invoke(ScaleType.Blade, weaponLength);
                 break;
             case StatType.WeaponSize:
                 weaponSize = modifier.GetValue(weaponSize, this);
+                attackSpeed += Constants.SizeToSpeedRatio * weaponSize;
+                baseDamage += Constants.SizeToDamageRatio * weaponSize;
+                ChangeAttackSpeed(attackSpeed);
                 OnScaleChanged?.Invoke(ScaleType.Parts, weaponSize);
                 break;
             default:

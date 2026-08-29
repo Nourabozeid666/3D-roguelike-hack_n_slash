@@ -25,6 +25,7 @@ public class CombatStaggerState : State<CombatController>
     }
     public override void Enter()
     {
+        _animator.speed = 1f;
         InputController.OnSprintInput += HandleSprintInput;
         _owner.CombatContext.isStaggered = true;
         _owner._playerController.SetCanMove(false);

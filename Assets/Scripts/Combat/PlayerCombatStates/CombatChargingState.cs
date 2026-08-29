@@ -27,6 +27,7 @@ public class CombatChargingState : State<CombatController>
 
     public override void Enter()
     {
+        _animator.speed = 1f;
         _currentAttack = _owner.CombatContext.currentAttack;
         _weaponObject = _owner.equipmentSystem.CurrentWeapon;
         AnimationClip animationClip;

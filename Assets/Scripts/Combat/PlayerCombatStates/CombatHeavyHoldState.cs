@@ -32,6 +32,7 @@ public class CombatHeavyHoldState : State<CombatController>
         _currentAttack = attack;
         _attackDebugText.text = $"Current Attack: {attack.AttackName}";
 
+        _animator.speed = _owner.CombatContext.attackSpeed;
         _OverrideController["HeavyHoldAttack"] = attack.Animation;
         _animator.Play(hashAnimationState, 0, 0f);
 
@@ -104,6 +105,7 @@ public class CombatHeavyHoldState : State<CombatController>
 
     public override void Exit()
     {
+        _animator.speed = 1f;
         // _OverrideController["AttackTransition"] = _OverrideController["HeavyHoldAttack"];
         // _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
         if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)

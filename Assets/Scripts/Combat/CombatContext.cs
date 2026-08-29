@@ -10,6 +10,7 @@ public class CombatContext
 {
     [Header("Current Weapon Data")]
     [SerializeField] internal AnimatorOverrideController overrideController;
+    [SerializeField] internal float attackSpeed = 1f;
     [SerializeField] internal AttackData currentAttack;
     [SerializeField] internal AttackData queuedAttack;
     [SerializeField] internal AttackData previousAttack;

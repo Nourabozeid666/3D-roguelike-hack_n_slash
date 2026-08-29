@@ -90,6 +90,7 @@ public class CombatController : MonoBehaviour
         };
         _playerEntity.OnDamageTaken += HandleDamageTaken;
         _playerEntity.OnScaleChanged += HandleScaleChanged;
+        _playerEntity.OnModifierAdded += HandleModifierAdded;
     }
 
     void OnDisable()
@@ -112,6 +113,7 @@ public class CombatController : MonoBehaviour
         };
         _playerEntity.OnDamageTaken -= HandleDamageTaken;
         _playerEntity.OnScaleChanged -= HandleScaleChanged;
+        _playerEntity.OnModifierAdded -= HandleModifierAdded;
     }
 
     private void HandleLightAttackStart()
@@ -278,6 +280,20 @@ public class CombatController : MonoBehaviour
         if (equipmentSystem.CurrentWeaponModelData != null)
         {
             equipmentSystem.ScaleWeaponModel(scaleType, scaleMultiplier);
+        }
+    }
+
+    void ChangeAnimatorSpeed(float attackSpeed)
+    {
+        // Change for combat attacks only
+        combatContext.attackSpeed = attackSpeed * Constants.AttackSpeedToAnimationSpeedRatio;
+    }
+
+    void HandleModifierAdded(IStatModifier modifier)
+    {
+        if (modifier.TargetStat == StatType.WeaponLength || modifier.TargetStat == StatType.WeaponSize || modifier.TargetStat == StatType.AttackSpeed)
+        {
+            ChangeAnimatorSpeed(_playerEntity.AttackSpeed);
         }
     }
 }

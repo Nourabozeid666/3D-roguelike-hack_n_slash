@@ -13,6 +13,7 @@ public class CombatIdleState : State<CombatController>
 
     public override void Enter()
     {
+        _animator.speed = 1f;
         _owner._playerController.SetCanMove(true);
         _animator.CrossFade(hashAnimationState, 0.1f, 0);
         _owner.CombatContext.isAttacking = false;
