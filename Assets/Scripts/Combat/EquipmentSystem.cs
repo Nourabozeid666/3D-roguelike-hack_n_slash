@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
+using Drakkar.GameUtils;
 
 public enum ScaleType
 {
@@ -22,6 +23,7 @@ public class EquipmentSystem
     [SerializeField] private WeaponObject currentWeapon;
     [SerializeField] private GameObject currentWeaponModel;
     [SerializeField] private List<GameObject> accessoryModels;
+    [SerializeField] private DrakkarTrail trailComponent;
 
     public WeaponModelData CurrentWeaponModelData { get { return currentWeaponModelData; } }
     public SerializableDictionary<SocketType, GameObject> AvailableSockets { get { return availableSockets; } }
@@ -99,7 +101,21 @@ public class EquipmentSystem
         currentWeaponModel = GameObject.Instantiate(currentWeaponModelData.gameObject, socketGameObject.transform);
         currentWeaponModel.transform.localPosition += currentWeaponModelData.OffsetPosition;
         currentWeaponModel.transform.localEulerAngles += currentWeaponModelData.OffsetRotation;
+        currentWeaponModelData = currentWeaponModel.GetComponent<WeaponModelData>();
+        if (currentWeaponModelData == null)
+        {
+            Debug.LogError("Weapon model does not have a WeaponModelData component.");
+            return;
+        }
         EquipAcessories(weapon);
+        if (currentWeaponModelData.TrailObject != null)
+        {
+            trailComponent = currentWeaponModelData.TrailObject.GetComponent<DrakkarTrail>();
+            if (trailComponent == null)
+            {
+                Debug.LogError("Trail object does not have a DrakkarTrail component.");
+            }
+        }
         _owner.CombatContext.canAttack = true;
     }
     public void ScaleWeaponModel(ScaleType scaleType, float scaleMultiplier)
@@ -142,6 +158,25 @@ public class EquipmentSystem
             default:
                 Debug.LogError("Unknown ScaleType: " + scaleType);
                 break;
+        }
+    }
+
+    public void SetTrailActive(bool isActive)
+    {
+        if (trailComponent != null)
+        {
+            if (isActive)
+            {
+                trailComponent.Begin();
+            }
+            else
+            {
+                trailComponent.End();
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Trail component is not assigned.");
         }
     }
 }

@@ -11,6 +11,7 @@ public class WeaponModelData : MonoBehaviour
     [SerializeField] private Transform bladeSizeParts;
     [SerializeField] private Vector3 bladeSizePartsScaleDirection;
     [SerializeField] private float scaleMultiplier = 0.5f;
+    [SerializeField] private GameObject trailObject; // Reference to the trail GameObject
     public SocketType SocketType { get { return socketType; } }
     public Vector3 OffsetPosition { get { return offsetPosition; } }
     public Vector3 OffsetRotation { get { return offsetRotation; } }
@@ -19,4 +20,5 @@ public class WeaponModelData : MonoBehaviour
     public Transform BladeSizeParts { get { return bladeSizeParts; } }
     public Vector3 BladeSizePartsScaleDirection { get { return bladeSizePartsScaleDirection; } }
     public float ScaleMultiplier { get { return scaleMultiplier; } }
+    public GameObject TrailObject { get { return trailObject; } } // Public getter for the trail GameObject
 }

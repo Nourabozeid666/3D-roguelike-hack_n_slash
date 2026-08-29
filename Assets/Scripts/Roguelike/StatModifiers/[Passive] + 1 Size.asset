@@ -15,5 +15,5 @@ MonoBehaviour:
   baseValue: 1
   _modifierType: 0
   _modifierPolarity: 0
-  _targetStat: 6
+  _targetStat: 7
   _chance: 1

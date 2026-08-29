@@ -346,7 +346,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3351d65a5e49c64d9002bba88ce89a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameUtils::Drakkar.GameUtils.DrakkarTrail
-  Length: 1.136886
+  Length: 7.791231
   Steps: 10
   StepTime: 1
   EndingSpeed: 7
@@ -355,7 +355,7 @@ MonoBehaviour:
   Edges: 0
   Edge1: 0.735
   Edge2: 0.205
-  TrailMaterial: {fileID: 2100000, guid: 7ad44bde63dbe5a42acfa801d1aad726, type: 2}
+  TrailMaterial: {fileID: 2100000, guid: 419cf36f90e0062408c9185075e2c5cb, type: 2}
   Layer: 0
 --- !u!1 &4084862000408162602
 GameObject:
@@ -808,3 +808,5 @@ MonoBehaviour:
   bladeScaleDirection: {x: 1, y: 0, z: 0}
   bladeSizeParts: {fileID: 7864067069172556220}
   bladeSizePartsScaleDirection: {x: 1, y: 1, z: 0}
+  scaleMultiplier: 0.5
+  trailObject: {fileID: 3924889401454024748}

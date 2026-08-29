@@ -28,7 +28,6 @@ public class CombatController : MonoBehaviour
 
     void Awake()
     {
-        SetTrailReferenceTEMPORARY();
         _playerController = GetComponent<PlayerController>();
         _playerEntity = _playerController.Entity as PlayerEntity;
         damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
@@ -67,6 +66,7 @@ public class CombatController : MonoBehaviour
         if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
         {
             damageHitboxHelper.OnHitboxTriggered += HandleHitboxTriggered;
+            damageHitboxHelper.enabled = false;
         }
     }
 
@@ -140,14 +140,6 @@ public class CombatController : MonoBehaviour
         combatContext.inputState.heavyAttackReleased = true;
         combatContext.inputState.heavyAttackPressed = false;
         combatContext.inputString += "H";
-    }
-
-    void SetTrailReferenceTEMPORARY()
-    {
-        if (equipmentSystem.CurrentWeapon != null)
-        {
-            equipmentSystem.CurrentWeapon.Trail = gameObject.GetComponentInChildren<DrakkarTrail>();
-        }
     }
     void CalculateHoldTime()
     {

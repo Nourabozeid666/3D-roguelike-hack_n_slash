@@ -13,15 +13,22 @@ MonoBehaviour:
   m_Name: BasicAttack3L
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
   attackName: Basic Attack 3 Light
-  damageMultiplier: 1
+  effectData:
+    multiplier: 1
+    appliedStagger: 0
+    selfPoise: 0
+    hitstopDuration: 0.03
+    knockbackForce: {x: 0, y: 0, z: 5}
+    canDeflect: 0
   animation: {fileID: 7400000, guid: b8441688810428d408319e2eee3a246f, type: 2}
   chargeAnimationOverride: {fileID: 0}
   comboWindow: 0.5
-  recoveryStartTime: 0.75
+  recoveryStartTime: 0.65
   holdTime: 0.5
   lungeDirection: {x: 0, y: 0, z: 1}
   lungeDistance: 350
   lungeDuration: 0.3
+  inputType: 1
   isHoldAttack: 0
   transitions:
   - input: 1
