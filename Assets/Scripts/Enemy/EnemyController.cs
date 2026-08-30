@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
 using static StaggerSeverity;
@@ -77,7 +76,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
     [SerializeField] private float viewHalfAngle;
 
     [Header("-------------for every enemy---------------")]
-    [SerializeField] Text _debugText;
+    //[SerializeField] Text _debugText;
     [SerializeField] private EnemyEntity enemyEntity;
     [SerializeField] private EnemyArchetypeConfig archetypeConfig;
     // can get into the stagger state

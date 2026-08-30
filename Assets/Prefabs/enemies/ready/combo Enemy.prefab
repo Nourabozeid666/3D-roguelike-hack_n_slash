@@ -59,7 +59,7 @@ MonoBehaviour:
   patrolRoute: {fileID: 11400000, guid: 0095e02a9c96ded418130a7d23ab223d, type: 2}
   detectionDistance: 12
   loseTargetDistance: 16
-  attackRange: 3
+  attackRange: 4
   patrolSpeed: 3.6
   chaseSpeed: 9
   waypointStoppingDistance: 1
