@@ -28,7 +28,6 @@ public class CombatController : MonoBehaviour
 
     void Awake()
     {
-        SetTrailReferenceTEMPORARY();
         _playerController = GetComponent<PlayerController>();
         _playerEntity = _playerController.Entity as PlayerEntity;
         damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
@@ -67,6 +66,7 @@ public class CombatController : MonoBehaviour
         if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
         {
             damageHitboxHelper.OnHitboxTriggered += HandleHitboxTriggered;
+            damageHitboxHelper.enabled = false;
         }
     }
 
@@ -90,6 +90,7 @@ public class CombatController : MonoBehaviour
         };
         _playerEntity.OnDamageTaken += HandleDamageTaken;
         _playerEntity.OnScaleChanged += HandleScaleChanged;
+        _playerEntity.OnModifierAdded += HandleModifierAdded;
     }
 
     void OnDisable()
@@ -112,6 +113,7 @@ public class CombatController : MonoBehaviour
         };
         _playerEntity.OnDamageTaken -= HandleDamageTaken;
         _playerEntity.OnScaleChanged -= HandleScaleChanged;
+        _playerEntity.OnModifierAdded -= HandleModifierAdded;
     }
 
     private void HandleLightAttackStart()
@@ -138,14 +140,6 @@ public class CombatController : MonoBehaviour
         combatContext.inputState.heavyAttackReleased = true;
         combatContext.inputState.heavyAttackPressed = false;
         combatContext.inputString += "H";
-    }
-
-    void SetTrailReferenceTEMPORARY()
-    {
-        if (equipmentSystem.CurrentWeapon != null)
-        {
-            equipmentSystem.CurrentWeapon.Trail = gameObject.GetComponentInChildren<DrakkarTrail>();
-        }
     }
     void CalculateHoldTime()
     {
@@ -278,6 +272,20 @@ public class CombatController : MonoBehaviour
         if (equipmentSystem.CurrentWeaponModelData != null)
         {
             equipmentSystem.ScaleWeaponModel(scaleType, scaleMultiplier);
+        }
+    }
+
+    void ChangeAnimatorSpeed(float attackSpeed)
+    {
+        // Change for combat attacks only
+        combatContext.attackSpeed = attackSpeed * Constants.AttackSpeedToAnimationSpeedRatio;
+    }
+
+    void HandleModifierAdded(IStatModifier modifier)
+    {
+        if (modifier.TargetStat == StatType.WeaponLength || modifier.TargetStat == StatType.WeaponSize || modifier.TargetStat == StatType.AttackSpeed)
+        {
+            ChangeAnimatorSpeed(_playerEntity.AttackSpeed);
         }
     }
 }

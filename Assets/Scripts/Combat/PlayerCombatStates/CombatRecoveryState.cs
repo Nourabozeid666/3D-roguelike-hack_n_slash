@@ -31,6 +31,7 @@ public class CombatRecoveryState : State<CombatController>
     public override void Enter()
     {
         _currentAttackName = GetCurrentAttack();
+        _animator.speed = _owner.CombatContext.attackSpeed;
         _owner._playerController.SetCanMove(false);
     }
 
@@ -54,6 +55,7 @@ public class CombatRecoveryState : State<CombatController>
 
     public override void Exit()
     {
+        _animator.speed = 1f;
         if (_owner._playerController.CharacterState != null && _owner._playerController.CharacterState.IsDashing)
         {
             // Cancel any queued non-attack actions when exiting the recovery state

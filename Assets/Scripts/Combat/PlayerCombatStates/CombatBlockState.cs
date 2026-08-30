@@ -15,6 +15,7 @@ public class CombatBlockState : State<CombatController>
 
     public override void Enter()
     {
+        _animator.speed = 1f;
         _owner._playerController.SetCanMove(false);
         _animator.Play(hashAnimationState, 0);
         _owner.CombatContext.isBlocking = true;

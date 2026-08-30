@@ -51,6 +51,7 @@ public class CombatCounterState : State<CombatController>
     public override void Enter()
     {
         hasCountered = false;
+        _animator.speed = _owner.CombatContext.attackSpeed;
         _owner._playerController.SetCanMove(false);
         _animator.Play(hashAnimationState, 0, 0f);
         windowEndTime = Time.time + attackWindowDuration;
@@ -132,6 +133,7 @@ public class CombatCounterState : State<CombatController>
 
     public override void Exit()
     {
+        _animator.speed = 1f;
         if (_owner.equipmentSystem.CurrentWeapon?.Trail != null)
         {
             _owner.equipmentSystem.CurrentWeapon.Trail.End();
