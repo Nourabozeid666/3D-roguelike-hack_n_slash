@@ -17,6 +17,10 @@ public class SpawnTable : ScriptableObject
     [Tooltip("New enemies unlock every N floors: the archetype at list index i becomes available at floor 1 + i*N (default 3: index 0 -> floor 1, index 1 -> floor 4, ...). Add new enemies to the end of the list.")]
     [SerializeField] int unlockInterval = 3;
 
+    [Tooltip("When true, all archetypes in this table are unlocked and available on every floor from floor 1.")]
+    [SerializeField] bool allAvailableImmediately = false;
+
+    public bool AllAvailableImmediately => allAvailableImmediately;
     public IReadOnlyList<EnemyArchetype> Archetypes => archetypes;
 
     /// <summary>The unlock interval, guarded to be at least 1.</summary>
@@ -29,6 +33,8 @@ public class SpawnTable : ScriptableObject
     /// </summary>
     public IReadOnlyList<EnemyArchetype> AvailableForFloor(int floor)
     {
+        if (allAvailableImmediately) return Archetypes;
+
         int unlocked = (floor - 1) / UnlockInterval + 1;
         if (unlocked >= archetypes.Count) return Archetypes;
         if (unlocked <= 0) return new List<EnemyArchetype>();

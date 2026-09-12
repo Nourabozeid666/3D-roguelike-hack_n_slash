@@ -57,6 +57,7 @@ public class UpgradeSelectController : MonoBehaviour, IUpgradeSelectView
             UpgradeCardController card = cardGo.AddComponent<UpgradeCardController>();
             card.Initialize();
             card.Present(offered[i], i);
+            card.Clicked += idx => CardClicked?.Invoke(idx);
             cards.Add(card);
         }
         LayoutCards();
@@ -86,12 +87,14 @@ public class UpgradeSelectController : MonoBehaviour, IUpgradeSelectView
     void LayoutCards()
     {
         const float gap = 30f;
-        float x = 0f;
+        const float cardWidth = 300f;
+        float totalWidth = cards.Count * cardWidth + Mathf.Max(0, cards.Count - 1) * gap;
+        float startX = -totalWidth * 0.5f + cardWidth * 0.5f;
         for (int i = 0; i < cards.Count; i++)
         {
             RectTransform rect = (RectTransform)cards[i].transform;
+            float x = startX + i * (cardWidth + gap);
             PlayerUiKit.Pin(rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, 0), rect.sizeDelta);
-            x += rect.sizeDelta.x + gap;
         }
     }
 }

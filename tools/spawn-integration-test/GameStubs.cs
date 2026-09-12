@@ -30,3 +30,13 @@ public class PlayerUiBootstrap : UnityEngine.MonoBehaviour
     public Action MainMenuRequested;
     public MockGameOverSource GameOverSource;
 }
+
+public class RoguelikeProgressionBootstrap : UnityEngine.MonoBehaviour
+{
+    public void CaptureProgression(SaveData save) { }
+}
+
+public class FloorTransitionManager : UnityEngine.MonoBehaviour
+{
+    public object ExitPortal => null;
+}

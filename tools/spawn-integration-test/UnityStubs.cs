@@ -56,6 +56,7 @@ namespace UnityEngine
     public static class Resources
     {
         public static T GetBuiltinResource<T>(string path) where T : new() => new T();
+        public static T Load<T>(string path) where T : class => null;
     }
 
     public class Canvas : Component
@@ -363,6 +364,8 @@ namespace UnityEngine
 
     public class MonoBehaviour : Component
     {
+        public bool enabled = true;
+
         /// <summary>Deferred coroutine queue so tests can pump Unity's coroutine timing manually
         /// (StartCoroutine queues; RunPendingCoroutines drains it at a "frame" boundary).</summary>
         public static readonly List<IEnumerator> PendingCoroutines = new();

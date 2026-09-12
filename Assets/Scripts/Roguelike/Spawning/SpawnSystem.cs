@@ -69,6 +69,11 @@ public class SpawnSystem : MonoBehaviour
     public event System.Action FloorCleared;
 
     /// <summary>
+    /// Raised whenever an alive enemy spawned by this system dies.
+    /// </summary>
+    public event System.Action<GameObject> EnemyDefeated;
+
+    /// <summary>
     /// Run-end suspension switch (game over): when false, deaths stay tracked/counted but no wave
     /// is released and FloorCleared never fires. Populate() re-enables it for a fresh floor.
     /// </summary>
@@ -97,8 +102,12 @@ public class SpawnSystem : MonoBehaviour
     public int CachedCompositionKeys => compositions.CachedKeyCount;
 
     public SpawnStrategy Strategy => strategy;
+    public SpawnTable Table => table;
     public int CurrentFloor => currentFloor;
     public float CurrentBudget => currentBudget;
+
+    public void SetTable(SpawnTable newTable) => table = newTable;
+    public void SetStrategy(SpawnStrategy newStrategy) => strategy = newStrategy;
 
     /// <summary>1-based wave currently released (0 before any wave / floor populated).</summary>
     public int CurrentWave => pacing != null ? pacing.CurrentWave : 0;
@@ -124,7 +133,11 @@ public class SpawnSystem : MonoBehaviour
         currentBudget = budget;
         LastCompositionInfo = string.Empty;
 
-        if (table == null) return;
+        if (table == null)
+        {
+            table = Resources.Load<SpawnTable>("ProductionSpawnTable");
+            if (table == null) return;
+        }
 
         IReadOnlyList<EnemyArchetype> available = table.AvailableForFloor(floor);
         if (available.Count == 0) return;
@@ -291,6 +304,7 @@ public class SpawnSystem : MonoBehaviour
         if (!alive.Remove(enemy)) return;
 
         TotalDefeated++;
+        EnemyDefeated?.Invoke(enemy);
 
         if (!WaveReleaseEnabled) return;
 
@@ -332,7 +346,23 @@ public class SpawnSystem : MonoBehaviour
 
     bool HasPlacementSource()
     {
-        if (strategy == SpawnStrategy.RandomZone) return zone != null;
+        if (strategy == SpawnStrategy.RandomZone)
+        {
+            if (zone == null) zone = GetComponentInChildren<SpawnZone>();
+            if (zone == null) zone = Object.FindFirstObjectByType<SpawnZone>();
+            if (zone == null)
+            {
+                GameObject zoneGo = new GameObject("ArenaSpawnZone");
+                zoneGo.transform.SetParent(transform, false);
+                zone = zoneGo.AddComponent<SpawnZone>();
+            }
+            if (playerReference == null)
+            {
+                PlayerController pc = Object.FindFirstObjectByType<PlayerController>();
+                if (pc != null) playerReference = pc.transform;
+            }
+            return zone != null;
+        }
         pointPool = GetComponentsInChildren<SpawnPoint>(true);
         remainingPoints = new List<SpawnPoint>(pointPool);
         return remainingPoints.Count > 0;

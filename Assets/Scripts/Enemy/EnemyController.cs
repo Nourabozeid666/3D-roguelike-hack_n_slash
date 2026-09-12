@@ -54,6 +54,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
     // IEnemySpawned death contract: raised whenever the EnemyEntity dies (forwards its
     // authoritative OnDied), so SpawnSystem can decrement alive tracking / raise FloorCleared.
     public event Action OnDied;
+    public static event Action<EnemyController> GlobalEnemyDied;
 
     private EnemyStateMachine<EnemyState> EStateMachine;
 
@@ -343,6 +344,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
 
     private void HandleDied()
     {
+        GlobalEnemyDied?.Invoke(this);
         if (EStateMachine.CurrentState is AttackState attackState &&
             attackState.CurrentCombatAction is SacrificeAttack)
         {
