@@ -16,7 +16,7 @@ MonoBehaviour:
   throwClip: {fileID: 7400000, guid: ee8581492f5f6bd4ab0ec0f8e9f0fdbb, type: 2}
   projectilePrefab: {fileID: 3492223351524735360, guid: 974c4a8742ad4ef4f96f13e8fb18be3a, type: 3}
   damage: 15
-  projectileSpeed: 15
+  projectileSpeed: 21
   projectileCount: 1
   delayBetweenShots: 0.15
   cooldown: 1.5

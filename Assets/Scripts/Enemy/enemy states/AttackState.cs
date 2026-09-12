@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-public enum AttackType { 
-    Melee, Ranged, Sacrifice, Strong, Combo, Exploding 
-}
+//public enum AttackType { 
+//    Melee, Ranged, Sacrifice, Strong, Combo, Exploding 
+//}
 
 public abstract class CombatActionState : IEstate
 {
@@ -81,10 +81,12 @@ public class AttackState : EnemyState
 
     public override void Tick()
     {
-        Vector3 lookAtVector = new Vector3( enemyController.TargetTransform.position.x, enemyController.transform.position.y, enemyController.TargetTransform.position.z);
+        Vector3 lookAtVector = new Vector3(enemyController.TargetTransform.position.x, enemyController.transform.position.y, enemyController.TargetTransform.position.z);
         enemyController.transform.LookAt(lookAtVector);
         combatActions.Tick();
-        if (combatActions.CurrentState != null && combatActions.CurrentState.IsFinished || CheckTargetDistance())
+
+        // ✅ ONLY return to ChaseState once the throw/attack is actually finished:
+        if (combatActions.CurrentState != null && combatActions.CurrentState.IsFinished)
         {
             enemyController.SetState<ChaseState>();
         }
