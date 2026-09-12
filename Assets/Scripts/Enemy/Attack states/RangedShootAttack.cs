@@ -1,17 +1,18 @@
 // Suggested path: Assets/Scripts/enemy/Attack states/RangedShootAttack.cs
 using UnityEngine;
+using UnityEngine.AI;
 
 internal class RangedShootAttack : CombatActionState
 {
     private readonly Animator animator;
     private readonly RangedAttackConfig config;
     private readonly Transform firePoint;
-    private readonly Transform target; // CONFIRM: swap enemyController.Target for whatever field/property
-                                        // your EnemyController actually uses to reference the player
+    private readonly Transform target; 
 
     private int shotsFired;
     private float elapsed;
     private float shotTimer;
+    NavMeshAgent agent;
 
     public RangedShootAttack(EnemyController enemyController, RangedAttackConfig config, Transform firePoint)
         : base(enemyController)
@@ -20,12 +21,14 @@ internal class RangedShootAttack : CombatActionState
         this.firePoint = firePoint;
         animator = enemyController.Animator;
         target = enemyController.TargetTransform;
+        agent = enemyController.Agent;
     }
 
-    public override bool CanBeInterrupted => false;
+    public override bool CanBeInterrupted => true;
 
     public override void Enter()
     {
+       
         if (config == null || config.ProjectilePrefab == null || firePoint == null)
         {
             IsFinished = true;
@@ -36,14 +39,8 @@ internal class RangedShootAttack : CombatActionState
         elapsed = 0f;
         shotTimer = 0f;
         IsFinished = false;
-
+        agent.isStopped = true;
         animator.Play(config.AnimationHash, 0, 0f);
-
-        // First shot fires immediately on entry. If you want the throw to land on a specific
-        // animation frame instead (windup before release), delay this into Tick() using elapsed
-        // time against a "releaseTime" field on the config — same idea as the shotTimer below.
-        FireProjectile();
-        shotsFired++;
     }
 
     public override void Tick()
@@ -52,19 +49,17 @@ internal class RangedShootAttack : CombatActionState
 
         elapsed += Time.deltaTime;
 
-        if (shotsFired < config.ProjectileCount)
+        // Fire when the arm extends forward (e.g. 0.6s into the animation):
+        if (shotsFired == 0 && elapsed >= 0.6f)
         {
-            shotTimer += Time.deltaTime;
-            if (shotTimer >= config.DelayBetweenShots)
-            {
-                FireProjectile();
-                shotsFired++;
-                shotTimer = 0f;
-            }
+            FireProjectile();
+            shotsFired++;
         }
 
         if (elapsed >= config.Duration && shotsFired >= config.ProjectileCount)
             IsFinished = true;
+
+        agent.isStopped = false;
     }
 
     private void FireProjectile()

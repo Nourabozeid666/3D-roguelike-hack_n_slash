@@ -77,7 +77,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
     [SerializeField] private float viewHalfAngle;
 
     [Header("-------------for every enemy---------------")]
-    //[SerializeField] Text _debugText;
+    [SerializeField] Text _debugText;
     [SerializeField] private EnemyEntity enemyEntity;
     [SerializeField] private EnemyArchetypeConfig archetypeConfig;
     // can get into the stagger state
@@ -116,6 +116,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
     public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
+
 
     // ISpawnStatConfig: SpawnSystem reads the enemy's base stats and pushes the floor-scaled
     // absolute values in before Initialize() runs.
@@ -264,26 +265,26 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
         // GetState<AttackState>() always hands back a plain EnemyState label (that's fixed in the method's return type).
         // "as AttackState" relabels it as AttackState specifically, so we can reach AttackState-only stuff like CurrentCombatAction.
         AttackState attackState = GetState<AttackState>() as AttackState;
-        // _debugText.text =
-        //     "Current State: " +
-        //     (
-        //         EStateMachine.CurrentState != null
-        //             ? EStateMachine.CurrentState.GetType().ToString()
-        //             : "None"
-        //     ) +
-        //     "\nPrevious State: " +
-        //     (
-        //         EStateMachine.PreviousState != null
-        //             ? EStateMachine.PreviousState.GetType().ToString()
-        //             : "None"
-        //     ) + "\nAttack State: " +
-        //     (
-        //         attackState?.CurrentCombatAction != null
-        //             ? attackState?.CurrentCombatAction.GetType().ToString()
-        //             : "None"
-        //     ) +
-        //     "\ncurrect poise: " + (enemyEntity.CurrentPoise) +
-        //     "\ncurrect Health: " + (enemyEntity.Health);
+        //_debugText.text =
+             //"Current State: " +
+             //(
+                 //EStateMachine.CurrentState != null
+                     //? EStateMachine.CurrentState.GetType().ToString()
+                     //: "None"
+             //) +
+             //"\nPrevious State: " +
+             //(
+                 //EStateMachine.PreviousState != null
+                     //? EStateMachine.PreviousState.GetType().ToString()
+                     //: "None"
+             //) + "\nAttack State: " +
+             //(
+                 //attackState?.CurrentCombatAction != null
+                     //? attackState?.CurrentCombatAction.GetType().ToString()
+                     //: "None"
+             //) +
+             //"\ncurrect poise: " + (enemyEntity.CurrentPoise) +
+             //"\ncurrect Health: " + (enemyEntity.Health);
     }
 
     void AddState(EnemyState state)

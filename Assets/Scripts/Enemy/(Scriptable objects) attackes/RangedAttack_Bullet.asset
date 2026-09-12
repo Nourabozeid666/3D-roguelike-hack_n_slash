@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RangedAttackConfig
   baseDamage: 10
   throwClip: {fileID: 0}
-  projectilePrefab: {fileID: 0}
+  projectilePrefab: {fileID: 3061068116901127747, guid: e1f620be447964f4fa5427d508953750, type: 3}
   damage: 10
   projectileSpeed: 15
   projectileCount: 1
