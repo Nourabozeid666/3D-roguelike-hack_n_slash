@@ -48,7 +48,7 @@ public class MainMenuController : MonoBehaviour
         if (saves.TryLoad(out save))
         {
             continueButton.interactable = true;
-            continueButton.GetComponentInChildren<Text>().text = $"CONTINUE — FLOOR {save.floor}";
+            continueButton.GetComponentInChildren<Text>().text = $"CONTINUE — F{save.floor}";
         }
         else
         {

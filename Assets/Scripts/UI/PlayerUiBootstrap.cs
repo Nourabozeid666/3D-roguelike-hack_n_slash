@@ -36,6 +36,8 @@ public class PlayerUiBootstrap : MonoBehaviour
 
     [SerializeField] private bool enableDemoDriver = true;
 
+    IPlayerHudSource boundHud;
+
     void Awake()
     {
         Build();
@@ -43,8 +45,44 @@ public class PlayerUiBootstrap : MonoBehaviour
 
     void Start()
     {
+        // Production entry (Main Menu -> game scene): bind the REAL health/floor source and skip the
+        // test demo driver. Direct scene open (Editor Play Mode) keeps the mock + demo driver as-is.
+        if (RunSession.EnterFromMenu)
+        {
+            ConnectRealHudSource();
+            return;
+        }
         if (enableDemoDriver)
             gameObject.AddComponent<PlayerUiDemoDriver>();
+    }
+
+    /// <summary>Production-mode HUD source: locate the live player + run bootstrap and swap the real
+    /// health/floor feed in behind the same IPlayerHudSource seam. No-ops gracefully when either the
+    /// player or the run owner is absent (authoring scene).</summary>
+    void ConnectRealHudSource()
+    {
+        RunBootstrap runBootstrap = UnityEngine.Object.FindFirstObjectByType<RunBootstrap>();
+        PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
+        if (runBootstrap == null || player == null || player.Entity == null) return;
+
+        RunPlayerHudSource source = new RunPlayerHudSource(player.Entity, () => runBootstrap.Run.CurrentFloor);
+        source.Enable();
+        BindHudSource(source);
+    }
+
+    /// <summary>Swap the currently-bound HUD source for another (unchanged mock-&gt;real binding seam).
+    /// The presenter unbinds the old and binds the new; identical to the initial mock bind, so
+    /// presenter logic is unchanged.</summary>
+    public void BindHudSource(IPlayerHudSource source)
+    {
+        if (source == null || source == boundHud) return;
+        if (boundHud != null)
+        {
+            if (boundHud is RunPlayerHudSource real) real.Disable();
+            if (HudPresenter != null) HudPresenter.Unbind(boundHud);
+        }
+        boundHud = source;
+        if (HudPresenter != null) HudPresenter.Bind(boundHud);
     }
 
     void Build()
@@ -108,7 +146,8 @@ public class PlayerUiBootstrap : MonoBehaviour
         GameOverScreenController.RetryClicked += RetryRun;
         GameOverScreenController.MainMenuClicked += () => MainMenuRequested?.Invoke();
 
-        HudPresenter.Bind(HudSource);
+        boundHud = HudSource; // initial (mock) bind; production swaps via BindHudSource
+        HudPresenter.Bind(boundHud);
         UpgradePresenter.Bind(UpgradeSource);
         GameOverPresenter.Bind(GameOverSource);
 

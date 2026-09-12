@@ -695,7 +695,7 @@ class Program
         saves.Save(new SaveData { floor = 7, clearedRooms = 3, enemyBudget = 10f * (float)Math.Pow(1.4f, 6), enemyBudgetGrowth = 1.4f, enemyStatGrowth = 1.12f });
         ctrl.Refresh();
         Check(continueBtn.GetComponent<Button>().interactable, "menu: Continue enabled when a save exists");
-        Check(continueBtn.GetComponentInChildren<Text>().text == "CONTINUE — FLOOR 7", "menu: Continue label shows real saved floor 7");
+        Check(continueBtn.GetComponentInChildren<Text>().text == "CONTINUE — F7", "menu: Continue label shows real saved floor 7");
 
         ctrl.Continue();
         Check(UnityEngine.SceneManagement.SceneManager.lastLoadedScene == "TestingScene", "menu: Continue with save loads the game scene");
