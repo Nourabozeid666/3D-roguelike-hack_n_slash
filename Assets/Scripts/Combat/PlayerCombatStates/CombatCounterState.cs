@@ -91,6 +91,8 @@ public class CombatCounterState : State<CombatController>
         Vector3 lungeDirection = GetTargetDirection();
         AdjustRotationDuringLunge(lungeDirection).Forget();
         ExecuteLunge(0.15f, lungeDirection, 500f).Forget();
+        _owner.ResetHitboxTargets();
+        _owner.EnableHitbox();
     }
 
     public override void Update()
@@ -138,6 +140,7 @@ public class CombatCounterState : State<CombatController>
         {
             _owner.equipmentSystem.CurrentWeapon.Trail.End();
         }
+        _owner.DisableHitbox();
         hasCountered = false;
         windowEndTime = 0f;
         _owner._playerController.SetCanMove(true);

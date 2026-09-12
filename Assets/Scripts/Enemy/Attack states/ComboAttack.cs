@@ -25,6 +25,8 @@ internal class ComboAttack : CombatActionState
         var hit = activeSequence.Hits[hitIndex];
         elapsedInHit = 0;
         // hitbox.SetDamage(hit.Damage);
+        hitbox?.ResetHitTargets();
+        hitbox?.EnableHitbox();
         animator.Play(hit.AnimationHash,0,0f);
     }
     public override void Enter()
@@ -33,7 +35,10 @@ internal class ComboAttack : CombatActionState
         hitIndex = 0;
         IsFinished = false;
         PlayCurrentHit();
-        hitbox.OnHitboxTriggered += OnHitboxTriggered;
+        if (hitbox != null)
+        {
+            hitbox.OnHitboxTriggered += OnHitboxTriggered;
+        }
     }
 
     void OnHitboxTriggered(GameObject gameObject, IEntity entity)
@@ -63,5 +68,10 @@ internal class ComboAttack : CombatActionState
 
     public override void Exit()
     {
+        if (hitbox != null)
+        {
+            hitbox.OnHitboxTriggered -= OnHitboxTriggered;
+            hitbox.DisableHitbox();
+        }
     }
 }

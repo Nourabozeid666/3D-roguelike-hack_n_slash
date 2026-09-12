@@ -66,7 +66,7 @@ public class CombatController : MonoBehaviour
         if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
         {
             damageHitboxHelper.OnHitboxTriggered += HandleHitboxTriggered;
-            damageHitboxHelper.enabled = false;
+            damageHitboxHelper.DisableHitbox();
         }
     }
 
@@ -286,6 +286,30 @@ public class CombatController : MonoBehaviour
         if (modifier.TargetStat == StatType.WeaponLength || modifier.TargetStat == StatType.WeaponSize || modifier.TargetStat == StatType.AttackSpeed)
         {
             ChangeAnimatorSpeed(_playerEntity.AttackSpeed);
+        }
+    }
+
+    public void EnableHitbox()
+    {
+        if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
+        {
+            damageHitboxHelper.EnableHitbox();
+        }
+    }
+
+    public void DisableHitbox()
+    {
+        if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
+        {
+            damageHitboxHelper.DisableHitbox();
+        }
+    }
+
+    public void ResetHitboxTargets()
+    {
+        if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
+        {
+            damageHitboxHelper.ResetHitTargets();
         }
     }
 }

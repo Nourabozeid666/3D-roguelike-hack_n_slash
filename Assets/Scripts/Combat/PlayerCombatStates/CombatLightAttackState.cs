@@ -45,6 +45,7 @@ public class CombatLightAttackState : State<CombatController>
 
         AdjustRotationDuringLunge(_owner._playerController.MoveDirectionToWorldSpace()).Forget();
         ExecuteLunge().Forget();
+        _owner.ResetHitboxTargets();
         _owner.equipmentSystem.SetTrailActive(true);
         _owner._playerController.SetCanMove(false);
     }
@@ -107,6 +108,7 @@ public class CombatLightAttackState : State<CombatController>
         _animator.speed = 1f;
         // _OverrideController["AttackTransition"] = _OverrideController["LightAttack"];
         // _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        _owner.DisableHitbox();
         _owner.equipmentSystem.SetTrailActive(false);
         // _owner._playerController.SetCanMove(true);
     }
