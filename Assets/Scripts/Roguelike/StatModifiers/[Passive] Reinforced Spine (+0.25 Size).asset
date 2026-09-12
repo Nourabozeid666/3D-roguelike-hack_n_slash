@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1247fd33749ea378b7a1cbe1b912b8e, type: 3}
-  m_Name: '[Passive] +5 Damage'
+  m_Name: '[Passive] Reinforced Spine (+0.25 Size)'
   m_EditorClassIdentifier: Assembly-CSharp::PassiveEffect
-  baseValue: 5
+  baseValue: 0.25
   _modifierType: 0
   _modifierPolarity: 0
-  _targetStat: 3
-  _chance: 0.8
+  _targetStat: 7
+  _chance: 0.85
