@@ -67,6 +67,7 @@ public class RunBootstrap : MonoBehaviour
         spawnSystem.FloorCleared += OnFloorCleared;
 
         WireGameOverFlow();
+        WireProgression();
 
         SaveData save;
         if (saves.TryLoad(out save) && Run.TryRestore(save))
@@ -118,6 +119,13 @@ public class RunBootstrap : MonoBehaviour
         }
         playerUi.RetryRequested += OnRetryRequested;
         playerUi.MainMenuRequested += OnMainMenuRequested;
+    }
+
+    void WireProgression()
+    {
+        if (Object.FindFirstObjectByType<RoguelikeProgressionBootstrap>() != null) return;
+        GameObject progGo = new GameObject("ProgressionBootstrap");
+        progGo.AddComponent<RoguelikeProgressionBootstrap>();
     }
 
     /// <summary>Game Over > Retry: clean new run with exactly Main Menu > New Run semantics — delete

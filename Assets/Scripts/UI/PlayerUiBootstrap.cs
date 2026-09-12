@@ -49,6 +49,11 @@ public class PlayerUiBootstrap : MonoBehaviour
 
     void Build()
     {
+        if (FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+        {
+            new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
+        }
+
         GameObject canvasGo = new GameObject("PlayerUI");
         canvasGo.layer = 5;
         canvasGo.transform.SetParent(transform, false);

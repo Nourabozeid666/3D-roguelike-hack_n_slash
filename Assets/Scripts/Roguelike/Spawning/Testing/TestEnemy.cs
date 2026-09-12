@@ -14,6 +14,7 @@ public class TestEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     [SerializeField] float baseDamage = 1f;
 
     public event Action OnDied;
+    public static event Action<TestEnemy> GlobalEnemyDied;
 
     public float Health { get; private set; }
     public float Damage { get; private set; }
@@ -45,6 +46,7 @@ public class TestEnemy : MonoBehaviour, IEnemySpawned, ISpawnStatConfig
     {
         if (dead) return;
         dead = true;
+        GlobalEnemyDied?.Invoke(this);
         OnDied?.Invoke();
         Destroy(gameObject);
     }
