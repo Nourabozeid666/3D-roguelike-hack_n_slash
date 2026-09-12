@@ -9,8 +9,8 @@ public class TargetingSystem
 
     [Header("Targeting Parameters")]
     [SerializeField] private float targetingRadius = 8f;
-    [SerializeField] private float directionalConeAngle = 80f; // Half-angle when directional input is held (160 deg total)
-    [SerializeField] private float neutralConeAngle = 45f;     // Half-angle when neutral (90 deg total)
+    [SerializeField] private float directionalConeAngle = 120f; // Half-angle when directional input is held (160 deg total)
+    [SerializeField] private float neutralConeAngle = 80f;     // Half-angle when neutral (90 deg total)
     [SerializeField] private LayerMask enemyLayers = ~0;
     [SerializeField] private string enemyTag = "Enemy";
     [SerializeField] private bool filterByTag = true;
