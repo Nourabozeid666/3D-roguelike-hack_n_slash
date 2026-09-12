@@ -11,6 +11,7 @@ public class CombatController : MonoBehaviour
     [SerializeField] private ReferencesContext referencesContext;
     [SerializeField] private CombatContext combatContext;
     [SerializeField] internal EquipmentSystem equipmentSystem = new EquipmentSystem(null);
+    [SerializeField] internal TargetingSystem targetingSystem = new TargetingSystem(null);
     [Header("Debug")]
     [SerializeField] private ScriptableObject[] testModifiers;
     private ComboSystem comboSystem;
@@ -23,6 +24,7 @@ public class CombatController : MonoBehaviour
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
     public ComboSystem ComboSystem { get { return comboSystem; } }
     public ReferencesContext ReferencesContext { get { return referencesContext; } }
+    public TargetingSystem TargetingSystem { get { return targetingSystem; } }
 
 
 
@@ -33,6 +35,7 @@ public class CombatController : MonoBehaviour
         damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
         comboSystem = new ComboSystem(this);
         equipmentSystem._owner = this;
+        targetingSystem._owner = this;
         referencesContext = _playerController.ReferencesContext;
         _stateMachine = new StateMachine<CombatController>(this, referencesContext.combatDebugText);
         combatContext.overrideController = new AnimatorOverrideController(referencesContext.animator.runtimeAnimatorController);
@@ -311,5 +314,30 @@ public class CombatController : MonoBehaviour
         {
             damageHitboxHelper.ResetHitTargets();
         }
+    }
+
+    public Vector3 AcquireCombatTargetDirection(out Transform target, float authoredLungeDistance, out float adaptedLungeDistance)
+    {
+        if (targetingSystem != null)
+        {
+            Vector3 targetDir = targetingSystem.AcquireTarget(out target);
+            adaptedLungeDistance = targetingSystem.CalculateAdaptedLungeDistance(authoredLungeDistance, target);
+            return targetDir;
+        }
+
+        target = null;
+        adaptedLungeDistance = authoredLungeDistance;
+        Vector3 inputDir = _playerController != null ? _playerController.MoveDirectionToWorldSpace() : Vector3.zero;
+        inputDir.y = 0f;
+        if (inputDir.sqrMagnitude > 0.01f) return inputDir.normalized;
+        Transform model = referencesContext.playerModel != null ? referencesContext.playerModel : transform;
+        Vector3 fwd = model.forward;
+        fwd.y = 0f;
+        return fwd.sqrMagnitude > 0.01f ? fwd.normalized : Vector3.forward;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        targetingSystem?.DrawGizmos();
     }
 }

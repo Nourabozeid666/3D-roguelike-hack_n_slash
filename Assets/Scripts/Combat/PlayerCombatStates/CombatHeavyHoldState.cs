@@ -42,35 +42,37 @@ public class CombatHeavyHoldState : State<CombatController>
             _owner._playerController.ResetHorizontalVelocity();
         }
 
-        AdjustRotationDuringLunge(_owner._playerController.MoveDirectionToWorldSpace()).Forget();
-        ExecuteLunge().Forget();
+        Vector3 attackDir = _owner.AcquireCombatTargetDirection(out Transform target, _currentAttack.LungeDistance, out float adaptedLunge);
+        AdjustRotationDuringLunge(attackDir).Forget();
+        ExecuteLunge(adaptedLunge).Forget();
         _owner.ResetHitboxTargets();
         _owner.EnableHitbox();
         _owner.equipmentSystem.SetTrailActive(true);
         _owner._playerController.SetCanMove(false);
     }
 
-    private UniTask ExecuteLunge()
+    private UniTask ExecuteLunge(float lungeDistance)
     {
         float lungeDuration = _currentAttack.LungeDuration;
         return UniTask.WaitWhile(() =>
         {
-            UseLunge(_currentAttack.LungeDirection, _currentAttack.LungeDistance);
+            UseLunge(_currentAttack.LungeDirection, lungeDistance);
             lungeDuration -= Time.deltaTime;
             return lungeDuration > 0f;
         });
     }
 
-    private UniTask AdjustRotationDuringLunge(Vector3 moveDirection)
+    private UniTask AdjustRotationDuringLunge(Vector3 targetDirection)
     {
-        const float angleThreshold = 0.05f; // degrees
-        float alpha = 0.1f; // Slerp factor for smooth rotation
+        const float angleThreshold = 1f; // degrees
+        float alpha = 0.15f; // Slerp factor for smooth rotation
+        Transform model = _owner.ReferencesContext != null && _owner.ReferencesContext.playerModel != null ? _owner.ReferencesContext.playerModel : _owner.transform;
         return UniTask.WaitUntil(() =>
         {
-            if (moveDirection == Vector3.zero) return true;
-            _owner._playerController.CustomRotate(moveDirection, alpha);
-            float angle = Vector3.Angle(_owner.transform.forward, moveDirection);
-            alpha += 0.1f;
+            if (targetDirection == Vector3.zero) return true;
+            _owner._playerController.CustomRotate(targetDirection, alpha);
+            float angle = Vector3.Angle(model.forward, targetDirection);
+            alpha += 0.08f;
             alpha = Mathf.Clamp01(alpha); // Ensure alpha stays within [0, 1]
             return angle <= angleThreshold || !_owner._playerController.CharacterState.IsAttacking;
         });

@@ -3779,6 +3779,14 @@ PrefabInstance:
       propertyPath: referencesContext.combatDebugText
       value: 
       objectReference: {fileID: 298752773}
+    - target: {fileID: 7445736443680655356, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
+      propertyPath: targetLayers.m_Bits
+      value: 256
+      objectReference: {fileID: 0}
+    - target: {fileID: 7606770213815117636, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9104018863096216662, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
       propertyPath: testModifiers.Array.size
       value: 2
@@ -15173,7 +15181,6 @@ MonoBehaviour:
   chaseSpeed: 9
   waypointStoppingDistance: 1
   viewHalfAngle: 290
-  _debugText: {fileID: 92381217}
   enemyEntity:
     currentHealth: 100
     maxHealth: 20
@@ -17581,7 +17588,6 @@ MonoBehaviour:
   chaseSpeed: 9
   waypointStoppingDistance: 1
   viewHalfAngle: 290
-  _debugText: {fileID: 92381217}
   enemyEntity:
     currentHealth: 100
     maxHealth: 100

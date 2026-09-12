@@ -56,6 +56,10 @@ public class DamageHitboxHelper : MonoBehaviour
     {
         if (!isActive) return;
         hitTargetIDs.Clear();
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
         if (hitboxCollider != null)
         {
             hitboxCollider.enabled = true;

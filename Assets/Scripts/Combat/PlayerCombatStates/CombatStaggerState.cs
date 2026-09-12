@@ -18,7 +18,7 @@ public class CombatStaggerState : State<CombatController>
     private void HandleSprintInput(bool isSprinting)
     {
         Debug.Log($"Sprint Input Detected: {isSprinting}, Can Cancel: {canCancel}");
-        if (isSprinting && canCancel)
+        if (isSprinting && canCancel && _owner._playerController != null)
         {
             _owner._playerController.StateMachine.SetState<PlayerDashState>();
         }
