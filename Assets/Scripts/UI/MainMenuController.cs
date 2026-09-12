@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -89,7 +88,7 @@ public class MainMenuController : MonoBehaviour
                 targetScene = regionSettings.Regions[0].sceneName;
             }
         }
-        SceneManager.LoadScene(targetScene);
+        SceneTransitioner.RequestScene(targetScene, SceneTransitioner.Destination.Game);
     }
 
     public void OpenSettings()

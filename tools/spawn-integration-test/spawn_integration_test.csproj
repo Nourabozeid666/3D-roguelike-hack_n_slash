@@ -47,6 +47,7 @@
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/Testing/SpawnTestDebugDisplay.cs" Link="Repo/SpawnTestDebugDisplay.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/Spawning/Testing/TestEnemy.cs" Link="Repo/TestEnemy.cs" />
     <Compile Include="../../Assets/Scripts/UI/MainMenuController.cs" Link="Repo/MainMenuController.cs" />
+    <Compile Include="../../Assets/Scripts/UI/SceneTransitioner.cs" Link="Repo/SceneTransitioner.cs" />
     <Compile Include="../../Assets/Scripts/UI/PlayerHudData.cs" Link="Repo/PlayerHudData.cs" />
     <Compile Include="../../Assets/Scripts/UI/UpgradeCardData.cs" Link="Repo/UpgradeCardData.cs" />
     <Compile Include="../../Assets/Scripts/UI/GameOverData.cs" Link="Repo/GameOverData.cs" />

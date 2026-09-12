@@ -58,6 +58,7 @@ class Program
         WaveReleaseStopScenario();
         GameOverFlowScenario();
         RunBootstrapGameFlowScenario();
+        SceneTransitionScenario();
 
         Console.WriteLine(failures.Count == 0
             ? $"[SpawnIntegration] ALL {checks} CHECKS PASSED"
@@ -1990,7 +1991,7 @@ class Program
 
         GameObject playerGo = new GameObject("Player");
         PlayerController player = playerGo.AddComponent<PlayerController>();
-        player.Entity = new StubPlayerEntity { Health = 25f };
+        player.Entity = new PlayerEntity { Health = 25f };
 
         GameObject sysGo = new GameObject("SpawnSystem");
         SpawnSystem sys = sysGo.AddComponent<SpawnSystem>(); // no table needed: only flags/counters
@@ -2015,14 +2016,13 @@ class Program
         Check(!flow.Triggered, "flow: not triggered at configure");
         Check(sys.WaveReleaseEnabled, "flow: release enabled at configure");
 
-        Invoke(flow, "Update"); // alive -> nothing
-        Check(!flow.Triggered, "flow: alive player does not trigger");
+        Check(!flow.Triggered, "flow: no death raised -> not triggered");
 
         Time.time = 240f; // 40s of scaled play time since Configure
         player.Entity.Health = 0f;
-        Invoke(flow, "Update");
+        player.Entity.OnDied?.Invoke();
 
-        Check(flow.Triggered, "flow: zero health triggers the flow");
+        Check(flow.Triggered, "flow: player death (OnDied) triggers the flow");
         Check(published == 1, "flow: summary published exactly once");
         Check(Mathf.Approximately(Time.timeScale, 0f), "flow: timeScale == 0 after trigger");
         Check(Cursor.visible && Cursor.lockState == CursorLockMode.None,
@@ -2037,17 +2037,18 @@ class Program
         Check(Mathf.Approximately(summary.runTimeSeconds, 40f),
             $"flow: summary runTimeSeconds == 40 (got {summary.runTimeSeconds})");
 
-        // Idempotency: repeated polls / explicit Trigger must not re-publish or re-freeze.
-        Invoke(flow, "Update");
+        // Idempotency: re-raised death / explicit Trigger must not re-publish or re-freeze.
+        player.Entity.OnDied?.Invoke();
         flow.Trigger();
         Check(published == 1, "flow: repeated updates do not re-publish");
         Check(Mathf.Approximately(Time.timeScale, 0f), "flow: timeScale stays 0");
 
-        // Null tolerance: an unconfigured flow never throws and never triggers.
+        // Null tolerance: a flow configured with a null-Entity player never throws, subscribes nothing.
+        PlayerController nullPlayer = new GameObject("NullPlayer").AddComponent<PlayerController>();
         GameObject bareGo = new GameObject("BareFlow");
         GameOverFlow bare = bareGo.AddComponent<GameOverFlow>();
-        Invoke(bare, "Update");
-        Check(!bare.Triggered, "flow: null-config Update is a safe no-op");
+        bare.Configure(nullPlayer, null, null, null, null);
+        Check(!bare.Triggered, "flow: null-Entity player subscribes nothing (safe no-op)");
     }
 
     // 43. Full production loop in a fake scene: RunBootstrap wires GameOverFlow via scene fallbacks,
@@ -2070,7 +2071,7 @@ class Program
 
         GameObject playerGo = new GameObject("Player");
         PlayerController playerCtl = playerGo.AddComponent<PlayerController>();
-        playerCtl.Entity = new StubPlayerEntity { Health = 30f };
+        playerCtl.Entity = new PlayerEntity { Health = 30f };
 
         GameObject uiGo = new GameObject("PlayerUI");
         PlayerUiBootstrap ui = uiGo.AddComponent<PlayerUiBootstrap>();
@@ -2104,7 +2105,7 @@ class Program
 
         Time.time = 160f; // 60s of run time
         playerCtl.Entity.Health = 0f;
-        Invoke(flow, "Update");
+        playerCtl.Entity.OnDied?.Invoke();
 
         Check(flow.Triggered, "rbflow: death triggers the flow");
         Check(published == 1, "rbflow: summary published once");
@@ -2133,6 +2134,53 @@ class Program
             $"rbflow: main menu loads {RunBootstrap.MenuSceneName} (got {SceneManager.lastLoadedScene})");
         Check(!new RunSaveService().HasSave(), "rbflow: menu keeps save absent (was already deleted)");
         Check(Mathf.Approximately(Time.timeScale, 1f), "rbflow: menu leaves time unfrozen");
+    }
+
+    // 44. SceneTransitioner: single persistent owner, duplicate destroyed by the guard, single-flight
+    //     requests (first wins), time unfrozen by any request, cursor per destination.
+    static void SceneTransitionScenario()
+    {
+        UnityEngine.Object.ResetWorld();
+        UnityEngine.MonoBehaviour.PendingCoroutines.Clear();
+        SceneManager.lastLoadedScene = null;
+        Time.timeScale = 0f;              // prove a transition always unfreezes time
+        Time.unscaledDeltaTime = 1f / 60f;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        GameObject ownerGo = new GameObject("SceneTransitioner");
+        SceneTransitioner owner = ownerGo.AddComponent<SceneTransitioner>();
+        Invoke(owner, "Awake");
+
+        Check(SceneTransitioner.Instance == owner, "transition: persistent owner registered");
+        Check(SceneTransitioner.IsAvailable, "transition: available after boot");
+
+        GameObject dupGo = new GameObject("SceneTransitionerDup");
+        SceneTransitioner dup = dupGo.AddComponent<SceneTransitioner>();
+        Invoke(dup, "Awake");
+        Check(dupGo.IsDestroyed, "transition: duplicate owner destroyed by guard");
+        Check(SceneTransitioner.Instance == owner, "transition: guard kept the first owner");
+
+        SceneTransitioner.RequestScene("TestingScene", SceneTransitioner.Destination.Game);
+        Check(SceneTransitioner.IsBusy, "transition: busy after first request");
+        Check(Mathf.Approximately(Time.timeScale, 1f), "transition: request unfreezes time");
+        SceneTransitioner.RequestScene("MainMenu", SceneTransitioner.Destination.Menu); // ignored
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+
+        Check(SceneManager.lastLoadedScene == "TestingScene",
+            $"transition: first request wins over the duplicate (got {SceneManager.lastLoadedScene})");
+        Check(Cursor.lockState == CursorLockMode.Locked && !Cursor.visible,
+            "transition: cursor locked for game destination");
+        Check(!SceneTransitioner.IsBusy, "transition: owner released after completion");
+
+        SceneTransitioner.RequestScene("MainMenu", SceneTransitioner.Destination.Menu);
+        UnityEngine.MonoBehaviour.RunPendingCoroutines();
+        Check(SceneManager.lastLoadedScene == "MainMenu", "transition: menu request routes to MainMenu");
+        Check(Cursor.visible && Cursor.lockState == CursorLockMode.None,
+            "transition: cursor freed for menu destination");
+
+        Check(UnityEngine.Object.FindObjectsOfType<SceneTransitioner>().Length == 1,
+            "transition: exactly one transitioner exists");
     }
 
     sealed class RecordingHudView : IPlayerHudView

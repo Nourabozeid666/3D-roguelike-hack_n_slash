@@ -6,15 +6,18 @@ using System;
 // RunBootstrap/GameOverFlow compile headlessly and their logic can be driven by tests. They carry
 // state only — they implement no behavior.
 
-/// <summary>Minimal stand-in for the combat-owned player entity; GameOverFlow only reads Health.</summary>
-public class StubPlayerEntity
+/// <summary>Minimal stand-in for the combat-owned player entity; GameOverFlow reads Health and
+/// subscribes OnDied (the real PlayerEntity raises it exactly once per life). OnDied is a FIELD,
+/// not an event — same idiom as RetryRequested below — so tests can raise it externally.</summary>
+public class PlayerEntity
 {
     public float Health = 100f;
+    public Action OnDied;
 }
 
 public class PlayerController : UnityEngine.MonoBehaviour
 {
-    public StubPlayerEntity Entity;
+    public PlayerEntity Entity;
 }
 
 public class PauseController : UnityEngine.MonoBehaviour

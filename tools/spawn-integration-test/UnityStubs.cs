@@ -25,6 +25,7 @@ namespace UnityEngine
         public float x, y;
         public Vector2(float x, float y) { this.x = x; this.y = y; }
         public static Vector2 zero => new Vector2(0, 0);
+        public static Vector2 one => new Vector2(1, 1);
         public override string ToString() => $"({x}, {y})";
     }
 
@@ -72,6 +73,10 @@ namespace UnityEngine
         public Vector2 pivot;
         public Vector2 anchoredPosition;
         public Vector2 sizeDelta;
+
+        /// <summary>Parents via the GameObject's own Transform (the component's stub transform), so
+        /// RectTransform children land in the same tree a real Unity rect would.</summary>
+        public void SetParent(Transform newParent, bool worldPositionStays) => transform.SetParent(newParent, worldPositionStays);
     }
 
     public enum FontStyle { Normal, Bold, Italic, BoldAndItalic }
@@ -148,12 +153,41 @@ namespace UnityEngine
     {
         public static float time;
         public static float timeScale = 1f;
+        public static float deltaTime;
+        public static float unscaledDeltaTime;
     }
 
     public static class Application
     {
         public static string persistentDataPath = Path.Combine(Path.GetTempPath(), "opencode", "persistent_data");
         public static void Quit() { }
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public class RuntimeInitializeOnLoadMethodAttribute : Attribute
+    {
+        public RuntimeInitializeOnLoadMethodAttribute() { }
+        public RuntimeInitializeOnLoadMethodAttribute(RuntimeInitializeLoadType loadType) { }
+    }
+
+    /// <summary>Mirrors UnityEngine.RuntimeInitializeLoadType member names; only the ones used by the
+    /// compiled sources matter (BeforeSceneLoad is used by AudioCore-style owner bootstraps).</summary>
+    public enum RuntimeInitializeLoadType
+    {
+        SubsystemRegistration,
+        AfterAssembliesLoaded,
+        BeforeSplashScreen,
+        BeforeSceneLoad,
+        AfterSceneLoad
+    }
+
+    /// <summary>Placeholder for UnityEngine.AsyncOperation: a load op is "done" once the harness
+    /// allowed activation; the 0.9 cap mirrors Unity's behavior while activation is blocked.</summary>
+    public class AsyncOperation
+    {
+        public bool allowSceneActivation { get; set; }
+        public float progress = 0.9f;
+        public bool isDone => allowSceneActivation && progress >= 0.9f;
     }
 
     public static class JsonUtility
@@ -224,6 +258,8 @@ namespace UnityEngine
             (obj as GameObject)?.MarkDestroyed();
         }
 
+        public static void DontDestroyOnLoad(Object target) { }
+
         public static T[] FindObjectsOfType<T>() where T : Component
         {
             var result = new List<T>();
@@ -259,12 +295,23 @@ namespace UnityEngine
             public string name;
         }
 
+        public enum LoadSceneMode { Single, Additive }
+
         public static class SceneManager
         {
             public static string activeSceneName = "TestingScene";
             public static string lastLoadedScene;
             public static Scene GetActiveScene() => new Scene { name = activeSceneName };
             public static void LoadScene(string sceneName) => lastLoadedScene = sceneName;
+
+            /// <summary>Records the request synchronously (matches the semantic the existing tests
+            /// assert: a transition request immediately names its target) and returns an operation
+            /// that the SceneTransitioner drives with allowSceneActivation.</summary>
+            public static AsyncOperation LoadSceneAsync(string sceneName, LoadSceneMode mode = LoadSceneMode.Single)
+            {
+                lastLoadedScene = sceneName;
+                return new AsyncOperation { progress = 0.9f };
+            }
         }
     }
 
@@ -563,6 +610,8 @@ namespace UnityEngine.UI
         public VerticalWrapMode verticalOverflow;
         public string text;
     }
+
+    public class GraphicRaycaster : Component { }
 
     public class ButtonClickedEvent
     {
