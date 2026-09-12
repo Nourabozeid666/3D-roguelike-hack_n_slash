@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9c730f7052e467aab5e3ba511ee4c3c, type: 3}
+  m_Name: ExplodingScoutArchetype
+  m_EditorClassIdentifier: 
+  displayName: Exploding Scout
+  prefab: {fileID: 7297820085060605532, guid: 4c3b42918f98d1745b9e3f0b303768e6, type: 3}
+  cost: 2
+  healthGrowthPerFloor: 0.08
+  damageGrowthPerFloor: 0.10

@@ -83,7 +83,7 @@ public class RunSaveService
     static bool IsValid(SaveData d)
     {
         if (d == null) return false;
-        if (d.version != SaveData.CurrentVersion) return false;
+        if (d.version < 1 || d.version > SaveData.CurrentVersion) return false;
         if (d.floor < 1) return false;
         if (d.clearedRooms < 0 || d.clearedRooms >= d.floor) return false;
         if (d.enemyBudget <= 0f) return false;

@@ -14,16 +14,26 @@ using UnityEngine;
 [Serializable]
 public class SaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
 
     [Header("Progress")]
     public int floor = 1;
     public int clearedRooms = 0;
+    public int currentRegionIndex = 0;
+    public int currentRoundInRegion = 1;
+    public int totalRoundsPerRegion = 10;
 
     [Header("Spawning")]
     public float enemyBudget = 10f;
     public float enemyBudgetGrowth = 1.4f;
     public float enemyStatGrowth = 1.12f;
+
+    [Header("Player Persistence")]
+    public int playerLevel = 1;
+    public int currentXp = 0;
+    public int pendingUpgrades = 0;
+    public float currentHealth = -1f;
+    public System.Collections.Generic.List<string> appliedUpgradeIds = new();
 }

@@ -197,13 +197,32 @@ public class UpgradeDatabase : ScriptableObject
     }
 
 #if UNITY_EDITOR
+    [UnityEditor.MenuItem("Roguelike/Populate Upgrade Database")]
+    public static void PopulateDatabaseFromMenu()
+    {
+        var db = UnityEditor.AssetDatabase.LoadAssetAtPath<UpgradeDatabase>("Assets/Resources/UpgradeDatabase.asset");
+        if (db == null)
+        {
+            db = ScriptableObject.CreateInstance<UpgradeDatabase>();
+            if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Resources"))
+            {
+                UnityEditor.AssetDatabase.CreateFolder("Assets", "Resources");
+            }
+            UnityEditor.AssetDatabase.CreateAsset(db, "Assets/Resources/UpgradeDatabase.asset");
+        }
+        db.PopulateFromProject();
+    }
+
     [ContextMenu("Populate From Project")]
     public void PopulateFromProject()
     {
         upgrades.Clear();
-        string[] guids = UnityEditor.AssetDatabase.FindAssets("t:ScriptableObject", new[] { "Assets/Scripts/Roguelike/StatModifiers" });
+        // Use empty search filter to match all assets in the StatModifiers folder reliably
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("", new[] { "Assets/Scripts/Roguelike/StatModifiers" });
+        HashSet<string> seen = new HashSet<string>();
         foreach (string guid in guids)
         {
+            if (!seen.Add(guid)) continue;
             string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
             var so = UnityEditor.AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
             if (so is IStatModifier)
@@ -211,6 +230,7 @@ public class UpgradeDatabase : ScriptableObject
                 upgrades.Add(so);
             }
         }
+        upgrades.Sort((a, b) => string.Compare(a != null ? a.name : "", b != null ? b.name : "", StringComparison.OrdinalIgnoreCase));
         UnityEditor.EditorUtility.SetDirty(this);
         UnityEditor.AssetDatabase.SaveAssets();
         Debug.Log($"[UpgradeDatabase] Populated {upgrades.Count} upgrades from project.");
@@ -220,18 +240,26 @@ public class UpgradeDatabase : ScriptableObject
     public static UpgradeDatabase GetDefaultDatabase()
     {
         UpgradeDatabase db = Resources.Load<UpgradeDatabase>("UpgradeDatabase");
-        if (db != null && db.Upgrades.Count > 0) return db;
+        if (db != null)
+        {
+            db.upgrades.RemoveAll(u => u == null);
+            if (db.upgrades.Count > 0) return db;
+        }
 
 #if UNITY_EDITOR
         if (db == null)
         {
             db = UnityEditor.AssetDatabase.LoadAssetAtPath<UpgradeDatabase>("Assets/Resources/UpgradeDatabase.asset");
-            if (db != null && db.Upgrades.Count > 0) return db;
+            if (db != null)
+            {
+                db.upgrades.RemoveAll(u => u == null);
+                if (db.upgrades.Count > 0) return db;
+            }
         }
 
-        var runtimeDb = ScriptableObject.CreateInstance<UpgradeDatabase>();
-        runtimeDb.PopulateFromProject();
-        return runtimeDb;
+        var targetDb = db != null ? db : ScriptableObject.CreateInstance<UpgradeDatabase>();
+        targetDb.PopulateFromProject();
+        return targetDb;
 #else
         return db;
 #endif

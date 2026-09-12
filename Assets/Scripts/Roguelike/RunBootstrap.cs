@@ -52,12 +52,18 @@ public class RunBootstrap : MonoBehaviour
 
     void Start()
     {
-        if (!RunSession.EnterFromMenu)
+        SpawnSystemTestDriver testDriver = Object.FindFirstObjectByType<SpawnSystemTestDriver>();
+        if (!RunSession.EnterFromMenu && testDriver != null && testDriver.enabled)
         {
-            // Direct scene open (e.g. Editor Play Mode): the test-only SpawnSystemTestDriver owns the
-            // run and runs its automated checks; this bootstrap stays out of the way.
+            // Direct scene open with an active test harness: let test driver run
             return;
         }
+
+        if (spawnSystem == null)
+        {
+            spawnSystem = Object.FindFirstObjectByType<SpawnSystem>();
+        }
+
         if (spawnSystem == null)
         {
             Debug.LogWarning("[RunBootstrap] spawnSystem reference is null; run not started");
@@ -68,16 +74,20 @@ public class RunBootstrap : MonoBehaviour
 
         WireGameOverFlow();
         WireProgression();
+        WireTransitionManager();
 
         SaveData save;
         if (saves.TryLoad(out save) && Run.TryRestore(save))
         {
-            Debug.Log($"[RunBootstrap] Resumed run: floor {Run.Data.floor}");
+            Debug.Log($"[RunBootstrap] Resumed run: region {Run.Data.currentRegionIndex + 1}, floor {Run.Data.floor}");
         }
         else
         {
             Run.StartRun();
-            saves.Save(Run.Capture()); // initial checkpoint: floor 1, before it is played
+            SaveData initialSave = Run.Capture();
+            RoguelikeProgressionBootstrap prog = Object.FindFirstObjectByType<RoguelikeProgressionBootstrap>();
+            prog?.CaptureProgression(initialSave);
+            saves.Save(initialSave);
             Debug.Log("[RunBootstrap] Started a new run: floor 1");
         }
 
@@ -128,6 +138,13 @@ public class RunBootstrap : MonoBehaviour
         progGo.AddComponent<RoguelikeProgressionBootstrap>();
     }
 
+    void WireTransitionManager()
+    {
+        if (Object.FindFirstObjectByType<FloorTransitionManager>() != null) return;
+        GameObject transitionGo = new GameObject("FloorTransitionManager");
+        transitionGo.AddComponent<FloorTransitionManager>();
+    }
+
     /// <summary>Game Over > Retry: clean new run with exactly Main Menu > New Run semantics — delete
     /// the save, unfreeze time, reload the game scene so this bootstrap starts a fresh floor 1.</summary>
     void OnRetryRequested()
@@ -148,15 +165,20 @@ public class RunBootstrap : MonoBehaviour
     }
 
     /// <summary>
-    /// Report-only bridge (same contract as the test driver): SpawnSystem REPORTS a real all-clear;
-    /// this asks the RunController to handle it. The state machine's guarded transitions prevent
-    /// restart loops (FloorCleared is only reachable from FloorActive via a real all-clear).
+    /// Report-only bridge: SpawnSystem REPORTS a real all-clear;
+    /// if FloorTransitionManager is active, it coordinates the Exit Portal.
+    /// Otherwise, falls back to the default timer advance.
     /// </summary>
     void OnFloorCleared()
     {
         if (!spawnSystem.IsFloorCleared) return;
         if (!Run.CompleteFloor()) return;
-        StartCoroutine(AdvanceToNextFloor());
+
+        FloorTransitionManager transitionMgr = Object.FindFirstObjectByType<FloorTransitionManager>();
+        if (transitionMgr == null || !transitionMgr.enabled || transitionMgr.ExitPortal == null)
+        {
+            StartCoroutine(AdvanceToNextFloor());
+        }
     }
 
     IEnumerator AdvanceToNextFloor()

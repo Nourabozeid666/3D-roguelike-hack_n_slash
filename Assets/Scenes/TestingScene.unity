@@ -11096,14 +11096,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 308e7766bcb848fab9770110a1db65be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  table: {fileID: 11400000, guid: 708b4ebec8a44990a42d3a08fe19859e, type: 2}
-  strategy: 0
+  table: {fileID: 11400000, guid: b2222222333344445555666677778881, type: 2}
+  strategy: 1
   zone: {fileID: 0}
   playerReference: {fileID: 0}
   pacingConfig:
-    waveStartFloor: 2147483647
-    waveSize: 0
-    waveDelaySeconds: 0
+    waveStartFloor: 4
+    waveSize: 3
+    waveDelaySeconds: 2
 --- !u!114 &4000000004
 MonoBehaviour:
   m_ObjectHideFlags: 0

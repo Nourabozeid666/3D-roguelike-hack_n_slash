@@ -28,6 +28,7 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
     public UpgradeSelectionSystem UpgradeSystem { get; private set; }
 
     readonly HashSet<int> processedEnemyIds = new();
+    readonly List<string> appliedUpgradeIds = new();
 
     void Awake()
     {
@@ -37,6 +38,13 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
     void Start()
     {
         BindCollaborators();
+
+        RunSaveService saves = new RunSaveService();
+        if (saves.TryLoad(out SaveData save))
+        {
+            RestoreProgression(save);
+        }
+
         UpdateHud();
     }
 
@@ -93,6 +101,7 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
                 playerUi.UpgradeSelectController,
                 playerUi.UpgradePresenter
             );
+            UpgradeSystem.OnUpgradeApplied += HandleUpgradeApplied;
         }
 
         // Wire Enemy Deaths & Room Clears
@@ -153,7 +162,11 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
             playerUi.RetryRequested -= HandleRetryRequested;
         }
 
-        UpgradeSystem?.Unbind();
+        if (UpgradeSystem != null)
+        {
+            UpgradeSystem.OnUpgradeApplied -= HandleUpgradeApplied;
+            UpgradeSystem.Unbind();
+        }
     }
 
     void HandleEnemyDefeated(GameObject enemy)
@@ -207,9 +220,79 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
         UpgradeSystem?.Dismiss();
     }
 
+    void HandleUpgradeApplied(ScriptableObject asset)
+    {
+        if (asset != null && !appliedUpgradeIds.Contains(asset.name))
+        {
+            appliedUpgradeIds.Add(asset.name);
+        }
+    }
+
+    public void CaptureProgression(SaveData save)
+    {
+        if (save == null) return;
+        save.playerLevel = Progression != null ? Progression.CurrentLevel : 1;
+        save.currentXp = Progression != null ? Progression.CurrentXp : 0;
+        save.pendingUpgrades = Progression != null ? Progression.PendingUpgrades : 0;
+        save.appliedUpgradeIds = new List<string>(appliedUpgradeIds);
+        if (playerController != null && playerController.Entity != null)
+        {
+            save.currentHealth = playerController.Entity.Health;
+        }
+    }
+
+    public void RestoreProgression(SaveData save)
+    {
+        if (save == null) return;
+        if (Progression != null)
+        {
+            Progression.Data.level = Mathf.Max(1, save.playerLevel);
+            Progression.Data.currentXp = Mathf.Max(0, save.currentXp);
+            Progression.Data.pendingUpgrades = Mathf.Max(0, save.pendingUpgrades);
+            Progression.Data.xpRequired = Progression.Data.CalculateXpRequiredForLevel(Progression.Data.level);
+        }
+
+        appliedUpgradeIds.Clear();
+        if (save.appliedUpgradeIds != null)
+        {
+            appliedUpgradeIds.AddRange(save.appliedUpgradeIds);
+        }
+
+        if (playerController != null && playerController.Entity is PlayerEntity pe && database != null)
+        {
+            foreach (string upId in appliedUpgradeIds)
+            {
+                ScriptableObject modAsset = null;
+                for (int i = 0; i < database.Upgrades.Count; i++)
+                {
+                    if (database.Upgrades[i] != null && database.Upgrades[i].name == upId)
+                    {
+                        modAsset = database.Upgrades[i];
+                        break;
+                    }
+                }
+                if (modAsset is IStatModifier mod)
+                {
+                    pe.AddModifier(mod);
+                    Debug.Log($"[RoguelikeProgressionBootstrap] Restored modifier '{upId}' onto player.");
+                }
+            }
+
+            if (save.currentHealth > 0f && !pe.IsDead)
+            {
+                float diff = save.currentHealth - pe.Health;
+                if (diff > 0f) pe.Heal(diff);
+                else if (diff < 0f) pe.TakeDamage(-diff);
+            }
+        }
+
+        UpdateHud();
+    }
+
     void HandleRetryRequested()
     {
         processedEnemyIds.Clear();
+        appliedUpgradeIds.Clear();
         Progression?.Reset();
         UpdateHud();
     }

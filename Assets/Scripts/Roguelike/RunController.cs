@@ -58,6 +58,9 @@ public class RunController
         {
             floor = Data.floor,
             clearedRooms = Data.clearedRooms,
+            currentRegionIndex = Data.currentRegionIndex,
+            currentRoundInRegion = Data.currentRoundInRegion,
+            totalRoundsPerRegion = Data.totalRoundsPerRegion,
             enemyBudget = Data.enemyBudget,
             enemyBudgetGrowth = Data.enemyBudgetGrowth,
             enemyStatGrowth = Data.enemyStatGrowth,
@@ -79,6 +82,9 @@ public class RunController
 
         Data.floor = data.floor;
         Data.clearedRooms = data.clearedRooms;
+        Data.currentRegionIndex = data.currentRegionIndex;
+        Data.currentRoundInRegion = data.currentRoundInRegion > 0 ? data.currentRoundInRegion : 1;
+        Data.totalRoundsPerRegion = data.totalRoundsPerRegion > 0 ? data.totalRoundsPerRegion : 10;
         Data.enemyBudget = data.enemyBudget;
         Data.enemyBudgetGrowth = data.enemyBudgetGrowth;
         Data.enemyStatGrowth = data.enemyStatGrowth;
