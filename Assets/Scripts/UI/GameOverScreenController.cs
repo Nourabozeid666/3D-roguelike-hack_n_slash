@@ -40,7 +40,7 @@ public class GameOverScreenController : MonoBehaviour, IGameOverView
         panelBack.color = PanelColor;
         panelBack.raycastTarget = true;
 
-        Text title = PlayerUiKit.Text("Title", panel, 64, TextAnchor.MiddleCenter, TitleColor);
+        Text title = PlayerUiKit.HeaderText("Title", panel, 64, TextAnchor.MiddleCenter, TitleColor);
         title.fontStyle = FontStyle.Bold;
         title.text = "GAME OVER";
         PlayerUiKit.Pin(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -40), new Vector2(780, 90));
@@ -55,6 +55,7 @@ public class GameOverScreenController : MonoBehaviour, IGameOverView
         PlayerUiKit.Pin(timeText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -274), new Vector2(780, 44));
 
         Button retry = PlayerUiKit.Button("RetryButton", panel, ButtonColor);
+        PlayerUiKit.StyleButton(retry);
         PlayerUiKit.Pin(retry.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-150, -210), new Vector2(280, 60));
         Text retryLabel = PlayerUiKit.Text("Label", retry.transform, 24, TextAnchor.MiddleCenter, Color.white);
         PlayerUiKit.Stretch(retryLabel.rectTransform);
@@ -62,6 +63,7 @@ public class GameOverScreenController : MonoBehaviour, IGameOverView
         retry.onClick.AddListener(() => RetryClicked?.Invoke());
 
         Button mainMenu = PlayerUiKit.Button("MainMenuButton", panel, SecondaryButtonColor);
+        PlayerUiKit.StyleButton(mainMenu);
         PlayerUiKit.Pin(mainMenu.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(150, -210), new Vector2(280, 60));
         Text menuLabel = PlayerUiKit.Text("Label", mainMenu.transform, 24, TextAnchor.MiddleCenter, Color.white);
         PlayerUiKit.Stretch(menuLabel.rectTransform);

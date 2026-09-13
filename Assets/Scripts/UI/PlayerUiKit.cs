@@ -10,15 +10,34 @@ using UnityEngine.UI;
 public static class PlayerUiKit
 {
     static Font cachedFont;
+    static Font cachedHeaderFont;
 
-    /// <summary>Legacy built-in font (the same one SpawnTestDebugDisplay uses).</summary>
+    /// <summary>
+    /// Body font reused from the MainMenu/PauseMenu visual language (Orbitron-VariableFont_wght, the
+    /// font the menus already reference). Falls back to the legacy built-in font if the resource is
+    /// missing, so the UI still constructs in authoring scenes that lack the font folder.
+    /// </summary>
     public static Font DefaultFont
     {
         get
         {
             if (cachedFont == null)
-                cachedFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                cachedFont = Resources.Load<Font>("Orbitron-VariableFont_wght") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             return cachedFont;
+        }
+    }
+
+    /// <summary>
+    /// Emphasis/header font (Orbitron-SemiBold, the same weight MainMenu/PauseMenu headers use).
+    /// Falls back to the body font when unavailable.
+    /// </summary>
+    public static Font HeaderFont
+    {
+        get
+        {
+            if (cachedHeaderFont == null)
+                cachedHeaderFont = Resources.Load<Font>("Orbitron-SemiBold") ?? DefaultFont;
+            return cachedHeaderFont;
         }
     }
 
@@ -52,12 +71,38 @@ public static class PlayerUiKit
         return text;
     }
 
+    /// <summary>Create a UI Text using the emphasis font (menu headers: screen titles, LVL/FLOOR accents).</summary>
+    public static Text HeaderText(string name, Transform parent, int fontSize, TextAnchor alignment, Color color)
+    {
+        Text text = Text(name, parent, fontSize, alignment, color);
+        text.font = HeaderFont;
+        return text;
+    }
+
     /// <summary>Create a legacy UI Button (Image graphic + Button on the same GameObject).</summary>
     public static Button Button(string name, Transform parent, Color color)
     {
         Image image = Image(name, parent, color);
         image.raycastTarget = true;
         return image.gameObject.AddComponent<Button>();
+    }
+
+    /// <summary>
+    /// Apply the menu button feedback (hover/pressed/disabled tints) used by the styled screens.
+    /// Color-tint multiplication only: the target graphic keeps its color and each state just
+    /// lightens or darkens it, matching how the MainMenu/PauseMenu buttons read.
+    /// </summary>
+    public static void StyleButton(Button button)
+    {
+        ColorBlock colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1.15f, 1.15f, 1.2f, 1f);
+        colors.pressedColor = new Color(0.82f, 0.84f, 0.92f, 1f);
+        colors.selectedColor = new Color(1.08f, 1.08f, 1.12f, 1f);
+        colors.disabledColor = new Color(0.65f, 0.65f, 0.68f, 0.65f);
+        colors.colorMultiplier = 1f;
+        colors.fadeDuration = 0.06f;
+        button.colors = colors;
     }
 
     /// <summary>Add a readable outline to a text element.</summary>

@@ -49,7 +49,7 @@ public class UpgradeSelectController : MonoBehaviour, IUpgradeSelectView
         panelBack.color = PanelColor;
         panelBack.raycastTarget = true;
 
-        Text title = PlayerUiKit.Text("Title", panel, 40, TextAnchor.MiddleCenter, Color.white);
+        Text title = PlayerUiKit.HeaderText("Title", panel, 40, TextAnchor.MiddleCenter, Color.white);
         title.fontStyle = FontStyle.Bold;
         title.text = "CHOOSE AN UPGRADE";
         PlayerUiKit.Pin(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -28), new Vector2(1100, 64));
