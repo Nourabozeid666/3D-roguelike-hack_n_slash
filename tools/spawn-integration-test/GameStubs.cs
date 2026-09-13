@@ -33,6 +33,7 @@ public class PlayerUiBootstrap : UnityEngine.MonoBehaviour
 
 public class RoguelikeProgressionBootstrap : UnityEngine.MonoBehaviour
 {
+    public bool IsSelectingUpgrade => false;
     public void CaptureProgression(SaveData save) { }
 }
 

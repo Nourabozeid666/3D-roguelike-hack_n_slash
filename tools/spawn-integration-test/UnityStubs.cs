@@ -113,6 +113,10 @@ namespace UnityEngine
         public static float Max(float a, float b) => a > b ? a : b;
         public static int Min(int a, int b) => a < b ? a : b;
         public static float Min(float a, float b) => a < b ? a : b;
+        public static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+        public static float Clamp(float v, float min, float max) => v < min ? min : (v > max ? max : v);
+        public static float Clamp01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
+        public static int RoundToInt(float f) => (int)Math.Round(f);
     }
 
     public static class Random

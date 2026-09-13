@@ -13,15 +13,15 @@ MonoBehaviour:
   m_Name: RunRegionSettings
   m_EditorClassIdentifier: 
   regions:
-  - regionName: 'Region 1: The Arena'
-    sceneName: TestingScene
+  - regionName: 'Region 1: The Dark Halls'
+    sceneName: Region1_DarkHalls
     totalRounds: 10
     spawnTable: {fileID: 11400000, guid: b2222222333344445555666677778881, type: 2}
     startingBudget: 10
     budgetGrowthPerRound: 1.3
     statGrowthPerRound: 1.1
   - regionName: 'Region 2: The Infernal Depths'
-    sceneName: basic game scene
+    sceneName: Region2_BasicGameScene
     totalRounds: 10
     spawnTable: {fileID: 11400000, guid: b2222222333344445555666677778881, type: 2}
     startingBudget: 25

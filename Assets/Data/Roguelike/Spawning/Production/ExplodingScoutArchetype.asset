@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Exploding Scout
   prefab: {fileID: 7297820085060605532, guid: 4c3b42918f98d1745b9e3f0b303768e6, type: 3}
-  cost: 2
+  cost: 3
   healthGrowthPerFloor: 0.08
-  damageGrowthPerFloor: 0.10
+  damageGrowthPerFloor: 0.1

@@ -8,15 +8,13 @@ public class CombatLightHoldState : State<CombatController>
 {
     private Animator _animator;
     private AnimatorOverrideController _OverrideController;
-    private Text _attackDebugText;
     private AttackData _currentAttack;
     private int hashAnimationState;
     private int hashAnimationTransition;
-    public CombatLightHoldState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
+    public CombatLightHoldState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText = null)
     {
         _animator = animator;
         _OverrideController = overrideController;
-        _attackDebugText = attackDebugText;
         hashAnimationState = Animator.StringToHash("LightHoldAttack");
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
     }
@@ -30,7 +28,10 @@ public class CombatLightHoldState : State<CombatController>
     {
         AttackData attack = _owner.CombatContext.currentAttack;
         _currentAttack = attack;
-        _attackDebugText.text = $"Current Attack: {attack.AttackName}";
+        if (_owner != null && _owner._playerController != null)
+        {
+            _owner._playerController.SetAttackDebugText($"Current Attack: {attack.AttackName}");
+        }
 
         _animator.speed = _owner.CombatContext.attackSpeed;
         _OverrideController["LightHoldAttack"] = attack.Animation;

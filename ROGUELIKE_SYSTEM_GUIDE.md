@@ -196,16 +196,19 @@ Upgrades implement `IStatModifier` and come in three primary categories:
 1. Select `Assets/Resources/RunRegionSettings.asset` in the Inspector.
 2. Under **Regions**:
    - **Element 0 (Region 1)**:
-     - `Region Index`: 0
-     - `Region Name`: "The Forgotten Ruins"
-     - `Scene Name`: "TestingScene" (or your custom scene name)
-     - `Floors Per Region`: 10
+     - `Region Name`: "Region 1: The Dark Halls"
+     - `Scene Name`: `Region1_DarkHalls`
+     - `Total Rounds`: 10
+     - `Spawn Table`: `ProductionSpawnTable`
    - **Element 1 (Region 2)**:
-     - `Region Index`: 1
-     - `Region Name`: "The Infernal Depths"
-     - `Scene Name`: "Demonstration" (or your custom scene name)
-     - `Floors Per Region`: 10
-3. Ensure both scene names are added to **File > Build Settings > Scenes in Build**.
+     - `Region Name`: "Region 2: The Infernal Depths"
+     - `Scene Name`: `Region2_BasicGameScene`
+     - `Total Rounds`: 10
+     - `Spawn Table`: `ProductionSpawnTable`
+3. When creating new region scenes:
+   - Always use the `ModularPlayer` prefab (`Assets/Prefabs/Player/ModularPlayer.prefab`).
+   - Wire the FreeLook Camera `Target.TrackingTarget` to `ModularPlayer`.
+   - Ensure both scene names are added to **File > Build Settings > Scenes in Build**.
 
 ---
 

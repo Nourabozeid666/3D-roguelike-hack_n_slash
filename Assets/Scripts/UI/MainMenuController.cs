@@ -62,21 +62,34 @@ public class MainMenuController : MonoBehaviour
     public void Continue()
     {
         if (!saves.TryLoad(out _)) return;
-        EnterGameScene();
+        EnterGameScene(isContinue: true);
     }
 
     /// <summary>Discard the save and start a fresh run at floor 1.</summary>
     public void StartNewRun()
     {
         saves.Delete();
-        EnterGameScene();
+        EnterGameScene(isContinue: false);
     }
 
-    void EnterGameScene()
+    void EnterGameScene(bool isContinue = false)
     {
         RunSession.EnterFromMenu = true;
         Time.timeScale = 1f;
-        SceneManager.LoadScene(gameSceneName);
+        string targetScene = gameSceneName;
+        var regionSettings = Resources.Load<RunRegionSettings>("RunRegionSettings");
+        if (regionSettings != null && regionSettings.Regions.Count > 0)
+        {
+            if (isContinue && saves.TryLoad(out SaveData save) && save.currentRegionIndex >= 0 && save.currentRegionIndex < regionSettings.Regions.Count)
+            {
+                targetScene = regionSettings.Regions[save.currentRegionIndex].sceneName;
+            }
+            else
+            {
+                targetScene = regionSettings.Regions[0].sceneName;
+            }
+        }
+        SceneManager.LoadScene(targetScene);
     }
 
     public void OpenSettings()

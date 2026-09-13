@@ -152,7 +152,13 @@ public class RunBootstrap : MonoBehaviour
         Time.timeScale = 1f;
         saves.Delete();
         RunSession.EnterFromMenu = true;
-        SceneManager.LoadScene(GameSceneName);
+        string startScene = GameSceneName;
+        var regionSettings = Resources.Load<RunRegionSettings>("RunRegionSettings");
+        if (regionSettings != null && regionSettings.Regions.Count > 0 && !string.IsNullOrEmpty(regionSettings.Regions[0].sceneName))
+        {
+            startScene = regionSettings.Regions[0].sceneName;
+        }
+        SceneManager.LoadScene(startScene);
     }
 
     /// <summary>Game Over > Main Menu: unfreeze time and load the menu. The save is kept on purpose:
@@ -183,7 +189,19 @@ public class RunBootstrap : MonoBehaviour
 
     IEnumerator AdvanceToNextFloor()
     {
+        RoguelikeProgressionBootstrap prog = Object.FindFirstObjectByType<RoguelikeProgressionBootstrap>();
+        while (prog != null && prog.IsSelectingUpgrade)
+        {
+            yield return null;
+        }
+
         yield return new WaitForSeconds(floorClearPauseSeconds);
+
+        while (prog != null && prog.IsSelectingUpgrade)
+        {
+            yield return null;
+        }
+
         Run.StartNextFloor();               // FloorCleared -> FloorStart + RunData.AdvanceFloor()
         saves.Save(Run.Capture());          // checkpoint: next floor's start, before it is played
         PopulateAndBeginFloor();

@@ -26,6 +26,7 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
 
     public ProgressionSystem Progression { get; private set; }
     public UpgradeSelectionSystem UpgradeSystem { get; private set; }
+    public bool IsSelectingUpgrade => UpgradeSystem != null && UpgradeSystem.IsSelecting;
 
     readonly HashSet<int> processedEnemyIds = new();
     readonly List<string> appliedUpgradeIds = new();
@@ -94,6 +95,10 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
         // Create UpgradeSelectionSystem
         if (playerUi != null && Progression != null)
         {
+            if (playerUi.UpgradePresenter != null && playerUi.UpgradeSource != null)
+            {
+                playerUi.UpgradePresenter.Unbind(playerUi.UpgradeSource);
+            }
             UpgradeSystem = new UpgradeSelectionSystem(
                 database,
                 playerController,
@@ -208,6 +213,16 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
         Progression.AwardRoomCleared(xpOverride: -1, bonusUpgrades: bonusUpgradesPerRoom);
         Debug.Log($"[Progression] Room cleared! +{xpPerRoom} XP (Total: {Progression.CurrentXp}/{Progression.XpRequired})");
         UpdateHud();
+
+        CheckAndPresentFloorEndUpgrades();
+    }
+
+    public void CheckAndPresentFloorEndUpgrades()
+    {
+        if (UpgradeSystem != null && Progression != null && Progression.HasPendingUpgrades)
+        {
+            UpgradeSystem.PresentNextUpgrade();
+        }
     }
 
     void HandleDamageTaken(float dmg, AttackEffectData effect) => UpdateHud();

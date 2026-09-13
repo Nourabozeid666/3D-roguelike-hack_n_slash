@@ -165,6 +165,7 @@ public class FloorTransitionManager : MonoBehaviour
     void HandlePortalEntered()
     {
         if (isTransitioning) return;
+        if (progressionBootstrap != null && progressionBootstrap.IsSelectingUpgrade) return;
 
         RunData data = GetRunData();
         int regionIdx = data.currentRegionIndex;
@@ -191,6 +192,14 @@ public class FloorTransitionManager : MonoBehaviour
 
     IEnumerator InRegionRoundRoutine()
     {
+        if (progressionBootstrap != null)
+        {
+            while (progressionBootstrap.IsSelectingUpgrade)
+            {
+                yield return null;
+            }
+        }
+
         isTransitioning = true;
 
         // 1. Fade out to black
@@ -230,6 +239,14 @@ public class FloorTransitionManager : MonoBehaviour
 
     IEnumerator RegionTransitionRoutine(int nextRegionIndex)
     {
+        if (progressionBootstrap != null)
+        {
+            while (progressionBootstrap.IsSelectingUpgrade)
+            {
+                yield return null;
+            }
+        }
+
         isTransitioning = true;
 
         // 1. Fade out to black

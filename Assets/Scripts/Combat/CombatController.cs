@@ -41,11 +41,11 @@ public class CombatController : MonoBehaviour
         combatContext.overrideController = new AnimatorOverrideController(referencesContext.animator.runtimeAnimatorController);
         referencesContext.animator.runtimeAnimatorController = combatContext.overrideController;
         _stateMachine.AddState(new CombatIdleState(referencesContext.animator));
-        _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatHeavyAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatLightHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatHeavyAttackState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatLightHoldState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController));
         _stateMachine.AddState(new CombatRecoveryState(referencesContext.animator, combatContext.overrideController));
         _stateMachine.AddState(new CombatStaggerState(referencesContext.animator));
         _stateMachine.AddState(new CombatBlockState(referencesContext.animator));

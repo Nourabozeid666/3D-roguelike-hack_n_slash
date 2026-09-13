@@ -14,6 +14,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TestingScene.unity
     guid: 9fc0d4010bbf28b4594072e72b8655ab
+  - enabled: 1
+    path: Assets/Scenes/PLayable Levels/Region1_DarkHalls.unity
+    guid: 74610135bc554e39a1e8be2bba38257e
+  - enabled: 1
+    path: Assets/Scenes/PLayable Levels/Region2_BasicGameScene.unity
+    guid: 2fd410c5de85441ba625e1e6b494c10e
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 52ad007030910ad4ba1502778fd0297a, type: 3}
   m_UseUCBPForAssetBundles: 0

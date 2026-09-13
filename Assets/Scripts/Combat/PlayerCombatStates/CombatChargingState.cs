@@ -7,16 +7,14 @@ using UnityEngine.UI;
 public class CombatChargingState : State<CombatController>
 {
     private Animator _animator;
-    private Text _attackDebugText;
     private AttackData _currentAttack;
     private WeaponObject _weaponObject;
     private AnimatorOverrideController _OverrideController;
     private int hashAnimationState;
-    public CombatChargingState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
+    public CombatChargingState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText = null)
     {
         _animator = animator;
         _OverrideController = overrideController;
-        _attackDebugText = attackDebugText;
         hashAnimationState = Animator.StringToHash("AttackCharging");
     }
 

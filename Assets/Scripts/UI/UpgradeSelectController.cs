@@ -15,10 +15,23 @@ public class UpgradeSelectController : MonoBehaviour, IUpgradeSelectView
     static readonly Color DimColor = new Color(0f, 0f, 0f, 0.55f);
     static readonly Color PanelColor = new Color(0.09f, 0.1f, 0.14f, 0.98f);
 
+    [Header("Input Tuning")]
+    [SerializeField] private float selectionCooldown = 0.5f;
+
     readonly List<UpgradeCardController> cards = new();
     RectTransform cardRow;
+    float canSelectTime;
+    bool areCardsClickable;
 
     public event Action<int> CardClicked;
+
+    public float SelectionCooldown
+    {
+        get => selectionCooldown;
+        set => selectionCooldown = Mathf.Max(0f, value);
+    }
+
+    public bool CanSelect => Time.unscaledTime >= canSelectTime;
 
     /// <summary>Build the overlay + panel. The screen starts hidden until the first real offer.</summary>
     public void Initialize()
@@ -50,6 +63,9 @@ public class UpgradeSelectController : MonoBehaviour, IUpgradeSelectView
     public void ShowSelection(IReadOnlyList<UpgradeCardData> offered)
     {
         ClearCards();
+        canSelectTime = Time.unscaledTime + selectionCooldown;
+        areCardsClickable = false;
+
         for (int i = 0; i < offered.Count; i++)
         {
             GameObject cardGo = new GameObject("Card" + i, typeof(RectTransform));
@@ -57,11 +73,18 @@ public class UpgradeSelectController : MonoBehaviour, IUpgradeSelectView
             UpgradeCardController card = cardGo.AddComponent<UpgradeCardController>();
             card.Initialize();
             card.Present(offered[i], i);
-            card.Clicked += idx => CardClicked?.Invoke(idx);
+            card.SetClickable(false);
+            card.Clicked += idx => OnCardClickedInternal(idx);
             cards.Add(card);
         }
         LayoutCards();
         gameObject.SetActive(true);
+    }
+
+    void OnCardClickedInternal(int index)
+    {
+        if (!CanSelect) return;
+        CardClicked?.Invoke(index);
     }
 
     public void SetCardState(int index, bool enabled, bool selected)
@@ -74,7 +97,59 @@ public class UpgradeSelectController : MonoBehaviour, IUpgradeSelectView
     /// <summary>Hide the screen (e.g. the run ended mid-offer, or a retry).</summary>
     public void Hide()
     {
+        areCardsClickable = false;
         gameObject.SetActive(false);
+    }
+
+    void Update()
+    {
+        if (!gameObject.activeInHierarchy || cards.Count == 0) return;
+
+        if (!areCardsClickable && CanSelect)
+        {
+            areCardsClickable = true;
+            for (int i = 0; i < cards.Count; i++)
+            {
+                if (cards[i] != null)
+                {
+                    cards[i].SetClickable(true);
+                }
+            }
+        }
+
+        if (!CanSelect) return;
+
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if (kb != null)
+        {
+            if (kb.digit1Key.wasPressedThisFrame || kb.numpad1Key.wasPressedThisFrame)
+            {
+                if (cards.Count > 0) OnCardClickedInternal(0);
+            }
+            else if (kb.digit2Key.wasPressedThisFrame || kb.numpad2Key.wasPressedThisFrame)
+            {
+                if (cards.Count > 1) OnCardClickedInternal(1);
+            }
+            else if (kb.digit3Key.wasPressedThisFrame || kb.numpad3Key.wasPressedThisFrame)
+            {
+                if (cards.Count > 2) OnCardClickedInternal(2);
+            }
+        }
+        else
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+            {
+                if (cards.Count > 0) OnCardClickedInternal(0);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+            {
+                if (cards.Count > 1) OnCardClickedInternal(1);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
+            {
+                if (cards.Count > 2) OnCardClickedInternal(2);
+            }
+        }
     }
 
     void ClearCards()

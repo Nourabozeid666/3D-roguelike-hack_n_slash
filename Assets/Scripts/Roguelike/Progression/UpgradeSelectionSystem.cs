@@ -23,8 +23,16 @@ public class UpgradeSelectionSystem : IUpgradeSource
     List<UpgradeCardData> currentOfferedCards = new();
     bool isSelecting = false;
     float previousTimeScale = 1f;
+    float selectionCooldown = 0.5f;
+    float canSelectTime = 0f;
 
     public bool IsSelecting => isSelecting;
+    public float SelectionCooldown
+    {
+        get => selectionCooldown;
+        set => selectionCooldown = Mathf.Max(0f, value);
+    }
+    public bool CanSelect => Time.unscaledTime >= canSelectTime;
     public IReadOnlyList<UpgradeCardData> GetUpgrades() => currentOfferedCards;
 
     public UpgradeSelectionSystem(
@@ -42,7 +50,13 @@ public class UpgradeSelectionSystem : IUpgradeSource
 
         if (this.selectPresenter != null)
         {
+            this.selectPresenter.Bind(this);
             this.selectPresenter.CardSelected += OnCardSelected;
+        }
+
+        if (this.selectController != null)
+        {
+            this.selectController.CardClicked += HandleCardClicked;
         }
 
         if (this.progressionSystem != null)
@@ -55,7 +69,12 @@ public class UpgradeSelectionSystem : IUpgradeSource
     {
         if (selectPresenter != null)
         {
+            selectPresenter.Unbind(this);
             selectPresenter.CardSelected -= OnCardSelected;
+        }
+        if (selectController != null)
+        {
+            selectController.CardClicked -= HandleCardClicked;
         }
         if (progressionSystem != null)
         {
@@ -65,10 +84,7 @@ public class UpgradeSelectionSystem : IUpgradeSource
 
     void HandlePendingUpgradesChanged(int pendingCount)
     {
-        if (pendingCount > 0 && !isSelecting)
-        {
-            PresentNextUpgrade();
-        }
+        // Upgrades now appear at the end of the floor instead of interrupting active gameplay.
     }
 
     public void PresentNextUpgrade()
@@ -94,17 +110,45 @@ public class UpgradeSelectionSystem : IUpgradeSource
         }
 
         isSelecting = true;
+        canSelectTime = Time.unscaledTime + selectionCooldown;
         previousTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
         Time.timeScale = 0f;
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
-        if (selectController != null)
+        if (selectPresenter != null)
+        {
+            Changed?.Invoke(currentOfferedCards);
+        }
+        else if (selectController != null)
         {
             selectController.ShowSelection(currentOfferedCards);
         }
+    }
 
-        Changed?.Invoke(currentOfferedCards);
+    void HandleCardClicked(int index)
+    {
+        if (!isSelecting) return;
+        if (!CanSelect) return;
+        if (index < 0 || index >= currentOfferedCards.Count) return;
+
+        if (selectPresenter != null && !selectPresenter.SelectionResolved)
+        {
+            selectPresenter.Select(index);
+        }
+
+        if (isSelecting)
+        {
+            ResolvePick(index);
+        }
+    }
+
+    void ResolvePick(int index)
+    {
+        if (!isSelecting) return;
+        if (!CanSelect) return;
+        if (index < 0 || index >= currentOfferedCards.Count) return;
+        OnCardSelected(currentOfferedCards[index]);
     }
 
     void OnCardSelected(UpgradeCardData card)
@@ -119,6 +163,12 @@ public class UpgradeSelectionSystem : IUpgradeSource
                 chosenAsset = currentOfferedAssets[i];
                 break;
             }
+        }
+
+        // Fallback match by presenter selected index if id comparison didn't match
+        if (chosenAsset == null && selectPresenter != null && selectPresenter.SelectedIndex >= 0 && selectPresenter.SelectedIndex < currentOfferedAssets.Count)
+        {
+            chosenAsset = currentOfferedAssets[selectPresenter.SelectedIndex];
         }
 
         if (chosenAsset != null && chosenAsset is IStatModifier modifier)
