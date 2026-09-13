@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1247fd33749ea378b7a1cbe1b912b8e, type: 3}
-  m_Name: '[Passive] Light Pommel (+0.15 Attack Speed)'
+  m_Name: Passive_LightPommel
   m_EditorClassIdentifier: Assembly-CSharp::PassiveEffect
   baseValue: 0.15
   _modifierType: 0

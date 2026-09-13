@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8871d2258031cd88e989c3b233c8807c, type: 3}
-  m_Name: '[Conditional] Heavy Momentum (AttackDamage > 25, +20% Attack Speed)'
+  m_Name: Conditional_HeavyMomentum
   m_EditorClassIdentifier: Assembly-CSharp::ConditionalEffect
   baseValue: 1.2
   _modifierType: 1

@@ -96,7 +96,7 @@ public class UpgradeDatabase : ScriptableObject
         if (asset is IStatModifier mod)
         {
             iconKey = GetIconKey(mod.TargetStat);
-            valueText = ExtractValueText(rawName, mod);
+            valueText = ExtractValueText(rawName, mod, asset);
             description = FormatDescription(mod, asset);
         }
         else
@@ -109,18 +109,26 @@ public class UpgradeDatabase : ScriptableObject
 
     static string CleanTitle(string rawName)
     {
-        // Strip [Passive], [Conditional], [Cursed]
+        if (string.IsNullOrEmpty(rawName)) return "Unknown";
+
         string clean = rawName;
+        // Strip bracket prefixes: [Passive], [Conditional], [Cursed], etc.
         clean = Regex.Replace(clean, @"^\[.*?\]\s*", "");
+        // Strip identifier prefixes: Conditional_, Passive_, Cursed_
+        clean = Regex.Replace(clean, @"^(Conditional|Passive|Cursed)_", "");
 
         // If parenthesized details exist at the end, extract the title part
         Match m = Regex.Match(clean, @"^(.*?)\s*\(.*?\)$");
         if (m.Success && !string.IsNullOrWhiteSpace(m.Groups[1].Value))
         {
-            return m.Groups[1].Value.Trim();
+            clean = m.Groups[1].Value.Trim();
         }
 
-        // Clean up names like "+ 1 Length"
+        // Convert PascalCase to separated words (e.g. AdrenalineKick -> Adrenaline Kick)
+        clean = Regex.Replace(clean, @"(?<=[a-z])(?=[A-Z])", " ");
+        clean = clean.Replace('_', ' ');
+
+        // Clean up legacy names like "+ 1 Length"
         if (clean.StartsWith("+") || clean.StartsWith("-"))
         {
             if (clean.Contains("Length")) return "Blade Reach";
@@ -131,23 +139,95 @@ public class UpgradeDatabase : ScriptableObject
         return clean.Trim();
     }
 
-    static string ExtractValueText(string rawName, IStatModifier mod)
+    static string ExtractValueText(string rawName, IStatModifier mod, ScriptableObject asset)
     {
-        // Check if rawName already has (e.g. (+4 Damage) or (HP < 30%, +40% Damage))
+        // Check if rawName already has parentheses (e.g. (+4 Damage) or (HP < 30%, +40% Damage))
         Match m = Regex.Match(rawName, @"\((.*?)\)");
         if (m.Success)
         {
             return m.Groups[1].Value.Trim();
         }
 
-        // For legacy names like "[HP -50%] + 10% Damage"
+        // For legacy names
         if (rawName.Contains("+ 10% Damage")) return "+10% Damage (HP < 50%)";
         if (rawName.Contains("+ 1 Length")) return "+1.0 Blade Length";
         if (rawName.Contains("+ 1 Size")) return "+1.0 Blade Size";
         if (rawName.Contains("+5 Damage")) return "+5 Damage";
 
-        return mod.TargetStat.ToString();
+        // Format dynamically from modifier data
+        string statName = FormatStatName(mod.TargetStat);
+        string valText = "";
+
+        if (mod.ModifierType == StatModifierType.Multiplicative)
+        {
+            if (mod.ModifierPolarity == StatModifierPolarity.Negative)
+            {
+                int pct = Mathf.RoundToInt((1f - mod.BaseValue) * 100f);
+                valText = $"-{pct}% {statName}";
+            }
+            else
+            {
+                int pct = mod.BaseValue > 1f
+                    ? Mathf.RoundToInt((mod.BaseValue - 1f) * 100f)
+                    : Mathf.RoundToInt(mod.BaseValue * 100f);
+                valText = $"+{pct}% {statName}";
+            }
+        }
+        else
+        {
+            string sign = (mod.ModifierPolarity == StatModifierPolarity.Negative || mod.BaseValue < 0f) ? "-" : "+";
+            float absV = Mathf.Abs(mod.BaseValue);
+
+            if (mod.TargetStat == StatType.CritChance)
+            {
+                valText = $"{sign}{Mathf.RoundToInt(absV * 100f)}% {statName}";
+            }
+            else if (mod.TargetStat == StatType.CritMultiplier || mod.TargetStat == StatType.WeaponLength || mod.TargetStat == StatType.WeaponSize)
+            {
+                valText = $"{sign}{absV:0.##} {statName}";
+            }
+            else
+            {
+                valText = $"{sign}{absV:0.#} {statName}";
+            }
+        }
+
+        if (asset is ConditionalEffect ce)
+        {
+            string condStatName = FormatStatName(ce.ConditionStat);
+            string op = ce.Condition switch
+            {
+                Condition.GreaterThan => ">",
+                Condition.LessThan => "<",
+                _ => "=="
+            };
+
+            if (ce.ConditionStat == StatType.Health)
+            {
+                valText += $" ({condStatName} {op} {ce.ConditionPercentageValue:0}%)";
+            }
+            else
+            {
+                valText += $" ({condStatName} {op} {ce.ConditionPercentageValue:0})";
+            }
+        }
+
+        return valText;
     }
+
+    static string FormatStatName(StatType stat) => stat switch
+    {
+        StatType.MaxHealth => "Max HP",
+        StatType.Health => "HP",
+        StatType.Defense => "Defense",
+        StatType.AttackDamage => "Damage",
+        StatType.AttackSpeed => "Attack Speed",
+        StatType.CritChance => "Crit Chance",
+        StatType.CritMultiplier => "Crit Multiplier",
+        StatType.WeaponLength => "Length",
+        StatType.WeaponSize => "Size",
+        _ => stat.ToString()
+    };
 
     static string FormatDescription(IStatModifier mod, ScriptableObject asset)
     {

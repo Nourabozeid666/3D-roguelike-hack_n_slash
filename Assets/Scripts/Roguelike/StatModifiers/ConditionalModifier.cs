@@ -27,6 +27,7 @@ public class ConditionalEffect : ScriptableObject, IStatModifier
     public float ConditionPercentageValue => _conditionPercentageValue;
     public Condition Condition => _condition;
     public float Chance => _chance;
+    public float BaseValue => baseValue;
 
     public float GetStatValue(IEntity entity, StatType statType)
     {

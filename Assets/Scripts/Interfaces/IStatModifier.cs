@@ -33,6 +33,7 @@ public interface IStatModifier
     StatModifierPolarity ModifierPolarity { get; }
 
     float Chance { get; }
+    float BaseValue { get; }
 
     float GetValue(float baseValue, IEntity entity);
 }

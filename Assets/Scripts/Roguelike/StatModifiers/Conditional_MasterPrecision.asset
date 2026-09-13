@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8871d2258031cd88e989c3b233c8807c, type: 3}
-  m_Name: '[Conditional] Master Precision (HP > 85%, +20% Crit Chance)'
+  m_Name: Conditional_MasterPrecision
   m_EditorClassIdentifier: Assembly-CSharp::ConditionalEffect
   baseValue: 0.2
   _modifierType: 0

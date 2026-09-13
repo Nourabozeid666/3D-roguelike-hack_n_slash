@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1247fd33749ea378b7a1cbe1b912b8e, type: 3}
-  m_Name: '[Cursed] Sluggish Burden (-20% Attack Speed)'
+  m_Name: Cursed_SluggishBurden
   m_EditorClassIdentifier: Assembly-CSharp::PassiveEffect
   baseValue: 0.8
   _modifierType: 1
