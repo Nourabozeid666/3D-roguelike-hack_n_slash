@@ -280,40 +280,25 @@ public class FloorTransitionManager : MonoBehaviour
     {
         isTransitioning = true;
 
+        SwitchScene switchScene = FindFirstObjectByType<SwitchScene>();
+        if (switchScene != null)
+        {
+            switchScene.TriggerSwitchScene();
+            yield break;
+        }
+
         // 1. Fade to solid black
         yield return FadeTo(1f, fadeDuration * 1.5f);
 
-        // 2. Freeze time
-        Time.timeScale = 0f;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-
-        // 3. Delete save file (run successfully completed)
+        // 2. Delete save file (run successfully completed)
         RunSaveService saves = new RunSaveService();
         saves.Delete();
 
-        // 4. Show "To be continued..." finale UI
-        if (finalePanel != null)
-        {
-            finalePanel.SetActive(true);
-
-            int totalDefeated = spawnSystem != null ? spawnSystem.TotalDefeated : 0;
-            int totalRounds = GetRunData().floor;
-            int level = progressionBootstrap != null ? progressionBootstrap.Progression.CurrentLevel : 1;
-
-            if (finaleTitleText != null)
-            {
-                finaleTitleText.text = "To be continued...";
-            }
-
-            if (finaleStatsText != null)
-            {
-                finaleStatsText.text = $"You have conquered both Regions!\n\n" +
-                                       $"Total Rounds Survived: {totalRounds}\n" +
-                                       $"Enemies Defeated: {totalDefeated}\n" +
-                                       $"Hero Level Achieved: {level}";
-            }
-        }
+        // 3. Switch to DemoEnd scene
+        Time.timeScale = 1f;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        SceneManager.LoadScene("DemoEnd");
     }
 
     void RepositionPlayerToEntrance()
