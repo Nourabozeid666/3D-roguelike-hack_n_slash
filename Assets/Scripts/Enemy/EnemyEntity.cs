@@ -119,16 +119,18 @@ public class EnemyEntity : IEntity
             OnDied?.Invoke();
             return; // dead things don't also stagger
         }
-        Severity staggerSeverity = GetStaggerSeverity(currentPoise, effectData.appliedStagger);
+
+        OnDamageTaken?.Invoke(damage, effectData);
+
+        StaggerTier staggerTier = effectData != null ? effectData.appliedStagger : StaggerTier.Normal;
+        Severity staggerSeverity = GetStaggerSeverity(currentPoise, staggerTier);
         if (staggerSeverity != Severity.None)
         {
             // currentPoise = maxPoise;
             OnStaggered?.Invoke(staggerSeverity);
-            return;
         }
 
-        OnDamageTaken?.Invoke(damage, effectData);
-        Debug.Log($"TakeDamage - dmg:{damage} poise:{effectData?.appliedStagger ?? 0f} | HP:{currentHealth} | Poise:{currentPoise}");
+        Debug.Log($"TakeDamage - dmg:{damage} poise:{effectData?.appliedStagger.ToString() ?? "None"} | HP:{currentHealth} | Poise:{currentPoise}");
     }
     public void Kill()
     {
