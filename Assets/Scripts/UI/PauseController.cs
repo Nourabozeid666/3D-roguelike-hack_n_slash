@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class PauseController : MonoBehaviour
@@ -24,6 +23,8 @@ public class PauseController : MonoBehaviour
 
     void Update()
     {
+        if (SceneTransitioner.IsBusy) return;
+
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             TogglePause();
@@ -82,13 +83,13 @@ public class PauseController : MonoBehaviour
     /// every floor, including floor 1), so returning here never silently destroys the run. A mid-floor
     /// quit resumes the current floor from its start — enemy state is not persisted yet, so the floor
     /// is repopulated fresh. No extra save is needed at this point: the current floor's checkpoint is
-    /// already on disk.
+    /// already on disk. The transitioner unfreezes time and frees the cursor for the menu destination.
     /// </summary>
     public void ReturnToMainMenu()
     {
-        Time.timeScale = 1f;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-        SceneManager.LoadScene(mainMenuSceneName);
+        if (SceneTransitioner.IsBusy) return;
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+        SceneTransitioner.RequestScene(mainMenuSceneName, SceneTransitioner.Destination.Menu);
     }
 }

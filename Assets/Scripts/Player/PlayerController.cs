@@ -72,6 +72,7 @@ public class PlayerController : MonoBehaviour, IEntityProvider
 
     private void HandleJumpInput()
     {
+        if (Time.timeScale <= 0f) return;
         if (CharacterState != null && !CharacterState.CanJump) return;
         if (!IsGrounded())
         {
@@ -85,11 +86,13 @@ public class PlayerController : MonoBehaviour, IEntityProvider
 
     private void HandleMoveInput(Vector2 value)
     {
+        if (Time.timeScale <= 0f) return;
         context.moveDirection = value;
     }
 
     private void HandleSprintInput(bool isSprinting)
     {
+        if (Time.timeScale <= 0f) return;
         context.isSprinting = isSprinting;
         if (isSprinting && (CharacterState == null || CharacterState.CanDash))
         {
@@ -152,8 +155,43 @@ public class PlayerController : MonoBehaviour, IEntityProvider
         }
     }
 
+    private bool _isTimeScalePaused;
+    private Vector3 _pausedLinearVelocity;
+    private Vector3 _pausedAngularVelocity;
+
+    private void HandleTimeScalePause()
+    {
+        if (Time.timeScale <= 0f)
+        {
+            if (!_isTimeScalePaused)
+            {
+                _isTimeScalePaused = true;
+                if (referencesContext != null && referencesContext.rb != null)
+                {
+                    _pausedLinearVelocity = referencesContext.rb.linearVelocity;
+                    _pausedAngularVelocity = referencesContext.rb.angularVelocity;
+                    referencesContext.rb.linearVelocity = Vector3.zero;
+                    referencesContext.rb.angularVelocity = Vector3.zero;
+                }
+            }
+        }
+        else
+        {
+            if (_isTimeScalePaused)
+            {
+                _isTimeScalePaused = false;
+                if (referencesContext != null && referencesContext.rb != null)
+                {
+                    referencesContext.rb.linearVelocity = _pausedLinearVelocity;
+                    referencesContext.rb.angularVelocity = _pausedAngularVelocity;
+                }
+            }
+        }
+    }
+
     void FixedUpdate()
     {
+        if (Time.timeScale <= 0f) return;
         MaxVelocityUpdate();
         ApplyCustomGravity();
         ApplyCustomDrag();
@@ -162,6 +200,9 @@ public class PlayerController : MonoBehaviour, IEntityProvider
     
     void Update()
     {
+        HandleTimeScalePause();
+        if (Time.timeScale <= 0f) return;
+
         _stateMachine.Update();
         Rotate(MoveDirectionToWorldSpace());
         if (queueJump && IsGrounded() && CharacterState != null && CharacterState.CanJump)
@@ -207,11 +248,13 @@ public class PlayerController : MonoBehaviour, IEntityProvider
 
     public void AddForce(Vector3 force, ForceMode mode = ForceMode.Force)
     {
+        if (Time.timeScale <= 0f) return;
         referencesContext.rb.AddForce(force, mode);
     }
 
     public void AddDirectionalForce(Vector3 direction, ForceMode mode = ForceMode.Force)
     {
+        if (Time.timeScale <= 0f) return;
         Vector3 forward = referencesContext.playerModel.forward * direction.z;
         Vector3 right = referencesContext.playerModel.right * direction.x;
         Vector3 up = referencesContext.playerModel.up * direction.y;
@@ -232,6 +275,7 @@ public class PlayerController : MonoBehaviour, IEntityProvider
 
     void Rotate(Vector3 direction)
     {
+        if (Time.timeScale <= 0f) return;
         if (CharacterState != null ? !CharacterState.CanMove : !context.canMove) return;
         Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : referencesContext.playerModel.rotation;
         if (targetRotation != null && targetRotation != referencesContext.playerModel.rotation && direction != Vector3.zero)
@@ -242,6 +286,7 @@ public class PlayerController : MonoBehaviour, IEntityProvider
 
     public void CustomRotate(Vector3 direction , float alpha = 0.1f)
     {
+        if (Time.timeScale <= 0f) return;
         Quaternion targetRotation = direction != Vector3.zero ? Quaternion.LookRotation(direction) : referencesContext.playerModel.rotation;
         if (targetRotation != null && targetRotation != referencesContext.playerModel.rotation && direction != Vector3.zero)
         {

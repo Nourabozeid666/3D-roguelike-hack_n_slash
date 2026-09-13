@@ -22,6 +22,7 @@ public class CombatCounterState : State<CombatController>
         return UniTask.WaitWhile(() =>
         {
             if (!_stateMachine.CheckState<CombatCounterState>()) return false;
+            if (Time.timeScale <= 0f) return true;
             UseLunge(lungeDirection, lungeDistance);
             lungeDuration -= Time.deltaTime;
             return lungeDuration > 0f;
@@ -35,12 +36,14 @@ public class CombatCounterState : State<CombatController>
         Transform model = _owner.ReferencesContext != null && _owner.ReferencesContext.playerModel != null ? _owner.ReferencesContext.playerModel : _owner.transform;
         return UniTask.WaitUntil(() =>
         {
+            if (!_stateMachine.CheckState<CombatCounterState>()) return true;
+            if (Time.timeScale <= 0f) return false;
             if (targetDirection == Vector3.zero) return true;
             _owner._playerController.CustomRotate(targetDirection, alpha);
             float angle = Vector3.Angle(model.forward, targetDirection);
             alpha += 0.08f;
             alpha = Mathf.Clamp01(alpha); // Ensure alpha stays within [0, 1]
-            return angle <= angleThreshold || !_stateMachine.CheckState<CombatCounterState>();
+            return angle <= angleThreshold;
         });
     }
 

@@ -1,4 +1,4 @@
-﻿    using System.Collections;
+    using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
 
@@ -29,6 +29,7 @@
             // transform.position = player.position + offset;
             controls.PlayerMovement.Camera.performed += ctx =>
             {
+                if (player == null || Time.timeScale <= 0f) return;
                 Vector2 value = ctx.ReadValue<Vector2>();
                 value.y = -value.y;
                 // Debug.Log(value.x + " , " + value.y);

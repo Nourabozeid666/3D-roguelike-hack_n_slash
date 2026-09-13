@@ -298,6 +298,7 @@ MonoBehaviour:
     attackDebugText: {fileID: 0}
   combatContext:
     overrideController: {fileID: 0}
+    attackSpeed: 1
     currentAttack: {fileID: 0}
     queuedAttack: {fileID: 0}
     previousAttack: {fileID: 0}
@@ -309,6 +310,12 @@ MonoBehaviour:
     staggerImmunityDuration: 1
     currentStaggerSeverity: 0
     isStaggered: 0
+    blockMultiplier: 0.25
+    parryMultiplier: 0
+    parryEndTime: 0.5
+    clashParryEndTime: 0.25
+    isBlocking: 0
+    isParrying: 0
     inputString: 
     canAttack: 1
     isAttacking: 0
@@ -331,6 +338,26 @@ MonoBehaviour:
     currentWeapon: {fileID: 11400000, guid: d1fda456c8554624eb17f54a0831d3fd, type: 2}
     currentWeaponModel: {fileID: 0}
     accessoryModels: []
+    trailComponent: {fileID: 0}
+  targetingSystem:
+    targetingRadius: 8
+    directionalConeAngle: 120
+    neutralConeAngle: 80
+    enemyLayers:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    enemyTag: Enemy
+    filterByTag: 1
+    requireLineOfSight: 1
+    obstacleLayers:
+      serializedVersion: 2
+      m_Bits: 0
+    angleWeight: 0.6
+    distanceWeight: 0.4
+    adaptLungeDistance: 1
+    minMeleeDistance: 0.7
+    drawDebugGizmos: 1
+  testModifiers: []
 --- !u!1 &4763080310330837779
 GameObject:
   m_ObjectHideFlags: 0
@@ -558,10 +585,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DamageHitboxHelper
   tagsToHandle:
   - Enemy
+  - Ranged Enemy
   targetLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   hitboxCollider: {fileID: 7606770213815117636}
+  clearAfterSeconds: 1
 --- !u!136 &7606770213815117636
 CapsuleCollider:
   m_ObjectHideFlags: 0
