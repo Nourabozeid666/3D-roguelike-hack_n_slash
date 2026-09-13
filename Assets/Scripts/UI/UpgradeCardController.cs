@@ -60,8 +60,9 @@ public class UpgradeCardController : MonoBehaviour, IUpgradeCardView, UnityEngin
         border.raycastTarget = false;
         PlayerUiKit.Stretch(border.rectTransform);
 
-        Button button = gameObject.AddComponent<Button>();
+Button button = gameObject.AddComponent<Button>();
         button.targetGraphic = back;
+        PlayerUiKit.StyleButton(button);
         button.onClick.AddListener(TriggerClick);
 
         RectTransform iconRect = PlayerUiKit.Rect("Icon", transform);

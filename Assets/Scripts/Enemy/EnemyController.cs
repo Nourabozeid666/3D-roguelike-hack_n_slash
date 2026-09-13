@@ -328,6 +328,10 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
 
         // PatrolState is disabled: enemies stay focused on the player in ChaseState
         SetState<ChaseState>();
+        Vector3 lookAtVector = new Vector3(targetTransform.position.x, transform.position.y, targetTransform.position.z);
+        transform.LookAt(lookAtVector);
+        if (agent.isActiveAndEnabled && agent.isOnNavMesh)
+            agent.SetDestination(lookAtVector);
     }
 
     private void HandleDied()

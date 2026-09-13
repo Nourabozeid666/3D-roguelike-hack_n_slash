@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Production run owner for the game scene (TestingScene.unity). When the scene is entered from the
@@ -158,7 +157,7 @@ public class RunBootstrap : MonoBehaviour
         {
             startScene = regionSettings.Regions[0].sceneName;
         }
-        SceneManager.LoadScene(startScene);
+        SceneTransitioner.RequestScene(startScene, SceneTransitioner.Destination.Game);
     }
 
     /// <summary>Game Over > Main Menu: unfreeze time and load the menu. The save is kept on purpose:
@@ -167,7 +166,7 @@ public class RunBootstrap : MonoBehaviour
     {
         Time.timeScale = 1f;
         RunSession.EnterFromMenu = true;
-        SceneManager.LoadScene(MenuSceneName);
+        SceneTransitioner.RequestScene(MenuSceneName, SceneTransitioner.Destination.Menu);
     }
 
     /// <summary>

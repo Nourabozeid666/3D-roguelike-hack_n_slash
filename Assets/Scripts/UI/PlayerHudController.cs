@@ -27,11 +27,11 @@ public class PlayerHudController : MonoBehaviour, IPlayerHudView
         RectTransform panel = (RectTransform)transform;
         PlayerUiKit.Pin(panel, new Vector2(0, 0), new Vector2(0, 0), new Vector2(24, 24), new Vector2(640, 120));
 
-        levelText = PlayerUiKit.Text("LevelText", transform, 22, TextAnchor.LowerLeft, Color.white);
+        levelText = PlayerUiKit.HeaderText("LevelText", transform, 22, TextAnchor.LowerLeft, Color.white);
         PlayerUiKit.Outline(levelText);
         PlayerUiKit.Pin(levelText.rectTransform, new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 86), new Vector2(220, 28));
 
-        floorText = PlayerUiKit.Text("FloorText", transform, 22, TextAnchor.LowerRight, Color.white);
+        floorText = PlayerUiKit.HeaderText("FloorText", transform, 22, TextAnchor.LowerRight, Color.white);
         PlayerUiKit.Outline(floorText);
         PlayerUiKit.Pin(floorText.rectTransform, new Vector2(0, 0), new Vector2(0, 0), new Vector2(420, 86), new Vector2(220, 28));
 
