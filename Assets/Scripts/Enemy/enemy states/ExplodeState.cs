@@ -22,7 +22,10 @@ public class ExplodeState : EnemyState
         agent.isStopped = true;
         animator.Play(Animator.StringToHash("Explode"), 0, 0);
         enemyController.StartCoroutine(DestroyAfterDelay());
-        explosionParticles?.SetActive(false);
+        if (explosionParticles != null)
+        {
+            explosionParticles.SetActive(false);
+        }
     }
 
     public override void Tick()
@@ -38,7 +41,10 @@ public class ExplodeState : EnemyState
     IEnumerator DestroyAfterDelay()
     {
         yield return new WaitForSeconds(timeBeforeExplosion);
-        explosionParticles?.SetActive(true);
+        if (explosionParticles != null)
+        {
+            explosionParticles.SetActive(true);
+        }
         yield return new WaitForSeconds(explosionDuration);
         Object.Destroy(enemyController.gameObject);
     }
