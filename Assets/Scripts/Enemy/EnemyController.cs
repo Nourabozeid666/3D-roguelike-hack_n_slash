@@ -219,45 +219,34 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
 
     private void HandleDamageTaken(float damage, AttackEffectData effectData)
     {
-        Severity severity = effectData != null ? GetStaggerSeverity(EnemyEntity.CurrentPoise, effectData.appliedStagger) : Severity.Light;
-        StaggerState staggerState = GetState<StaggerState>() as StaggerState;
-
-        if (EStateMachine.CurrentState is StaggerState activeStagger && severity > 0)
-        {
-            activeStagger.ReceiveHit(StaggerState.ReactionType.Hit);
-            return;
-        }
-
-        if (!flinchesOnHit)
-            return;
-
-        if (!EStateMachine.CurrentState.CanBeInterrupted)
-            return;
-
-        staggerState?.SetReaction(StaggerState.ReactionType.Hit);
-        SetState<StaggerState>();
-
-        Debug.Log($"HandleDamageTaken - state:{EStateMachine.CurrentState?.GetType().Name}" +
-            $" canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted} flinches:{flinchesOnHit}");
+        Debug.Log($"HandleDamageTaken - dmg:{damage} HP:{enemyEntity.Health}");
     }
 
     private void HandleStaggered(Severity severity)
     {
-        if(EStateMachine.CurrentState is StaggerState activeStagger)
+        StaggerState.ReactionType reaction = severity == Severity.Heavy
+            ? StaggerState.ReactionType.Stun
+            : StaggerState.ReactionType.Hit;
+
+        StaggerState staggerState = GetState<StaggerState>() as StaggerState;
+
+        if (EStateMachine.CurrentState is StaggerState activeStagger)
         {
-            activeStagger.ReceiveHit(StaggerState.ReactionType.Stun);
+            activeStagger.ReceiveHit(reaction);
             return;
         }
+
+        if (reaction == StaggerState.ReactionType.Hit && !flinchesOnHit)
+            return;
 
         if (!EStateMachine.CurrentState.CanBeInterrupted)
             return;
 
-        StaggerState staggerState = GetState<StaggerState>() as StaggerState;
-        staggerState?.SetReaction(StaggerState.ReactionType.Stun);
+        staggerState?.SetReaction(reaction);
         SetState<StaggerState>();
 
         Debug.Log($"HandleStaggered - state:{EStateMachine.CurrentState?.GetType().Name} " +
-            $"canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted}");
+            $"severity:{severity} reaction:{reaction} canInterrupt:{EStateMachine.CurrentState?.CanBeInterrupted}");
     }
     // update state here
     void Update()

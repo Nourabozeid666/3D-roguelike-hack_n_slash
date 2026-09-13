@@ -103,21 +103,41 @@ public class SettingsController : MonoBehaviour
         BuildResolutionOptions();
         Dropdown resolutionDropdown = SetupResolutionDropdown();
 
-        fullscreenToggle.SetIsOnWithoutNotify(Screen.fullScreen);
-        SeedVolumes();
-        fullscreenToggle.onValueChanged.AddListener(_ => Apply());
-        muteToggle.onValueChanged.AddListener(SetMute);
-        volumeSliders[AudioBus.Master].onValueChanged.AddListener(_ => { UnmuteIfMasterRaised(); Apply(); });
-        volumeSliders[AudioBus.Music].onValueChanged.AddListener(_ => Apply());
-        volumeSliders[AudioBus.Sfx].onValueChanged.AddListener(_ => Apply());
-        volumeSliders[AudioBus.Ui].onValueChanged.AddListener(_ => Apply());
-        backButton.onClick.AddListener(Close);
-
-        resolutionDropdown.onValueChanged.AddListener(index =>
+        if (fullscreenToggle != null)
         {
-            resolutionIndex = index;
-            Apply();
-        });
+            fullscreenToggle.SetIsOnWithoutNotify(Screen.fullScreen);
+            fullscreenToggle.onValueChanged.AddListener(_ => Apply());
+        }
+
+        SeedVolumes();
+
+        if (muteToggle != null)
+        {
+            muteToggle.onValueChanged.AddListener(SetMute);
+        }
+
+        if (volumeSliders.TryGetValue(AudioBus.Master, out Slider masterSlider) && masterSlider != null)
+            masterSlider.onValueChanged.AddListener(_ => { UnmuteIfMasterRaised(); Apply(); });
+        if (volumeSliders.TryGetValue(AudioBus.Music, out Slider musicSlider) && musicSlider != null)
+            musicSlider.onValueChanged.AddListener(_ => Apply());
+        if (volumeSliders.TryGetValue(AudioBus.Sfx, out Slider sfxSlider) && sfxSlider != null)
+            sfxSlider.onValueChanged.AddListener(_ => Apply());
+        if (volumeSliders.TryGetValue(AudioBus.Ui, out Slider uiSlider) && uiSlider != null)
+            uiSlider.onValueChanged.AddListener(_ => Apply());
+
+        if (backButton != null)
+        {
+            backButton.onClick.AddListener(Close);
+        }
+
+        if (resolutionDropdown != null)
+        {
+            resolutionDropdown.onValueChanged.AddListener(index =>
+            {
+                resolutionIndex = index;
+                Apply();
+            });
+        }
 
         AdjustScrollToFit();
     }
@@ -134,20 +154,29 @@ public class SettingsController : MonoBehaviour
 
     private void Apply()
     {
-        float master = volumeSliders[AudioBus.Master].value;
+        float master = (volumeSliders.TryGetValue(AudioBus.Master, out Slider masterSlider) && masterSlider != null)
+            ? masterSlider.value
+            : 1f;
+
         if (isMuted && master > 0f)
         {
             isMuted = false;
-            muteToggle.SetIsOnWithoutNotify(false);
+            if (muteToggle != null)
+            {
+                muteToggle.SetIsOnWithoutNotify(false);
+            }
         }
 
         if (audioServiceCached && audioService != null)
         {
             // Prefer the Audio Core (drives the mixer / managed sources).
             audioService.SetVolume(AudioBus.Master, master);
-            audioService.SetVolume(AudioBus.Music, volumeSliders[AudioBus.Music].value);
-            audioService.SetVolume(AudioBus.Sfx, volumeSliders[AudioBus.Sfx].value);
-            audioService.SetVolume(AudioBus.Ui, volumeSliders[AudioBus.Ui].value);
+            if (volumeSliders.TryGetValue(AudioBus.Music, out Slider musicSlider) && musicSlider != null)
+                audioService.SetVolume(AudioBus.Music, musicSlider.value);
+            if (volumeSliders.TryGetValue(AudioBus.Sfx, out Slider sfxSlider) && sfxSlider != null)
+                audioService.SetVolume(AudioBus.Sfx, sfxSlider.value);
+            if (volumeSliders.TryGetValue(AudioBus.Ui, out Slider uiSlider) && uiSlider != null)
+                audioService.SetVolume(AudioBus.Ui, uiSlider.value);
         }
         else
         {
@@ -155,7 +184,7 @@ public class SettingsController : MonoBehaviour
             AudioListener.volume = master;
         }
 
-        bool fullscreen = fullscreenToggle.isOn;
+        bool fullscreen = fullscreenToggle != null && fullscreenToggle.isOn;
         Screen.fullScreen = fullscreen;
 
         if (resolutionOptions.Count > 0)
@@ -168,24 +197,33 @@ public class SettingsController : MonoBehaviour
 
     private void UnmuteIfMasterRaised()
     {
-        if (isMuted && volumeSliders[AudioBus.Master].value > 0f)
+        if (volumeSliders.TryGetValue(AudioBus.Master, out Slider masterSlider) && masterSlider != null)
         {
-            isMuted = false;
-            muteToggle.SetIsOnWithoutNotify(false);
+            if (isMuted && masterSlider.value > 0f)
+            {
+                isMuted = false;
+                if (muteToggle != null)
+                {
+                    muteToggle.SetIsOnWithoutNotify(false);
+                }
+            }
         }
     }
 
     private void SetMute(bool muted)
     {
         isMuted = muted;
-        if (muted)
+        if (volumeSliders.TryGetValue(AudioBus.Master, out Slider masterSlider) && masterSlider != null)
         {
-            lastMasterBeforeMute = volumeSliders[AudioBus.Master].value;
-            volumeSliders[AudioBus.Master].SetValueWithoutNotify(0f);
-        }
-        else
-        {
-            volumeSliders[AudioBus.Master].SetValueWithoutNotify(lastMasterBeforeMute);
+            if (muted)
+            {
+                lastMasterBeforeMute = masterSlider.value;
+                masterSlider.SetValueWithoutNotify(0f);
+            }
+            else
+            {
+                masterSlider.SetValueWithoutNotify(lastMasterBeforeMute);
+            }
         }
         Apply();
     }
@@ -227,7 +265,17 @@ public class SettingsController : MonoBehaviour
 
     private Dropdown SetupResolutionDropdown()
     {
+        if (resolutionButton == null)
+        {
+            return null;
+        }
+
         RectTransform ddRT = resolutionButton.transform as RectTransform;
+        if (ddRT == null)
+        {
+            return null;
+        }
+
         ddRT.sizeDelta = new Vector2(DropdownWidth, DropdownHeight);
 
         Image ddBackground = ddRT.GetComponent<Image>();
@@ -238,24 +286,52 @@ public class SettingsController : MonoBehaviour
             ddBackground.type = Image.Type.Simple;
         }
 
-        Selectable ddSelectable = ddRT.GetComponent<Selectable>();
-        if (ddSelectable != null)
+        // Drop any existing Selectable components (e.g. Button) immediately so
+        // AddComponent<Dropdown>() doesn't violate [DisallowMultipleComponent] on Selectable.
+        Selectable[] selectables = ddRT.GetComponents<Selectable>();
+        for (int i = 0; i < selectables.Length; i++)
         {
-            ddSelectable.targetGraphic = ddBackground;
-            ddSelectable.colors = BuildSelectableColors();
+            if (selectables[i] != null && !(selectables[i] is Dropdown))
+            {
+                DestroyImmediate(selectables[i]);
+            }
         }
 
-        // The old click behavior is being replaced by the Dropdown; drop the Button component.
-        Destroy(resolutionButton);
-
         // Caption: reuse the existing button label text ("1920 x 1080").
-        // Dropdown arrow: small red indicator so the control reads as an openable list.
-        Text arrow = CreateTextChild(ddRT.gameObject, "Arrow", new Vector2(1f, 0.5f),
-            new Vector2(1f, 0.5f), new Vector2(-12f, 0f), new Vector2(40f, 40f), "\u25BC", RedAccent, 22, TextAnchor.MiddleCenter);
-        arrow.transform.SetAsLastSibling();
+        if (resolutionLabel != null)
+        {
+            resolutionLabel.alignment = TextAnchor.MiddleLeft;
+            RectTransform labelRt = resolutionLabel.rectTransform;
+            if (labelRt != null)
+            {
+                labelRt.offsetMin = new Vector2(14f, 0f);
+                labelRt.offsetMax = new Vector2(-36f, 0f);
+            }
+        }
 
-        Dropdown dropdown = ddRT.gameObject.AddComponent<Dropdown>();
+        // Dropdown arrow: small red indicator so the control reads as an openable list.
+        Transform existingArrow = ddRT.Find("Arrow");
+        if (existingArrow == null)
+        {
+            Text arrow = CreateTextChild(ddRT.gameObject, "Arrow", new Vector2(1f, 0.5f),
+                new Vector2(1f, 0.5f), new Vector2(-12f, 0f), new Vector2(40f, 40f), "\u25BC", RedAccent, 22, TextAnchor.MiddleCenter);
+            arrow.transform.SetAsLastSibling();
+        }
+
+        Dropdown dropdown = ddRT.GetComponent<Dropdown>();
+        if (dropdown == null)
+        {
+            dropdown = ddRT.gameObject.AddComponent<Dropdown>();
+        }
+
+        if (dropdown == null)
+        {
+            Debug.LogError("Failed to add Dropdown component to " + ddRT.name, ddRT);
+            return null;
+        }
+
         dropdown.targetGraphic = ddBackground;
+        dropdown.colors = BuildSelectableColors();
         dropdown.captionText = resolutionLabel;
         dropdown.options = BuildDropdownOptions();
 
@@ -283,14 +359,20 @@ public class SettingsController : MonoBehaviour
 
     private RectTransform CreateDropdownTemplate(RectTransform dropdownRoot, Dropdown dropdown)
     {
+        Transform existingTemplate = dropdownRoot.Find("Template");
+        if (existingTemplate != null)
+        {
+            DestroyImmediate(existingTemplate.gameObject);
+        }
+
         GameObject templateGo = new GameObject("Template", typeof(RectTransform));
         RectTransform templateRt = templateGo.GetComponent<RectTransform>();
         templateRt.SetParent(dropdownRoot, false);
-        templateRt.anchorMin = new Vector2(0f, 1f);
-        templateRt.anchorMax = new Vector2(1f, 1f);
+        templateRt.anchorMin = new Vector2(0f, 0f);
+        templateRt.anchorMax = new Vector2(1f, 0f);
         templateRt.pivot = new Vector2(0.5f, 1f);
-        templateRt.anchoredPosition = Vector2.zero;
-        templateRt.sizeDelta = Vector2.zero;
+        templateRt.anchoredPosition = new Vector2(0f, 2f);
+        templateRt.sizeDelta = new Vector2(0f, 150f);
         templateGo.SetActive(false); // dropdown templates must be inactive
 
         CanvasRenderer templateRenderer = templateGo.AddComponent<CanvasRenderer>();
@@ -385,6 +467,11 @@ public class SettingsController : MonoBehaviour
 
     private void BuildLayout()
     {
+        if (panel == null)
+        {
+            return;
+        }
+
         RectTransform panelRT = panel.GetComponent<RectTransform>();
 
         float regionTop = TitleBottomY - RegionInset;
@@ -435,12 +522,12 @@ public class SettingsController : MonoBehaviour
 
         float rowY = y + LabelHeight * 0.5f;
         ReparentIntoContent(resolutionLabelTitle, scrollContent, LabelX, rowY);
-        ReparentIntoContent(resolutionButton.transform as RectTransform, scrollContent, ControlX, rowY + (DropdownHeight - LabelHeight) * 0.5f);
+        ReparentIntoContent(resolutionButton != null ? resolutionButton.transform as RectTransform : null, scrollContent, ControlX, rowY + (DropdownHeight - LabelHeight) * 0.5f);
         y += RowPitch + (DropdownHeight - LabelHeight) * 0.5f;
 
         rowY = y + LabelHeight * 0.5f;
         ReparentIntoContent(fullscreenLabel, scrollContent, LabelX, rowY);
-        ReparentIntoContent(fullscreenToggle.transform as RectTransform, scrollContent, ControlX, rowY);
+        ReparentIntoContent(fullscreenToggle != null ? fullscreenToggle.transform as RectTransform : null, scrollContent, ControlX, rowY);
         y += RowPitch;
 
         float contentHeight = y + 4f;
@@ -452,7 +539,10 @@ public class SettingsController : MonoBehaviour
         scrollViewport.anchoredPosition = new Vector2(0f, viewportCenterY(regionTop, regionBottom) + (viewportHeight - maxViewportHeight) * 0.5f);
 
         // Back stays OUTSIDE the scroll region, pinned below it.
-        SetY(backButton.transform as RectTransform, BackY);
+        if (backButton != null)
+        {
+            SetY(backButton.transform as RectTransform, BackY);
+        }
     }
 
     private static float viewportCenterY(float regionTop, float regionBottom)
@@ -673,15 +763,22 @@ public class SettingsController : MonoBehaviour
 
     private void SeedVolumes()
     {
-        volumeSliders[AudioBus.Master].SetValueWithoutNotify(InitialVolume(AudioBus.Master, 1f));
-        volumeSliders[AudioBus.Music].SetValueWithoutNotify(InitialVolume(AudioBus.Music, 1f));
-        volumeSliders[AudioBus.Sfx].SetValueWithoutNotify(InitialVolume(AudioBus.Sfx, 1f));
-        volumeSliders[AudioBus.Ui].SetValueWithoutNotify(InitialVolume(AudioBus.Ui, 1f));
+        if (volumeSliders.TryGetValue(AudioBus.Master, out Slider masterSlider) && masterSlider != null)
+            masterSlider.SetValueWithoutNotify(InitialVolume(AudioBus.Master, 1f));
+        if (volumeSliders.TryGetValue(AudioBus.Music, out Slider musicSlider) && musicSlider != null)
+            musicSlider.SetValueWithoutNotify(InitialVolume(AudioBus.Music, 1f));
+        if (volumeSliders.TryGetValue(AudioBus.Sfx, out Slider sfxSlider) && sfxSlider != null)
+            sfxSlider.SetValueWithoutNotify(InitialVolume(AudioBus.Sfx, 1f));
+        if (volumeSliders.TryGetValue(AudioBus.Ui, out Slider uiSlider) && uiSlider != null)
+            uiSlider.SetValueWithoutNotify(InitialVolume(AudioBus.Ui, 1f));
 
-        if (volumeSliders[AudioBus.Master].value <= 0f)
+        if (volumeSliders.TryGetValue(AudioBus.Master, out Slider master) && master != null && master.value <= 0f)
         {
             isMuted = true;
-            muteToggle.SetIsOnWithoutNotify(true);
+            if (muteToggle != null)
+            {
+                muteToggle.SetIsOnWithoutNotify(true);
+            }
         }
     }
 

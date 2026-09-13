@@ -38,7 +38,7 @@ public sealed class AudioMixerRef : ScriptableObject
     [SerializeField] private string musicVolumeParam = "MusicVolume";
     [SerializeField] private string sfxVolumeParam = "SfxVolume";
     [SerializeField] private string uiVolumeParam = "UiVolume";
-    [SerializeField] private string ambientVolumeParam = "";
+    [SerializeField] private string ambientVolumeParam = "AmbientVolume";
 
     public AudioMixer Mixer => mixer;
     public AudioMixerGroup MasterGroup => masterGroup;

@@ -47,6 +47,7 @@ public class PlayerDashState : State<PlayerController>
 
     public override void Update()
     {
+        if (Time.timeScale <= 0f) return;
         if (_owner.CharacterState != null && !_owner.CharacterState.IsGrounded)
         {
             _owner.referencesContext.rb.AddForce(_dashDirection * _dashSpeed * 0.25f * Time.deltaTime, ForceMode.Impulse);
@@ -60,6 +61,10 @@ public class PlayerDashState : State<PlayerController>
     private async UniTask DashCoroutine()
     {
         await UniTask.Delay((int)(_dashDuration * 1000));
+        while (Time.timeScale <= 0f)
+        {
+            await UniTask.Yield();
+        }
         if (!_stateMachine.CheckState<PlayerDashState>()) return;
 
         if (_owner.MoveDirection.magnitude < 0.1f)

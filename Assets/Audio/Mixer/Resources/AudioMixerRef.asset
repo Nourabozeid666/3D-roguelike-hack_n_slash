@@ -22,4 +22,4 @@ MonoBehaviour:
   musicVolumeParam: MusicVolume
   sfxVolumeParam: SfxVolume
   uiVolumeParam: UiVolume
-  ambientVolumeParam:
+  ambientVolumeParam: AmbientVolume

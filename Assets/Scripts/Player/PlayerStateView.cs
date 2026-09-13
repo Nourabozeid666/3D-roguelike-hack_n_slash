@@ -35,6 +35,6 @@ public class CharacterState
     // CanTransitionToMove determines if movement states (Move/Sprint) can be entered (not blocked by attack/charge)
     public bool CanTransitionToMove => _player.context.canMove && !IsAttacking && !IsCharging;
     public bool CanJump => IsGrounded && _player.context.canMove && !IsAttacking && !IsCharging && !IsDashing;
-    public bool CanDash => IsGrounded && !IsAttacking && !IsCharging && !IsDashing && !IsStaggered; // Allowed during recovery frames (when isAttacking == false)
+    public bool CanDash => !IsAttacking && !IsCharging && !IsDashing && !IsStaggered; // Allowed during recovery frames (when isAttacking == false)
     public bool CanAttack => !IsDashing && !IsStaggered && !IsCountering; // Attacks cannot cancel dashes!
 }

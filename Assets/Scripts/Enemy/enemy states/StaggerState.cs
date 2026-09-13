@@ -61,7 +61,9 @@ public class StaggerState : EnemyState
 
     public override void Enter()
     {
-        agent.isStopped = true;
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+            agent.isStopped = true;
+
         currentReaction = pondingReaction;
         PlayReaction();
     }
@@ -84,10 +86,38 @@ public class StaggerState : EnemyState
         reactionCoroutine = enemyController.StartCoroutine(DurationCoroutine(duration));
     }
 
+    private static readonly int GetHitHash = Animator.StringToHash("GetHit");
+    private static readonly int GetHit1Hash = Animator.StringToHash("GetHit1");
+    private static readonly int GetStunHash = Animator.StringToHash("GetStun");
+    private static readonly int StunHash = Animator.StringToHash("Stun");
+
+    void PlayAnimationForReaction(ReactionType reaction)
+    {
+        if (animator == null) return;
+
+        if (reaction == ReactionType.Stun)
+        {
+            if (animator.HasState(0, GetStunHash))
+                animator.Play(GetStunHash, 0, 0f);
+            else if (animator.HasState(0, StunHash))
+                animator.Play(StunHash, 0, 0f);
+            else if (animator.HasState(0, GetHitHash))
+                animator.Play(GetHitHash, 0, 0f);
+            else if (animator.HasState(0, GetHit1Hash))
+                animator.Play(GetHit1Hash, 0, 0f);
+        }
+        else
+        {
+            if (animator.HasState(0, GetHitHash))
+                animator.Play(GetHitHash, 0, 0f);
+            else if (animator.HasState(0, GetHit1Hash))
+                animator.Play(GetHit1Hash, 0, 0f);
+        }
+    }
+
     void ReplayAnimation()
     {
-        string clip = currentReaction == ReactionType.Stun ? "GetStun" : "GetHit";
-        animator.Play(Animator.StringToHash(clip), 0, 0);
+        PlayAnimationForReaction(currentReaction);
     }
 
     public void ReceiveHit(ReactionType incoming)
@@ -106,9 +136,9 @@ public class StaggerState : EnemyState
 
     IEnumerator HitFlash()
     {
-        animator.Play(Animator.StringToHash("GetHit"), 0, 0);
+        PlayAnimationForReaction(ReactionType.Hit);
         yield return new WaitForSeconds(hitDuration);
-        animator.Play(Animator.StringToHash("GetStun"), 0, 0);
+        PlayAnimationForReaction(ReactionType.Stun);
     }
 
     public override void Tick()
@@ -117,7 +147,9 @@ public class StaggerState : EnemyState
 
     public override void Exit()
     {
-        agent.isStopped = false;
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+            agent.isStopped = false;
+
         if (reactionCoroutine != null)
         {
             enemyController.StopCoroutine(reactionCoroutine);
@@ -134,9 +166,9 @@ public class StaggerState : EnemyState
     {
         yield return new WaitForSeconds(duration);
 
-        Debug.Log($"StaggerState timer done � health:{enemyController.EnemyEntity.Health}");
+        Debug.Log($"StaggerState timer done - health:{enemyController.EnemyEntity.Health}");
 
-        // any state that can be interrupted
-        enemyController.SetState<PatrolState>();
+        // Recover directly into ChaseState (no patrol)
+        enemyController.SetState<ChaseState>();
     }
 }

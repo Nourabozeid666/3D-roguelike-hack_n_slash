@@ -140,6 +140,13 @@ public class DamageHitboxHelper : MonoBehaviour
             string expectedTag = tagsToHandle[i];
             if (col.CompareTag(expectedTag)) return true;
             if (expectedTag == "Enemy" && col.CompareTag("Ranged Enemy")) return true;
+
+            Transform root = col.transform.root;
+            if (root != null && root != col.transform)
+            {
+                if (root.CompareTag(expectedTag)) return true;
+                if (expectedTag == "Enemy" && root.CompareTag("Ranged Enemy")) return true;
+            }
         }
         return false;
     }

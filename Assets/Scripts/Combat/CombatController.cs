@@ -121,11 +121,13 @@ public class CombatController : MonoBehaviour
 
     private void HandleLightAttackStart()
     {
+        if (Time.timeScale <= 0f) return;
         combatContext.inputState.lightAttackPressed = true;
     }
 
     private void HandleLightAttackEnd()
     {
+        if (Time.timeScale <= 0f) return;
         combatContext.inputState.lightHoldTimeAtRelease = combatContext.lightHoldTime;
         combatContext.inputState.lightAttackReleased = true;
         combatContext.inputState.lightAttackPressed = false;
@@ -134,11 +136,13 @@ public class CombatController : MonoBehaviour
 
     private void HandleHeavyAttackStart()
     {
+        if (Time.timeScale <= 0f) return;
         combatContext.inputState.heavyAttackPressed = true;
     }
 
     private void HandleHeavyAttackEnd()
     {
+        if (Time.timeScale <= 0f) return;
         combatContext.inputState.heavyHoldTimeAtRelease = combatContext.heavyHoldTime;
         combatContext.inputState.heavyAttackReleased = true;
         combatContext.inputState.heavyAttackPressed = false;
@@ -166,6 +170,7 @@ public class CombatController : MonoBehaviour
 
     void Update()
     {
+        if (Time.timeScale <= 0f) return;
         CalculateHoldTime();
         comboSystem.CheckInput();
         _stateMachine.Update();
@@ -229,11 +234,13 @@ public class CombatController : MonoBehaviour
 
     void HandleBlockStart()
     {
+        if (Time.timeScale <= 0f) return;
         _stateMachine.SetState<CombatBlockState>();
     }
 
     void HandleBlockEnd()
     {
+        if (Time.timeScale <= 0f) return;
         if (_stateMachine.CurrentState is CombatBlockState)
         {
             _stateMachine.SetState<CombatIdleState>();
@@ -252,6 +259,7 @@ public class CombatController : MonoBehaviour
     {
         return UniTask.WaitWhile(() =>
         {
+            if (Time.timeScale <= 0f) return true;
             UseLunge(lungeDirection, lungeDistance);
             lungeDuration -= Time.deltaTime;
             return lungeDuration > 0f;

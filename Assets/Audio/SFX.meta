@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: 6f54a614fcd9a03498359a7619a41580
+=======
+guid: 4210b9ff48d3c7d428a4f0985c3b670f
+>>>>>>> 5f331b7 (feat: settings UI polish, audio system, pause menu as reusable prefab)
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
