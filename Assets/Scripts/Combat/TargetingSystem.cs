@@ -12,7 +12,7 @@ public class TargetingSystem
     [SerializeField] private float directionalConeAngle = 120f; // Half-angle when directional input is held (160 deg total)
     [SerializeField] private float neutralConeAngle = 80f;     // Half-angle when neutral (90 deg total)
     [SerializeField] private LayerMask enemyLayers = ~0;
-    [SerializeField] private string enemyTag = "Enemy";
+    [SerializeField] private string[] enemyTag = {"Enemy", "Ranged Enemy"};
     [SerializeField] private bool filterByTag = true;
     [SerializeField] private bool requireLineOfSight = true;
     [SerializeField] private LayerMask obstacleLayers;
@@ -131,12 +131,18 @@ public class TargetingSystem
             if (col == null || col.transform.IsChildOf(_owner.transform)) continue;
 
             // Optional tag filter
-            if (filterByTag && !string.IsNullOrEmpty(enemyTag))
+            if (filterByTag && enemyTag != null && enemyTag.Length > 0 && !string.IsNullOrEmpty(enemyTag[0]))
             {
-                if (!col.CompareTag(enemyTag) && (col.transform.root == null || !col.transform.root.CompareTag(enemyTag)))
+                bool tagMatch = false;
+                foreach (string tag in enemyTag)
                 {
-                    continue;
+                    if (col.CompareTag(tag) && (col.transform.root != null || col.transform.root.CompareTag(tag)))
+                    {
+                        tagMatch = true;
+                        break;
+                    }
                 }
+                if (!tagMatch) continue;
             }
 
             // Entity resolution & Alive check

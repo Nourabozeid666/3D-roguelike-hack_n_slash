@@ -109730,10 +109730,6 @@ PrefabInstance:
       propertyPath: referencesContext.playerCamera
       value: 
       objectReference: {fileID: 5000000201}
-    - target: {fileID: 7267008072539473272, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
-      propertyPath: referencesContext.groundLayer.m_Bits
-      value: 449
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

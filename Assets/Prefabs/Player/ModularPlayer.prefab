@@ -258,7 +258,7 @@ MonoBehaviour:
   referencesContext:
     groundLayer:
       serializedVersion: 2
-      m_Bits: 64
+      m_Bits: 449
     wallLayer:
       serializedVersion: 2
       m_Bits: 128
@@ -340,13 +340,15 @@ MonoBehaviour:
     accessoryModels: []
     trailComponent: {fileID: 0}
   targetingSystem:
-    targetingRadius: 8
+    targetingRadius: 12
     directionalConeAngle: 120
     neutralConeAngle: 80
     enemyLayers:
       serializedVersion: 2
-      m_Bits: 4294967295
-    enemyTag: Enemy
+      m_Bits: 256
+    enemyTag:
+    - Enemy
+    - Ranged Enemy
     filterByTag: 1
     requireLineOfSight: 1
     obstacleLayers:
@@ -355,7 +357,7 @@ MonoBehaviour:
     angleWeight: 0.6
     distanceWeight: 0.4
     adaptLungeDistance: 1
-    minMeleeDistance: 0.7
+    minMeleeDistance: 1.5
     drawDebugGizmos: 1
   testModifiers: []
 --- !u!1 &4763080310330837779
