@@ -43,6 +43,7 @@ class Program
         HudChainScenario();
         UpgradeSelectScenario();
         UpgradeOfferDataScenario();
+        ProgressionSystemScenario();
         GameOverScenario();
         GameOverRunTimeScenario();
         SpawnStatConfigScenario();
@@ -1302,6 +1303,64 @@ class Program
         Check(offers.All(c => !string.IsNullOrEmpty(c.title) && !string.IsNullOrEmpty(c.description) && !string.IsNullOrEmpty(c.valueText)), "offerdata: offers carry title/description/value");
         Check(offers.All(c => !string.IsNullOrEmpty(c.iconKey)), "offerdata: offers carry an icon key");
         Check(offers[0].iconKey == "sword" && offers[1].iconKey == "heart" && offers[2].iconKey == "boots", "offerdata: icon keys are stable for the view mapping");
+    }
+
+    // 27b. ProgressionSystem rules: XP accumulation, level ups accumulate pending upgrades without immediate forced consumption, room clear bonuses, and sequential token consumption.
+    static void ProgressionSystemScenario()
+    {
+        var data = new ProgressionData
+        {
+            baseXpRequired = 100,
+            xpGrowthPerLevel = 1.0f,
+            xpPerEnemy = 50,
+            xpPerRoom = 100
+        };
+        var system = new ProgressionSystem(data);
+        Check(system.CurrentLevel == 1, "prog: starts at level 1");
+        Check(system.CurrentXp == 0, "prog: starts at 0 XP");
+        Check(system.PendingUpgrades == 0, "prog: starts with 0 pending upgrades");
+        Check(!system.HasPendingUpgrades, "prog: HasPendingUpgrades is false");
+
+        // 1 kill = 50 XP
+        system.AwardEnemyKill();
+        Check(system.CurrentXp == 50, "prog: 1 kill awards 50 XP");
+        Check(system.CurrentLevel == 1, "prog: still level 1");
+        Check(system.PendingUpgrades == 0, "prog: 0 pending upgrades");
+
+        // 2nd kill = 100 XP -> Level 2 reached!
+        int levelUpCount = 0;
+        int pendingChanged = 0;
+        system.OnLevelUp += (lvl, pending) => levelUpCount++;
+        system.OnPendingUpgradesChanged += p => pendingChanged = p;
+
+        system.AwardEnemyKill();
+        Check(system.CurrentLevel == 2, "prog: reaches level 2 on threshold");
+        Check(system.CurrentXp == 0, "prog: leftover XP wraps");
+        Check(system.PendingUpgrades == 1, "prog: 1 pending upgrade earned");
+        Check(system.HasPendingUpgrades, "prog: HasPendingUpgrades is true");
+        Check(levelUpCount == 1, "prog: OnLevelUp fired once");
+        Check(pendingChanged == 1, "prog: OnPendingUpgradesChanged fired with 1");
+
+        // 2 more kills during combat -> reaches Level 3! Pending upgrades accumulates to 2
+        system.AwardEnemyKill();
+        system.AwardEnemyKill();
+        Check(system.CurrentLevel == 3, "prog: reaches level 3");
+        Check(system.PendingUpgrades == 2, "prog: pending upgrades accumulated to 2 (not auto-consumed mid-floor)");
+
+        // Room cleared with 1 bonus upgrade + 100 XP -> level 4! Total pending = 2 + 1 (bonus) + 1 (level) = 4
+        system.AwardRoomCleared(bonusUpgrades: 1);
+        Check(system.CurrentLevel == 4, "prog: room clear XP reached level 4");
+        Check(system.PendingUpgrades == 4, "prog: total pending upgrades = 4 (2 level ups + 1 bonus + 1 clear level up)");
+
+        // Sequential consumption at floor end
+        Check(system.ConsumePendingUpgrade(), "prog: consumed 1st pending upgrade");
+        Check(system.PendingUpgrades == 3, "prog: 3 pending upgrades remain");
+        Check(system.ConsumePendingUpgrade(), "prog: consumed 2nd pending upgrade");
+        Check(system.ConsumePendingUpgrade(), "prog: consumed 3rd pending upgrade");
+        Check(system.ConsumePendingUpgrade(), "prog: consumed 4th pending upgrade");
+        Check(system.PendingUpgrades == 0, "prog: all pending upgrades consumed");
+        Check(!system.HasPendingUpgrades, "prog: no pending upgrades remain");
+        Check(!system.ConsumePendingUpgrade(), "prog: consume returns false when none pending");
     }
 
     // 28. Game over chain: bind never renders, a run end renders + shows, identical summaries dedupe.

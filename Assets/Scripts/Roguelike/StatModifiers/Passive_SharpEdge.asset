@@ -9,14 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8871d2258031cd88e989c3b233c8807c, type: 3}
-  m_Name: '[HP -50%] + 10% Damage'
-  m_EditorClassIdentifier: Assembly-CSharp::ConditionalEffect
-  baseValue: 1.1
-  _modifierType: 1
+  m_Script: {fileID: 11500000, guid: b1247fd33749ea378b7a1cbe1b912b8e, type: 3}
+  m_Name: Passive_SharpEdge
+  m_EditorClassIdentifier: Assembly-CSharp::PassiveEffect
+  baseValue: 2
+  _modifierType: 0
   _modifierPolarity: 0
   _targetStat: 3
-  _conditionStat: 1
-  _condition: 1
-  _conditionPercentageValue: 50
-  _chance: 0.6
+  _chance: 1

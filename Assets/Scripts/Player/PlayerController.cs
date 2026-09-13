@@ -275,4 +275,39 @@ public class PlayerController : MonoBehaviour, IEntityProvider
     {
         context.canMove = canMove;
     }
+
+    public void SetAttackDebugText(string message)
+    {
+        if (referencesContext != null && referencesContext.attackDebugText != null)
+        {
+            referencesContext.attackDebugText.text = message;
+        }
+    }
+
+    public void UpdateAttackDebugText(string message) => SetAttackDebugText(message);
+
+    public void SetDebugText(string message)
+    {
+        if (referencesContext == null) return;
+        if (referencesContext.debugText != null)
+        {
+            referencesContext.debugText.text = message;
+        }
+        else if (referencesContext.attackDebugText != null)
+        {
+            referencesContext.attackDebugText.text = message;
+        }
+    }
+
+    public void UpdateDebugText(string message) => SetDebugText(message);
+
+    public void SetCombatDebugText(string message)
+    {
+        if (referencesContext != null && referencesContext.combatDebugText != null)
+        {
+            referencesContext.combatDebugText.text = message;
+        }
+    }
+
+    public void UpdateCombatDebugText(string message) => SetCombatDebugText(message);
 }

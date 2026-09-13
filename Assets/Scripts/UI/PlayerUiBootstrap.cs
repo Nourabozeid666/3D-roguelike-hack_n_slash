@@ -49,6 +49,22 @@ public class PlayerUiBootstrap : MonoBehaviour
 
     void Build()
     {
+        var existingEs = FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>();
+        if (existingEs == null)
+        {
+            GameObject esGo = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
+            var inputModule = esGo.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            inputModule.AssignDefaultActions();
+        }
+        else
+        {
+            var uiModule = existingEs.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            if (uiModule != null && uiModule.actionsAsset == null)
+            {
+                uiModule.AssignDefaultActions();
+            }
+        }
+
         GameObject canvasGo = new GameObject("PlayerUI");
         canvasGo.layer = 5;
         canvasGo.transform.SetParent(transform, false);

@@ -2864,6 +2864,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   hitboxCollider: {fileID: 0}
+  clearAfterSeconds: 1
 --- !u!1 &7386536432819716334
 GameObject:
   m_ObjectHideFlags: 0

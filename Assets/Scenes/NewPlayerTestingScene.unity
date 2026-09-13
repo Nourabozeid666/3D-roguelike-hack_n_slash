@@ -3779,6 +3779,14 @@ PrefabInstance:
       propertyPath: referencesContext.combatDebugText
       value: 
       objectReference: {fileID: 298752773}
+    - target: {fileID: 7445736443680655356, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
+      propertyPath: targetLayers.m_Bits
+      value: 256
+      objectReference: {fileID: 0}
+    - target: {fileID: 7606770213815117636, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9104018863096216662, guid: b3fcd847656699c4fa7ea0e3c6e870c5, type: 3}
       propertyPath: testModifiers.Array.size
       value: 2
@@ -5110,54 +5118,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   enemyController: {fileID: 7835153667483983938}
---- !u!1 &1426307281 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
-  m_PrefabInstance: {fileID: 1473177966}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1426307286
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1426307281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 628557688023fba4b8e58d004aaacf45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Drakkar::Drakkar.DrakkarUpdater
-  PreUpdateSlots: 100
-  NormalUpdateSlots: 1000
-  PostUpdateSlots: 100
-  PreLateUpdateSlots: 30
-  LateUpdateSlots: 400
-  PostLateUpdateSlots: 30
-  FixedUpdateSlots: 10
---- !u!114 &1426307287
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1426307281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0984cf082085f0e429bf56329c69c7ed, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Drakkar::Drakkar.DrakkarUpdaterPost
---- !u!114 &1426307288
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1426307281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d088f73d4d2f7694493ea80d35f89b7a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Drakkar::Drakkar.DrakkarUpdaterPre
 --- !u!1001 &1441809198
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5386,16 +5346,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1426307288}
-    - targetCorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1426307287}
-    - targetCorrespondingSourceObject: {fileID: 3293552247850273013, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1426307286}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6117cd676e09dbf73adf1567bbc3b058, type: 3}
 --- !u!1 &1508081996
 GameObject:
@@ -15173,7 +15124,7 @@ MonoBehaviour:
   chaseSpeed: 9
   waypointStoppingDistance: 1
   viewHalfAngle: 290
-  _debugText: {fileID: 92381217}
+  _debugText: {fileID: 0}
   enemyEntity:
     currentHealth: 100
     maxHealth: 20
@@ -17581,7 +17532,7 @@ MonoBehaviour:
   chaseSpeed: 9
   waypointStoppingDistance: 1
   viewHalfAngle: 290
-  _debugText: {fileID: 92381217}
+  _debugText: {fileID: 0}
   enemyEntity:
     currentHealth: 100
     maxHealth: 100

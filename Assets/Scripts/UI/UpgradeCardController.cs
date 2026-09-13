@@ -9,7 +9,7 @@ using UnityEngine.UI;
 /// hardcoded). Clicking raises Clicked(index); the screen controller forwards it to the presenter's
 /// Select. Unity-only: the pick/lock rules live in the harness-tested presenter.
 /// </summary>
-public class UpgradeCardController : MonoBehaviour, IUpgradeCardView
+public class UpgradeCardController : MonoBehaviour, IUpgradeCardView, UnityEngine.EventSystems.IPointerClickHandler
 {
     static readonly Color CardBackColor = new Color(0.12f, 0.13f, 0.18f, 0.96f);
     static readonly Color SelectedBorderColor = new Color(0.42f, 0.62f, 0.95f, 1f);
@@ -31,6 +31,19 @@ public class UpgradeCardController : MonoBehaviour, IUpgradeCardView
     Text descriptionText;
     CanvasGroup group;
 
+    public void OnPointerClick(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        TriggerClick();
+    }
+
+    public void TriggerClick()
+    {
+        if (!locked && index >= 0)
+        {
+            Clicked?.Invoke(index);
+        }
+    }
+
     /// <summary>Build the card visuals. The controller's own RectTransform IS the card (300x380).</summary>
     public void Initialize()
     {
@@ -39,19 +52,17 @@ public class UpgradeCardController : MonoBehaviour, IUpgradeCardView
 
         group = gameObject.AddComponent<CanvasGroup>();
 
-        back = PlayerUiKit.Image("Back", transform, CardBackColor);
+        back = gameObject.AddComponent<Image>();
+        back.color = CardBackColor;
         back.raycastTarget = true;
-        PlayerUiKit.Stretch(back.rectTransform);
 
         border = PlayerUiKit.Image("Border", transform, new Color(0f, 0f, 0f, 0f));
         border.raycastTarget = false;
         PlayerUiKit.Stretch(border.rectTransform);
 
-        Button button = back.gameObject.AddComponent<Button>();
-        button.onClick.AddListener(() =>
-        {
-            if (!locked) Clicked?.Invoke(index);
-        });
+        Button button = gameObject.AddComponent<Button>();
+        button.targetGraphic = back;
+        button.onClick.AddListener(TriggerClick);
 
         RectTransform iconRect = PlayerUiKit.Rect("Icon", transform);
         PlayerUiKit.Pin(iconRect, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -24), new Vector2(110, 110));
@@ -98,10 +109,22 @@ public class UpgradeCardController : MonoBehaviour, IUpgradeCardView
         border.color = selected ? SelectedBorderColor : new Color(0f, 0f, 0f, 0f);
     }
 
+    public void SetClickable(bool clickable)
+    {
+        locked = !clickable;
+        if (group != null)
+        {
+            group.blocksRaycasts = clickable;
+        }
+    }
+
     public void SetInteractable(bool interactable)
     {
         locked = !interactable;
-        group.alpha = interactable ? 1f : 0.45f;
-        group.blocksRaycasts = interactable;
+        if (group != null)
+        {
+            group.alpha = interactable ? 1f : 0.45f;
+            group.blocksRaycasts = interactable;
+        }
     }
 }

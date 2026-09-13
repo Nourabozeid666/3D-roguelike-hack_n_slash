@@ -32,6 +32,7 @@ public class CombatRecoveryState : State<CombatController>
     {
         _currentAttackName = GetCurrentAttack();
         _animator.speed = _owner.CombatContext.attackSpeed;
+        _owner.DisableHitbox();
         _owner._playerController.SetCanMove(false);
     }
 

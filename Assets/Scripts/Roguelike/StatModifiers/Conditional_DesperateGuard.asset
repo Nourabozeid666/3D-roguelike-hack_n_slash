@@ -9,11 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1247fd33749ea378b7a1cbe1b912b8e, type: 3}
-  m_Name: '[Passive] + 1 Length'
-  m_EditorClassIdentifier: Assembly-CSharp::PassiveEffect
-  baseValue: 1
+  m_Script: {fileID: 11500000, guid: 8871d2258031cd88e989c3b233c8807c, type: 3}
+  m_Name: Conditional_DesperateGuard
+  m_EditorClassIdentifier: Assembly-CSharp::ConditionalEffect
+  baseValue: 8
   _modifierType: 0
   _modifierPolarity: 0
-  _targetStat: 6
-  _chance: 1
+  _targetStat: 2
+  _conditionStat: 1
+  _condition: 1
+  _conditionPercentageValue: 35
+  _chance: 0.55

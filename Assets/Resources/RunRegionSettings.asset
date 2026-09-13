@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3333333444455556666777788889992, type: 3}
+  m_Name: RunRegionSettings
+  m_EditorClassIdentifier: 
+  regions:
+  - regionName: 'Region 1: The Dark Halls'
+    sceneName: Region1_DarkHalls
+    totalRounds: 10
+    spawnTable: {fileID: 11400000, guid: b2222222333344445555666677778881, type: 2}
+    startingBudget: 10
+    budgetGrowthPerRound: 1.3
+    statGrowthPerRound: 1.1
+  - regionName: 'Region 2: The Infernal Depths'
+    sceneName: Region2_BasicGameScene
+    totalRounds: 10
+    spawnTable: {fileID: 11400000, guid: b2222222333344445555666677778881, type: 2}
+    startingBudget: 25
+    budgetGrowthPerRound: 1.35
+    statGrowthPerRound: 1.12

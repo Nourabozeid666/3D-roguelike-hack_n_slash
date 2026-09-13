@@ -56,6 +56,7 @@ namespace UnityEngine
     public static class Resources
     {
         public static T GetBuiltinResource<T>(string path) where T : new() => new T();
+        public static T Load<T>(string path) where T : class => null;
     }
 
     public class Canvas : Component
@@ -112,6 +113,10 @@ namespace UnityEngine
         public static float Max(float a, float b) => a > b ? a : b;
         public static int Min(int a, int b) => a < b ? a : b;
         public static float Min(float a, float b) => a < b ? a : b;
+        public static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
+        public static float Clamp(float v, float min, float max) => v < min ? min : (v > max ? max : v);
+        public static float Clamp01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
+        public static int RoundToInt(float f) => (int)Math.Round(f);
     }
 
     public static class Random
@@ -363,6 +368,8 @@ namespace UnityEngine
 
     public class MonoBehaviour : Component
     {
+        public bool enabled = true;
+
         /// <summary>Deferred coroutine queue so tests can pump Unity's coroutine timing manually
         /// (StartCoroutine queues; RunPendingCoroutines drains it at a "frame" boundary).</summary>
         public static readonly List<IEnumerator> PendingCoroutines = new();

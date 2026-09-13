@@ -27,6 +27,7 @@ public class ConditionalEffect : ScriptableObject, IStatModifier
     public float ConditionPercentageValue => _conditionPercentageValue;
     public Condition Condition => _condition;
     public float Chance => _chance;
+    public float BaseValue => baseValue;
 
     public float GetStatValue(IEntity entity, StatType statType)
     {
@@ -35,7 +36,7 @@ public class ConditionalEffect : ScriptableObject, IStatModifier
             case StatType.MaxHealth:
                 return entity.MaxHealth;
             case StatType.Health:
-                return entity.Health;
+                return entity.MaxHealth > 0f ? (entity.Health / entity.MaxHealth) * 100f : entity.Health;
             case StatType.Defense:
                 return entity.BaseDefense;
             case StatType.AttackDamage:
@@ -65,7 +66,7 @@ public class ConditionalEffect : ScriptableObject, IStatModifier
         if (entity == null)
         {
             Debug.LogWarning("Entity is null. Returning base value.");
-            return _modifierType == StatModifierType.Additive ? 0f : 1f;
+            return baseValue;
         }
         float statValue = GetStatValue(entity, _conditionStat);
         if (_condition == Condition.GreaterThan && statValue > _conditionPercentageValue ||
@@ -73,9 +74,10 @@ public class ConditionalEffect : ScriptableObject, IStatModifier
             _condition == Condition.EqualTo && Mathf.Approximately(statValue, _conditionPercentageValue))
         {
             return GetCalculatedValue(baseValue);
-        } else
+        }
+        else
         {
-            return _modifierType == StatModifierType.Additive ? 0f : 1f;
+            return baseValue;
         }
     }
 

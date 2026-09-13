@@ -15,6 +15,7 @@ public class PassiveEffect : ScriptableObject, IStatModifier
     public StatModifierType ModifierType => _modifierType;
     public StatModifierPolarity ModifierPolarity => _modifierPolarity;
     public float Chance => _chance;
+    public float BaseValue => baseValue;
 
     public float GetStatValue(IEntity entity, StatType statType)
     {

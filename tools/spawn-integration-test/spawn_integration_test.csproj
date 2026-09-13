@@ -23,6 +23,8 @@
     <Compile Include="../../Assets/Scripts/Roguelike/RunBootstrap.cs" Link="Repo/RunBootstrap.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunController.cs" Link="Repo/RunController.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunData.cs" Link="Repo/RunData.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RegionConfig.cs" Link="Repo/RegionConfig.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/RunRegionSettings.cs" Link="Repo/RunRegionSettings.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunSaveService.cs" Link="Repo/RunSaveService.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunSession.cs" Link="Repo/RunSession.cs" />
     <Compile Include="../../Assets/Scripts/Roguelike/RunState.cs" Link="Repo/RunState.cs" />
@@ -53,6 +55,8 @@
     <Compile Include="../../Assets/Scripts/UI/IGameOverSource.cs" Link="Repo/IGameOverSource.cs" />
     <Compile Include="../../Assets/Scripts/UI/PlayerHudPresenter.cs" Link="Repo/PlayerHudPresenter.cs" />
     <Compile Include="../../Assets/Scripts/UI/UpgradeSelectPresenter.cs" Link="Repo/UpgradeSelectPresenter.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Progression/ProgressionData.cs" Link="Repo/ProgressionData.cs" />
+    <Compile Include="../../Assets/Scripts/Roguelike/Progression/ProgressionSystem.cs" Link="Repo/ProgressionSystem.cs" />
     <Compile Include="../../Assets/Scripts/UI/GameOverPresenter.cs" Link="Repo/GameOverPresenter.cs" />
   </ItemGroup>
 

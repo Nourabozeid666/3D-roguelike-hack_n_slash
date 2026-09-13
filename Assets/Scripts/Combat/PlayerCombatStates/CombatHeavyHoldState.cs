@@ -8,15 +8,13 @@ public class CombatHeavyHoldState : State<CombatController>
 {
     private Animator _animator;
     private AnimatorOverrideController _OverrideController;
-    private Text _attackDebugText;
     private AttackData _currentAttack;
     private int hashAnimationState;
     private int hashAnimationTransition;
-    public CombatHeavyHoldState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText)
+    public CombatHeavyHoldState(Animator animator, AnimatorOverrideController overrideController, Text attackDebugText = null)
     {
         _animator = animator;
         _OverrideController = overrideController;
-        _attackDebugText = attackDebugText;
         hashAnimationState = Animator.StringToHash("HeavyHoldAttack");
         hashAnimationTransition = Animator.StringToHash("AttackTransition");
     }
@@ -30,7 +28,10 @@ public class CombatHeavyHoldState : State<CombatController>
     {
         AttackData attack = _owner.CombatContext.currentAttack;
         _currentAttack = attack;
-        _attackDebugText.text = $"Current Attack: {attack.AttackName}";
+        if (_owner != null && _owner._playerController != null)
+        {
+            _owner._playerController.SetAttackDebugText($"Current Attack: {attack.AttackName}");
+        }
 
         _animator.speed = _owner.CombatContext.attackSpeed;
         _OverrideController["HeavyHoldAttack"] = attack.Animation;
@@ -42,33 +43,37 @@ public class CombatHeavyHoldState : State<CombatController>
             _owner._playerController.ResetHorizontalVelocity();
         }
 
-        AdjustRotationDuringLunge(_owner._playerController.MoveDirectionToWorldSpace()).Forget();
-        ExecuteLunge().Forget();
+        Vector3 attackDir = _owner.AcquireCombatTargetDirection(out Transform target, _currentAttack.LungeDistance, out float adaptedLunge);
+        AdjustRotationDuringLunge(attackDir).Forget();
+        ExecuteLunge(adaptedLunge).Forget();
+        _owner.ResetHitboxTargets();
+        _owner.EnableHitbox();
         _owner.equipmentSystem.SetTrailActive(true);
         _owner._playerController.SetCanMove(false);
     }
 
-    private UniTask ExecuteLunge()
+    private UniTask ExecuteLunge(float lungeDistance)
     {
         float lungeDuration = _currentAttack.LungeDuration;
         return UniTask.WaitWhile(() =>
         {
-            UseLunge(_currentAttack.LungeDirection, _currentAttack.LungeDistance);
+            UseLunge(_currentAttack.LungeDirection, lungeDistance);
             lungeDuration -= Time.deltaTime;
             return lungeDuration > 0f;
         });
     }
 
-    private UniTask AdjustRotationDuringLunge(Vector3 moveDirection)
+    private UniTask AdjustRotationDuringLunge(Vector3 targetDirection)
     {
-        const float angleThreshold = 0.05f; // degrees
-        float alpha = 0.1f; // Slerp factor for smooth rotation
+        const float angleThreshold = 1f; // degrees
+        float alpha = 0.15f; // Slerp factor for smooth rotation
+        Transform model = _owner.ReferencesContext != null && _owner.ReferencesContext.playerModel != null ? _owner.ReferencesContext.playerModel : _owner.transform;
         return UniTask.WaitUntil(() =>
         {
-            if (moveDirection == Vector3.zero) return true;
-            _owner._playerController.CustomRotate(moveDirection, alpha);
-            float angle = Vector3.Angle(_owner.transform.forward, moveDirection);
-            alpha += 0.1f;
+            if (targetDirection == Vector3.zero) return true;
+            _owner._playerController.CustomRotate(targetDirection, alpha);
+            float angle = Vector3.Angle(model.forward, targetDirection);
+            alpha += 0.08f;
             alpha = Mathf.Clamp01(alpha); // Ensure alpha stays within [0, 1]
             return angle <= angleThreshold || !_owner._playerController.CharacterState.IsAttacking;
         });
@@ -105,6 +110,7 @@ public class CombatHeavyHoldState : State<CombatController>
         _animator.speed = 1f;
         // _OverrideController["AttackTransition"] = _OverrideController["HeavyHoldAttack"];
         // _animator.CrossFade(hashAnimationTransition, 0f, 0, _currentAttack.RecoveryStartTime);
+        _owner.DisableHitbox();
         _owner.equipmentSystem.SetTrailActive(false);
         // _owner._playerController.SetCanMove(true);
     }

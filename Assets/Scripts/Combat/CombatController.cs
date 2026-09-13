@@ -11,6 +11,7 @@ public class CombatController : MonoBehaviour
     [SerializeField] private ReferencesContext referencesContext;
     [SerializeField] private CombatContext combatContext;
     [SerializeField] internal EquipmentSystem equipmentSystem = new EquipmentSystem(null);
+    [SerializeField] internal TargetingSystem targetingSystem = new TargetingSystem(null);
     [Header("Debug")]
     [SerializeField] private ScriptableObject[] testModifiers;
     private ComboSystem comboSystem;
@@ -23,6 +24,7 @@ public class CombatController : MonoBehaviour
     public StateMachine<CombatController> StateMachine { get { return _stateMachine; } }
     public ComboSystem ComboSystem { get { return comboSystem; } }
     public ReferencesContext ReferencesContext { get { return referencesContext; } }
+    public TargetingSystem TargetingSystem { get { return targetingSystem; } }
 
 
 
@@ -33,16 +35,17 @@ public class CombatController : MonoBehaviour
         damageHitboxHelper = GetComponentInChildren<DamageHitboxHelper>();
         comboSystem = new ComboSystem(this);
         equipmentSystem._owner = this;
+        targetingSystem._owner = this;
         referencesContext = _playerController.ReferencesContext;
         _stateMachine = new StateMachine<CombatController>(this, referencesContext.combatDebugText);
         combatContext.overrideController = new AnimatorOverrideController(referencesContext.animator.runtimeAnimatorController);
         referencesContext.animator.runtimeAnimatorController = combatContext.overrideController;
         _stateMachine.AddState(new CombatIdleState(referencesContext.animator));
-        _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatHeavyAttackState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatLightHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
-        _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController, referencesContext.attackDebugText));
+        _stateMachine.AddState(new CombatLightAttackState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatHeavyAttackState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatLightHoldState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatHeavyHoldState(referencesContext.animator, combatContext.overrideController));
+        _stateMachine.AddState(new CombatChargingState(referencesContext.animator, combatContext.overrideController));
         _stateMachine.AddState(new CombatRecoveryState(referencesContext.animator, combatContext.overrideController));
         _stateMachine.AddState(new CombatStaggerState(referencesContext.animator));
         _stateMachine.AddState(new CombatBlockState(referencesContext.animator));
@@ -66,7 +69,7 @@ public class CombatController : MonoBehaviour
         if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
         {
             damageHitboxHelper.OnHitboxTriggered += HandleHitboxTriggered;
-            damageHitboxHelper.enabled = false;
+            damageHitboxHelper.DisableHitbox();
         }
     }
 
@@ -287,5 +290,54 @@ public class CombatController : MonoBehaviour
         {
             ChangeAnimatorSpeed(_playerEntity.AttackSpeed);
         }
+    }
+
+    public void EnableHitbox()
+    {
+        if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
+        {
+            damageHitboxHelper.EnableHitbox();
+        }
+    }
+
+    public void DisableHitbox()
+    {
+        if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
+        {
+            damageHitboxHelper.DisableHitbox();
+        }
+    }
+
+    public void ResetHitboxTargets()
+    {
+        if (damageHitboxHelper != null && damageHitboxHelper.IsActive)
+        {
+            damageHitboxHelper.ResetHitTargets();
+        }
+    }
+
+    public Vector3 AcquireCombatTargetDirection(out Transform target, float authoredLungeDistance, out float adaptedLungeDistance)
+    {
+        if (targetingSystem != null)
+        {
+            Vector3 targetDir = targetingSystem.AcquireTarget(out target);
+            adaptedLungeDistance = targetingSystem.CalculateAdaptedLungeDistance(authoredLungeDistance, target);
+            return targetDir;
+        }
+
+        target = null;
+        adaptedLungeDistance = authoredLungeDistance;
+        Vector3 inputDir = _playerController != null ? _playerController.MoveDirectionToWorldSpace() : Vector3.zero;
+        inputDir.y = 0f;
+        if (inputDir.sqrMagnitude > 0.01f) return inputDir.normalized;
+        Transform model = referencesContext.playerModel != null ? referencesContext.playerModel : transform;
+        Vector3 fwd = model.forward;
+        fwd.y = 0f;
+        return fwd.sqrMagnitude > 0.01f ? fwd.normalized : Vector3.forward;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        targetingSystem?.DrawGizmos();
     }
 }

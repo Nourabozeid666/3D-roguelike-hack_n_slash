@@ -9,20 +9,30 @@ public class DamageHitboxHelper : MonoBehaviour
     [SerializeField] private LayerMask targetLayers;
     [SerializeField] private Collider hitboxCollider;
     private readonly HashSet<int> hitTargetIDs = new HashSet<int>();
+    private float lastHitTime = 0f;
+    [SerializeField] private float clearAfterSeconds = 1f;
 
     private bool isActive = true;
     public bool IsActive { get { return isActive; } }
-    void Start()
+
+    void Awake()
     {
         if (hitboxCollider == null)
         {
-            isActive = false;
-            Debug.LogWarning("Hitbox Collider is not assigned. Disabling DamageHitboxHelper. " + gameObject.name);
+            hitboxCollider = GetComponent<Collider>();
         }
-        else
+
+        if (hitboxCollider == null)
         {
-            hitboxCollider.enabled = false;
+            isActive = false;
+            Debug.LogWarning("Hitbox Collider is not assigned. Disabling DamageHitboxHelper on " + gameObject.name, this);
         }
+    }
+
+    void Start()
+    {
+        if (!isActive) return;
+        DisableHitbox();
     }
 
     void OnEnable()
@@ -37,48 +47,90 @@ public class DamageHitboxHelper : MonoBehaviour
         DisableHitbox();
     }
 
+    public void ResetHitTargets()
+    {
+        hitTargetIDs.Clear();
+    }
+
+    public void EnableHitbox()
+    {
+        if (!isActive) return;
+        hitTargetIDs.Clear();
+        if (!gameObject.activeSelf)
+        {
+            gameObject.SetActive(true);
+        }
+        if (hitboxCollider != null)
+        {
+            hitboxCollider.enabled = true;
+        }
+    }
+
+    public void DisableHitbox()
+    {
+        if (!isActive) return;
+        if (hitboxCollider != null)
+        {
+            hitboxCollider.enabled = false;
+        }
+        hitTargetIDs.Clear();
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         if (!isActive) return;
         Debug.Log($"Hitbox triggered by {other.gameObject.name} on layer {LayerMask.LayerToName(other.gameObject.layer)}", this);
+
         // 1. Instant bitwise layer check
-        if (targetLayers.value != 0 && ((1 << other.gameObject.layer) & targetLayers.value) == 0) {
+        if (targetLayers.value != 0 && ((1 << other.gameObject.layer) & targetLayers.value) == 0)
+        {
             Debug.Log($"Hitbox triggered by {other.gameObject.name} but its layer is not in the target layers. Ignoring.", this);
-            return;}
+            return;
+        }
 
         // 2. Optional tag check (if tags are specified)
         if (tagsToHandle != null && tagsToHandle.Length > 0 && !HasMatchingTag(other))
-
         {
             Debug.Log($"Hitbox triggered by {other.gameObject.name} but its tag is not in the target tags. Ignoring.", this);
             return;
         }
 
-        // 3. Resolve target root to prevent hitting multiple child colliders on the same entity
+        // 3. Resolve target entity and root object
         Transform targetRoot = other.transform.root != null ? other.transform.root : other.transform;
-        int targetId = targetRoot.GetInstanceID();
+        IEntity entity = null;
+        GameObject targetGameObject = null;
 
-        // 4. O(1) deduplication check
+        if (other.TryGetComponent<IEntityProvider>(out var provider) ||
+            (provider = other.GetComponentInParent<IEntityProvider>()) != null ||
+            (targetRoot != null && targetRoot.TryGetComponent(out provider)))
+        {
+            entity = provider.Entity;
+            targetGameObject = (provider as Component)?.gameObject ?? targetRoot.gameObject;
+        }
+        else if (other.TryGetComponent<IEntity>(out var directEntity) ||
+                 (directEntity = other.GetComponentInParent<IEntity>()) != null ||
+                 (targetRoot != null && targetRoot.TryGetComponent(out directEntity)))
+        {
+            entity = directEntity;
+            targetGameObject = (directEntity as Component)?.gameObject ?? targetRoot.gameObject;
+        }
+
+        if (entity == null || targetGameObject == null)
+        {
+            return;
+        }
+
+        // 4. O(1) deduplication check per entity
+        int targetId = targetGameObject.GetInstanceID();
         if (!hitTargetIDs.Add(targetId))
-           {
+        {
             Debug.Log($"Hitbox triggered by {other.gameObject.name} but this target has already been hit. Ignoring.", this);
             return;
-           }
-
-        // 5. Direct generic entity resolution (zero reflection)
-        if (other.TryGetComponent<IEntityProvider>(out var provider) ||
-            targetRoot.TryGetComponent(out provider))
-        {
-            OnHitboxTriggered?.Invoke(targetRoot.gameObject, provider.Entity);
-            return;
         }
+        lastHitTime = Time.time;
 
-        if (other.TryGetComponent<IEntity>(out var entity) ||
-            targetRoot.TryGetComponent(out entity))
-        {
-            OnHitboxTriggered?.Invoke(targetRoot.gameObject, entity);
-            return;
-        }
+        // 5. Invoke hit event
+        OnHitboxTriggered?.Invoke(targetGameObject, entity);
     }
 
     private bool HasMatchingTag(Collider col)
@@ -92,17 +144,15 @@ public class DamageHitboxHelper : MonoBehaviour
         return false;
     }
 
-    void EnableHitbox()
+    void Update()
     {
-        if (!isActive) return;
-        hitTargetIDs.Clear();
-        hitboxCollider.enabled = true;
-    }
-
-    void DisableHitbox()
-    {
-        if (!isActive) return;
-        hitboxCollider.enabled = false;
-        hitTargetIDs.Clear();
+        if (hitTargetIDs.Count > 0)
+        {
+            // Clear the hit target IDs after a certain time
+            if (Time.time - lastHitTime > clearAfterSeconds)
+            {
+                hitTargetIDs.Clear();
+            }
+        }
     }
 }
