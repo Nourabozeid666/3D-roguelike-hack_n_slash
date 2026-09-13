@@ -58,8 +58,6 @@ internal class RangedShootAttack : CombatActionState
 
         if (elapsed >= config.Duration && shotsFired >= config.ProjectileCount)
             IsFinished = true;
-
-        agent.isStopped = false;
     }
 
     private void FireProjectile()
@@ -80,5 +78,11 @@ internal class RangedShootAttack : CombatActionState
         projectile.Launch(firePoint.position, aimTarget, config.ProjectileSpeed, config.Damage);
     }
 
-    public override void Exit() { }
+    public override void Exit()
+    {
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+        }
+    }
 }

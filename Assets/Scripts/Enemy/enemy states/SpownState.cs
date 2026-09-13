@@ -33,7 +33,7 @@ public class SpownState : EnemyState
 
     IEnumerator UpdateCoroutine()
     {
-        yield return new WaitForSeconds(3f);
-        enemyController.SetState<PatrolState>();
+        yield return new WaitForSeconds(0.5f);
+        enemyController.SetState<ChaseState>();
     }
 }

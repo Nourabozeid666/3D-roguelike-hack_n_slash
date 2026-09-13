@@ -57,7 +57,7 @@ internal class SacrificeAttack : CombatActionState
         currentPhase = Phase.Aiming;
         fuseTimer = 0f;
         IsFinished = false;
-        animator.Play(Animator.StringToHash("Attack1"), 0, 0f);
+        animator.Play(Animator.StringToHash("Explode"), 0, 0f);
         agent.isStopped = false;
     }
 
@@ -66,15 +66,15 @@ internal class SacrificeAttack : CombatActionState
         if (currentPhase == Phase.Exploding)
             return;
 
-        float distanceFromThePlayer = Vector3.Distance(enemyController.transform.position, target.position);
-        if(distanceFromThePlayer > maxAttackRange)
-        {
-            enemyController.SetState<ChaseState>();
-            return;
-        }
-
         if (currentPhase == Phase.Aiming)
         {
+            float distanceFromThePlayer = Vector3.Distance(enemyController.transform.position, target.position);
+            if (distanceFromThePlayer > maxAttackRange)
+            {
+                enemyController.SetState<ChaseState>();
+                return;
+            }
+
             UpdateCircleAroundTarget();
         }
 

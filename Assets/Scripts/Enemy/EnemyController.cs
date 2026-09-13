@@ -115,6 +115,7 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
     public Animator Animator => animator;
     public Transform TargetTransform => targetTransform;
     public EnemyAttackConfig EnemyAttackConfig => enemyAttackConfig;
+    public bool IsRangedEnemy => CompareTag("Ranged Enemy") || GetComponent<RangedAttackComponents>() != null;
 
 
     // ISpawnStatConfig: SpawnSystem reads the enemy's base stats and pushes the floor-scaled
@@ -163,7 +164,10 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
         attackHit = GetComponentInChildren<DamageHitboxHelper>();
         PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (player != null)
+        {
             targetTransform = player.transform;
+            hasTarget = true;
+        }
         else
             Debug.LogWarning($"{name}: no PlayerController found in scene.", this);
     }
@@ -206,8 +210,8 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
         AddState(new StaggerState(this));
         AddState(new DieState(this));
         AddState(new ExplodeState(this));
-        // set the first state the enemy will enter
-        SetState<SpownState>();
+        // set the first state the enemy will enter: immediately chase the player
+        SetState<ChaseState>();
 
         agent.stoppingDistance = waypointStoppingDistance;
     }
@@ -311,15 +315,8 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
 
         Vector3 direction = targetTransform.position - transform.position;
         float distance = direction.magnitude;
-        float angle = Vector3.Angle(direction, transform.forward);
 
-        if (!hasTarget)
-        {
-            bool playerViewed = angle <= viewHalfAngle && distance <= detectionDistance;
-            if (!playerViewed)
-                return;
-            hasTarget = true;
-        }
+        hasTarget = true;
 
         if (distance <= attackRange && canAttack)
         {
@@ -328,17 +325,8 @@ public class EnemyController : MonoBehaviour, IEnemySpawned, ISpawnStatConfig, I
             return;
         }
 
-        if (distance >= loseTargetDistance)
-        {
-            hasTarget = false;
-            SetState<PatrolState>();
-            return;
-        }
-
+        // PatrolState is disabled: enemies stay focused on the player in ChaseState
         SetState<ChaseState>();
-        Vector3 lookAtVector = new Vector3(targetTransform.position.x, transform.position.y, targetTransform.position.z);
-        transform.LookAt(lookAtVector);
-        agent.SetDestination(lookAtVector);
     }
 
     private void HandleDied()

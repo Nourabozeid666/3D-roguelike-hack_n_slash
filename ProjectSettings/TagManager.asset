@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Enemy
   - Throw
+  - Ranged Enemy
   layers:
   - Default
   - TransparentFX

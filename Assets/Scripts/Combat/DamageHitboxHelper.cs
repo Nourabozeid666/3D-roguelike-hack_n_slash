@@ -85,7 +85,9 @@ public class DamageHitboxHelper : MonoBehaviour
     {
         for (int i = 0; i < tagsToHandle.Length; i++)
         {
-            if (col.CompareTag(tagsToHandle[i])) return true;
+            string expectedTag = tagsToHandle[i];
+            if (col.CompareTag(expectedTag)) return true;
+            if (expectedTag == "Enemy" && col.CompareTag("Ranged Enemy")) return true;
         }
         return false;
     }
