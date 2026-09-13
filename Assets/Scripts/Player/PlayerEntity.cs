@@ -92,31 +92,51 @@ public class PlayerEntity : IEntity
 
     public void TakeDamage(float damage, AttackEffectData effectData = null)
     {
-        bool isParry = combatController.CheckParry(out float multiplier, out bool isBlock);
-        if (combatController != null && isParry)
+        if (combatController == null)
+        {
+            Debug.LogError("PlayerEntity: CombatController is missing.");
+            return;
+        }
+
+        bool isParry = combatController.CheckParry(
+            out float multiplier,
+            out bool isBlock
+        );
+
+        if (isParry)
         {
             combatController.CounterParry();
-            return; // Exit early: parry handled, no further damage processing needed.
+            return; // Parry handled, no damage taken.
         }
-        health -= CalculateDamageReduction(damage * multiplier);
+
+        float finalDamage = CalculateDamageReduction(damage * multiplier);
+        health -= finalDamage;
+
         if (isBlock)
         {
-            // Add some knockback ? 
-            combatController.ExecuteKnockback(0.1f, -playerController.ReferencesContext.playerModel.forward, 200f).Forget();
+            // Add some knockback?
+            combatController.ExecuteKnockback(
+                0.1f,
+                -playerController.ReferencesContext.playerModel.forward,
+                200f
+            ).Forget();
         }
         else
         {
-            OnDamageTaken?.Invoke(damage, effectData);
+            OnDamageTaken?.Invoke(finalDamage, effectData);
         }
-        if (health < 0) {
-            health = 0;
-            // Fire exactly once per life: repeated post-death hits must not re-raise OnDied.
+
+        if (health <= 0f)
+        {
+            health = 0f;
+
+            // Fire exactly once per life.
             if (!isDead)
             {
                 isDead = true;
                 OnDied?.Invoke();
             }
-        };
+        }
     }
 
     public void Heal(float healAmount)
