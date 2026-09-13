@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
@@ -24,16 +24,29 @@ public class DemoEndController : MonoBehaviour
 
     void Start()
     {
-        if (returnToMenuButton != null)
+        // The scene may not serialize a button; build one at runtime so the end screen always has a
+        // clickable way back (matches how the rest of the Roguelike UI is runtime-built).
+        if (returnToMenuButton == null)
         {
-            returnToMenuButton.onClick.AddListener(ReturnToMenu);
+            Button built = PlayerUiKit.Button("ReturnToMenuButton", transform, new Color(0.2f, 0.2f, 0.25f, 1f));
+            PlayerUiKit.StyleButton(built);
+            PlayerUiKit.Pin(built.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -120), new Vector2(360, 60));
+
+            Text label = PlayerUiKit.Text("Label", built.transform, 24, TextAnchor.MiddleCenter, Color.white);
+            PlayerUiKit.Stretch(label.rectTransform);
+            label.text = "RETURN TO MAIN MENU";
+
+            returnToMenuButton = built;
         }
+        returnToMenuButton.onClick.AddListener(ReturnToMenu);
     }
 
     void Update()
     {
         // Allow pressing Escape, Enter, or Space to return to main menu
-        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        Keyboard kb = Keyboard.current;
+        if (kb != null
+            && (kb.escapeKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame))
         {
             ReturnToMenu();
         }
@@ -41,9 +54,6 @@ public class DemoEndController : MonoBehaviour
 
     public void ReturnToMenu()
     {
-        Time.timeScale = 1f;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-        SceneManager.LoadScene(mainMenuSceneName);
+        SceneTransitioner.RequestScene(mainMenuSceneName, SceneTransitioner.Destination.Menu);
     }
 }

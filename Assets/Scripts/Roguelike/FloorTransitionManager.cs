@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -267,13 +266,12 @@ public class FloorTransitionManager : MonoBehaviour
         // 4. Save full checkpoint including player build
         SaveCheckpoint();
 
-        // 5. Load next region scene
-        string targetScene = nextRegion != null ? nextRegion.sceneName : "basic game scene";
+        // 5. Load next region scene through the transition system
+        string targetScene = nextRegion != null ? nextRegion.sceneName : RunBootstrap.GameSceneName;
         RunSession.EnterFromMenu = true;
-        Time.timeScale = 1f;
 
         Debug.Log($"[FloorTransitionManager] Loading scene for Region {nextRegionIndex + 1}: {targetScene}");
-        SceneManager.LoadScene(targetScene);
+        SceneTransitioner.RequestScene(targetScene, SceneTransitioner.Destination.Game);
     }
 
     IEnumerator VictoryFinaleRoutine()
@@ -294,11 +292,8 @@ public class FloorTransitionManager : MonoBehaviour
         RunSaveService saves = new RunSaveService();
         saves.Delete();
 
-        // 3. Switch to DemoEnd scene
-        Time.timeScale = 1f;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-        SceneManager.LoadScene("DemoEnd");
+        // 3. Switch to DemoEnd scene through the transition system (menu destination handles cursor)
+        SceneTransitioner.RequestScene("DemoEnd", SceneTransitioner.Destination.Menu);
     }
 
     void RepositionPlayerToEntrance()
@@ -493,8 +488,7 @@ public class FloorTransitionManager : MonoBehaviour
         finaleMenuButton = btnGo.AddComponent<Button>();
         finaleMenuButton.onClick.AddListener(() =>
         {
-            Time.timeScale = 1f;
-            SceneManager.LoadScene("MainMenu");
+            SceneTransitioner.RequestScene("MainMenu", SceneTransitioner.Destination.Menu);
         });
 
         GameObject btnTextGo = new GameObject("ButtonText");

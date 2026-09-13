@@ -34,6 +34,11 @@ public class PlayerUiBootstrap : MonoBehaviour
     public UpgradeSelectController UpgradeSelectController { get; private set; }
     public GameOverScreenController GameOverScreenController { get; private set; }
 
+    /// <summary>The real production HUD source bound in ConnectRealHudSource (null outside the
+    /// menu-entry path). Exposed so RoguelikeProgressionBootstrap can attach the live XP/level feed
+    /// regardless of Start-order between the two bootsraps.</summary>
+    public RunPlayerHudSource RealHudSource { get; private set; }
+
     [SerializeField] private bool enableDemoDriver = true;
 
     IPlayerHudSource boundHud;
@@ -65,7 +70,18 @@ public class PlayerUiBootstrap : MonoBehaviour
         PlayerController player = UnityEngine.Object.FindFirstObjectByType<PlayerController>();
         if (runBootstrap == null || player == null || player.Entity == null) return;
 
-        RunPlayerHudSource source = new RunPlayerHudSource(player.Entity, () => runBootstrap.Run.CurrentFloor);
+        // Find the progression host if it was already created (Awake/AfterSceneLoad).
+        // If not yet present, RoguelikeProgressionBootstrap will attach via SetProgression in its
+        // own Start, covering whichever Start ordering occurs.
+        RoguelikeProgressionBootstrap progressionHost =
+            UnityEngine.Object.FindFirstObjectByType<RoguelikeProgressionBootstrap>();
+        ProgressionSystem progression = progressionHost != null ? progressionHost.Progression : null;
+
+        RunPlayerHudSource source = new RunPlayerHudSource(
+            player.Entity,
+            () => runBootstrap.Run.CurrentFloor,
+            progression);
+        RealHudSource = source;
         source.Enable();
         BindHudSource(source);
     }

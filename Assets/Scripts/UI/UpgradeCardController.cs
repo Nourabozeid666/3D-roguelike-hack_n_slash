@@ -9,7 +9,7 @@ using UnityEngine.UI;
 /// hardcoded). Clicking raises Clicked(index); the screen controller forwards it to the presenter's
 /// Select. Unity-only: the pick/lock rules live in the harness-tested presenter.
 /// </summary>
-public class UpgradeCardController : MonoBehaviour, IUpgradeCardView, UnityEngine.EventSystems.IPointerClickHandler
+public class UpgradeCardController : MonoBehaviour, IUpgradeCardView
 {
     static readonly Color CardBackColor = new Color(0.12f, 0.13f, 0.18f, 0.96f);
     static readonly Color SelectedBorderColor = new Color(0.42f, 0.62f, 0.95f, 1f);
@@ -30,11 +30,6 @@ public class UpgradeCardController : MonoBehaviour, IUpgradeCardView, UnityEngin
     Text valueText;
     Text descriptionText;
     CanvasGroup group;
-
-    public void OnPointerClick(UnityEngine.EventSystems.PointerEventData eventData)
-    {
-        TriggerClick();
-    }
 
     public void TriggerClick()
     {

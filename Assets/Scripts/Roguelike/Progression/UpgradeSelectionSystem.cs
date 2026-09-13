@@ -210,6 +210,14 @@ public class UpgradeSelectionSystem : IUpgradeSource
         isSelecting = false;
         if (selectController != null) selectController.Hide();
         if (selectPresenter != null) selectPresenter.Dismiss();
+
+        // Death race: when the player died mid-offer, GameOverFlow owns the freeze and cursor
+        // (Time.timeScale stays 0, cursor unlocked). Restoring gameplay state here would fight it.
+        bool playerDead = playerController != null
+            && playerController.Entity != null
+            && playerController.Entity.IsDead;
+        if (playerDead) return;
+
         Time.timeScale = previousTimeScale;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;

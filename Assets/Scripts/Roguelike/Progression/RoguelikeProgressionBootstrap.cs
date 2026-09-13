@@ -92,6 +92,14 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
         PlayerUiDemoDriver demo = playerUi.GetComponent<PlayerUiDemoDriver>();
         if (demo != null) demo.enabled = false;
 
+        // Attach the real XP/level feed to the production HUD source already bound by
+        // PlayerUiBootstrap (no-op when PlayerUiBootstrap.Start has not run yet — it passes the
+        // progression in its own construction then).
+        if (playerUi != null)
+        {
+            playerUi.RealHudSource?.SetProgression(Progression);
+        }
+
         // Create UpgradeSelectionSystem
         if (playerUi != null && Progression != null)
         {
@@ -302,6 +310,12 @@ public class RoguelikeProgressionBootstrap : MonoBehaviour
         }
 
         UpdateHud();
+        if (playerUi != null)
+        {
+            // Restore mutated Progression.Data directly (no XP event fires), so re-snapshot the
+            // real source explicitly to surface the restored level/XP on the HUD.
+            playerUi.RealHudSource?.Refresh();
+        }
     }
 
     void HandleRetryRequested()

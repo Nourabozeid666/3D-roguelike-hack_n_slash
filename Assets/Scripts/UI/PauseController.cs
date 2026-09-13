@@ -14,6 +14,10 @@ public class PauseController : MonoBehaviour
 
     private bool isPaused = false;
 
+    /// <summary>Cached, lazily-resolved progression host used to block pause while the upgrade
+    /// selection modal owns the screen (Time.timeScale is already frozen there).</summary>
+    private RoguelikeProgressionBootstrap progression;
+
     void Start()
     {
         resumeButton.onClick.AddListener(Resume);
@@ -24,6 +28,14 @@ public class PauseController : MonoBehaviour
     void Update()
     {
         if (SceneTransitioner.IsBusy) return;
+
+        // While an upgrade offer is on screen the pause menu must not stack on top of it (both
+        // freeze time and own the cursor). Resolve lazily so creation order never matters.
+        if (progression == null)
+        {
+            progression = FindFirstObjectByType<RoguelikeProgressionBootstrap>();
+        }
+        if (progression != null && progression.IsSelectingUpgrade) return;
 
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
@@ -39,6 +51,8 @@ public class PauseController : MonoBehaviour
 
     public void TogglePause()
     {
+        if (progression != null && progression.IsSelectingUpgrade) return;
+
         if (isPaused)
         {
             if (settingsPanel != null && settingsPanel.activeSelf)

@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -197,16 +196,11 @@ public class SwitchScene : MonoBehaviour
         RunSaveService saves = new RunSaveService();
         saves.Delete();
 
-        // Restore timeScale and cursor for DemoEnd scene
-        Time.timeScale = 1f;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
-
         OnSequenceCompleted?.Invoke();
 
-        // 11. Switch to DemoEnd scene
+        // 11. Switch to DemoEnd scene through the transition system (menu destination handles cursor)
         Debug.Log($"[SwitchScene] Loading target scene: {targetSceneName}");
-        SceneManager.LoadScene(targetSceneName);
+        SceneTransitioner.RequestScene(targetSceneName, SceneTransitioner.Destination.Menu);
     }
 
     IEnumerator PlaySelectSoundsRoutine()
